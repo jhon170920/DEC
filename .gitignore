@@ -1,0 +1,4 @@
+# --- IGNORE ---
+frontend/DEC/node_modules/
+# --- IGNORE ---
+backend/node_modules/

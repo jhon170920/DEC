@@ -1,0 +1,22 @@
+# Comentarios: Ignorar archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Ignorar dependencias y directorios de compilación
+node_modules/
+dist/
+build/
+
+# Ignorar archivos de configuración local
+.env
+.env.local
+
+# Ignorar logs
+*.log
+# Ignorar archivos de sistema específicos de IDEs
+.vscode/
+.idea/
+# Ignorar archivos de sistema específicos de sistemas operativos
+*.swp
+*.swo
+
