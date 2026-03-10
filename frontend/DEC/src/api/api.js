@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:8000/api';   //Remplaza con tu IP local si usas expo GO desde un movil. 
+const BASE_URL = 'http://10.4.1.208:8089/api';   //Remplaza con tu IP local si usas expo GO desde un movil. 
                                                 // EJEMPLO: 'http://192.168.1.XX:8081/api'
 const api = axios.create({
     baseURL: BASE_URL,

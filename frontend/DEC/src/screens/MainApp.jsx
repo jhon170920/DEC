@@ -36,9 +36,6 @@ export default function MainApp() {
         {/* IMAGEN PRINCIPAL */}
         <View style={styles.imageContainer}>
           <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6"
-            }}
             style={styles.image}
           />
         </View>
