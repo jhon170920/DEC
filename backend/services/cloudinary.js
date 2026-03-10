@@ -1,5 +1,4 @@
 import { v2 as cloudinary } from 'cloudinary';
-import { CloudinaryStorage } from 'multer-storage-cloudinary'; // este estilo de importacion funciona solo con la version 1.41.0 de cloudanary con otras salta error
 import multer from 'multer';
 
 cloudinary.config({
@@ -8,16 +7,43 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: async (req, file) => {
-    console.log("--- MULTER INICIANDO SUBIDA ---");
-    return{
-    folder: 'plant_detections', // Carpeta donde se guardarán en la nube
-    allowed_formats: ['jpg', 'png', 'jpeg'],
-    public_id: `test_${Date.now()}`, // Nombre único
-  };
+// Multer guarda el archivo en memoria como un Buffer (sin disco, sin cloudinary-storage)
+// Esto es compatible con cualquier versión de cloudinary y con Node.js v24+
+const storage = multer.memoryStorage();
+
+export const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten imágenes JPG y PNG'), false);
+    }
   },
+  limits: { fileSize: 10 * 1024 * 1024 } // 10 MB máximo
 });
 
-export const upload = multer({ storage: storage });
+// Helper para subir el buffer de memoria a Cloudinary
+// Retorna la URL segura del archivo subido
+export const uploadToCloudinary = (fileBuffer, mimetype) => {
+  return new Promise((resolve, reject) => {
+    const resourceType = mimetype.startsWith('image/') ? 'image' : 'raw';
+
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'plant_detections',
+        public_id: `detection_${Date.now()}`,
+        resource_type: resourceType,
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result.secure_url);
+      }
+    );
+
+    uploadStream.end(fileBuffer);
+  });
+};
+
+export default cloudinary;

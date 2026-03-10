@@ -1,4 +1,5 @@
 import Detections from "../models/Detection.js";
+import { uploadToCloudinary } from "../services/cloudinary.js"; // ajusta la ruta si es diferente
 
 // Obtener el historial del usuario logueado
 export const getUserHistory = async (req, res) => {
@@ -13,13 +14,20 @@ export const getUserHistory = async (req, res) => {
 
 export const saveDetection = async (req, res) => {
     try {
-        // 1. Extraemos los datos del body y el path del archivo subido
-        const { plantName, pathology, confidence, treatment } = req.body;
-        const imageUrl = req.file.path; // La URL de Cloudinary que acabas de obtener
+        // 1. Validar que se haya subido un archivo
+        if (!req.file) {
+            return res.status(400).json({ message: "No se recibió ninguna imagen." });
+        }
 
-        // 2. Creamos el nuevo registro vinculado al ID del usuario (que viene del JWT)
+        // 2. Subir el buffer en memoria a Cloudinary y obtener la URL
+        const imageUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
+
+        // 3. Extraer el resto de datos del body
+        const { plantName, pathology, confidence, treatment } = req.body;
+
+        // 4. Crear el registro vinculado al usuario (viene del JWT)
         const newDetection = new Detections({
-            userId: req.user.id, 
+            userId: req.user.id,
             plantName,
             pathology,
             confidence: parseFloat(confidence),
@@ -27,7 +35,7 @@ export const saveDetection = async (req, res) => {
             treatment
         });
 
-        // 3. Guardamos en MongoDB
+        // 5. Guardar en MongoDB
         await newDetection.save();
 
         res.status(201).json({
