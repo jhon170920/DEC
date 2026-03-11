@@ -187,6 +187,7 @@ const {
               onChangeText={setEmail}
               keyboardType="email-address"
               fieldHeight={fieldH}
+              
             />
             <Field
               label="Contraseña"
