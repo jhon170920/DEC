@@ -13,38 +13,13 @@ import { View,
   StatusBar,
   useWindowDimensions, } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as SecureStore from 'expo-secure-store';
 import { useNavigation } from '@react-navigation/native'; // Para navegar al login
 import axios from 'axios';
+import { Colors } from '../constants/colors';
 
 // Cambia por tu IP real de la computadora
 const API_URL = "http://10.4.1.208:8081/api/register"; 
-// ─── TOKENS DE COLOR ───────────────────────────────────────
-const C = {View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  Animated,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
-  useWindowDimensions,
-  bg:           '#f4faf5',
-  surface:      '#ffffff',
-  surfaceAlt:   '#f0faf3',
-  border:       '#dceee2',
-  borderFocus:  '#22c55e',
-  primary:      '#16a34a',
-  primaryLight: '#22c55e',
-  text:         '#0f2d1a',
-  textMid:      '#2d6a4f',
-  textSoft:     '#5a8a6a',
-  textMuted:    '#8aad96',
-};
+
 // ─── CAMPO CON FLOATING LABEL ──────────────────────────────
 const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, rightSlot, fieldHeight }) => {
   const [focused, setFocused] = useState(false);
@@ -58,8 +33,8 @@ const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, righ
 
   const labelTop    = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [fieldHeight * 0.28, fieldHeight * 0.10] });
   const labelSize   = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 10] });
-  const labelColor  = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [C.textMuted, C.primaryLight] });
-  const borderColor = borderAnim.interpolate({ inputRange: [0, 1], outputRange: [C.border, C.borderFocus] });
+  const labelColor  = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [Colors.textMuted, Colors.primaryLight] });
+  const borderColor = borderAnim.interpolate({ inputRange: [0, 1], outputRange: [Colors.border, Colors.borderFocus] });
 
   return (
     <Animated.View style={[styles.field, { borderColor, height: fieldHeight }]}>
@@ -79,7 +54,7 @@ const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, righ
           autoCapitalize="none"
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          selectionColor={C.primary}
+          selectionColor={Colors.primary}
         />
         {rightSlot}
       </View>
@@ -168,7 +143,7 @@ export default function Register() {
 
     return (
         <View style={styles.root}>
-            <StatusBar barStyle="dark-content" backgroundColor={C.bg} translucent={false} />
+            <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} translucent={false} />
 
         
         <LinearGradient colors={['#e8f5ec', '#f4faf5', '#f4faf5']} style={StyleSheet.absoluteFill}
@@ -319,7 +294,7 @@ export default function Register() {
 const styles = StyleSheet.create({
     root:{
         flex:1,
-        backgroundColor: C.bg,
+        backgroundColor: Colors.bg,
     },
     container: {
         flex: 1,
@@ -328,12 +303,12 @@ const styles = StyleSheet.create({
     // Logo
       logoContainer: { alignItems: 'center' },
       logoRing: {
-        backgroundColor: C.surfaceAlt,
+        backgroundColor: Colors.surfaceAlt,
         borderWidth: 1.5,
-        borderColor: C.border,
+        borderColor: Colors.border,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: C.primary,
+        shadowColor: Colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.12,
         shadowRadius: 12,
@@ -341,11 +316,11 @@ const styles = StyleSheet.create({
       },
       brandName: {
         fontWeight: '800',
-        color: C.text,
+        color: Colors.text,
         letterSpacing: -0.3,
       },
       tagline: {
-        color: C.textMuted,
+        color: Colors.textMuted,
         marginTop: 2,
         letterSpacing: 0.3,
       },
@@ -353,24 +328,24 @@ const styles = StyleSheet.create({
       // Headline
       headline: {
         fontWeight: '300',
-        color: C.text,
+        color: Colors.text,
         letterSpacing: -0.5,
         marginBottom: 6,
         fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
       },
       headlineAccent: {
         fontStyle: 'italic',
-        color: C.primary,
+        color: Colors.primary,
         fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
       },
       subline: {
-        color: C.textSoft,
+        color: Colors.textSoft,
         lineHeight: 19,
       },
     
       // Campos
       field: {
-        backgroundColor: C.surface,
+        backgroundColor: Colors.surface,
         borderRadius: 16,
         borderWidth: 1.5,
         paddingHorizontal: 16,
@@ -397,7 +372,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 15,
         fontWeight: '600',
-        color: C.text,
+        color: Colors.text,
         paddingTop: 8,
         paddingBottom: 0,
       },
@@ -406,14 +381,14 @@ const styles = StyleSheet.create({
     
       // Meta
       metaRow:    { alignItems: 'flex-end' },
-      forgotText: { fontSize: 12.5, color: C.textSoft, fontWeight: '500' },
-      forgotLink: { color: C.primary, fontWeight: '700' },
+      forgotText: { fontSize: 12.5, color: Colors.textSoft, fontWeight: '500' },
+      forgotLink: { color: Colors.primary, fontWeight: '700' },
     
       // Botón primario
       btnPrimary: {
         borderRadius: 16,
         overflow: 'hidden',
-        shadowColor: C.primary,
+        shadowColor: Colors.primary,
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.32,
         shadowRadius: 14,
@@ -431,20 +406,20 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         backgroundColor: 'transparent',
       },
-      btnGhostText: { color: C.textMid, fontSize: 14, fontWeight: '600', letterSpacing: 0.2 },
+      btnGhostText: { color: Colors.textMid, fontSize: 14, fontWeight: '600', letterSpacing: 0.2 },
     
       // Divisor
       divider: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-      divLine: { flex: 1, height: 1, backgroundColor: C.border },
-      divText: { fontSize: 10.5, fontWeight: '600', color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' },
+      divLine: { flex: 1, height: 1, backgroundColor: Colors.border },
+      divText: { fontSize: 10.5, fontWeight: '600', color: Colors.textMuted, letterSpacing: 1, textTransform: 'uppercase' },
     
       // Social
       socialRow: { flexDirection: 'row', gap: 10 },
       socialBtn: {
         flex: 1,
-        backgroundColor: C.surface,
+        backgroundColor: Colors.surface,
         borderWidth: 1.5,
-        borderColor: C.border,
+        borderColor: Colors.border,
         borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
@@ -455,10 +430,10 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
         elevation: 1,
       },
-      socialLabel: { fontSize: 11, fontWeight: '700', color: C.textMid, letterSpacing: 0.2 },
+      socialLabel: { fontSize: 11, fontWeight: '700', color: Colors.textMid, letterSpacing: 0.2 },
     
       // Footer
       loginRow: { alignItems: 'center' },
-      loginText: { fontSize: 13, color: C.textMuted, fontWeight: '500' },
-      loginLink: { color: C.primary, fontWeight: '800' },
+      loginText: { fontSize: 13, color: Colors.textMuted, fontWeight: '500' },
+      loginLink: { color: Colors.primary, fontWeight: '800' },
     });
