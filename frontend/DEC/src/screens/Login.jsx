@@ -22,6 +22,8 @@ import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { Colors } from '../constants/colors';
 import { LoginStyles as styles } from '../styles/Loginstyles';
 
+
+
 const API_URL = "http://10.4.1.208:8089/api/login";
 
 
@@ -164,8 +166,8 @@ const {
               {/* LOGO */}
               <Image
                 source={require("../../assets/image/logo.png")}
-                style={{ width: logoImgS, height: logoImgS }}
-                resizeMode="contain"
+                style={{ width: '100%', height: '100%', borderRadius: 8, }}
+                resizeMode="container"
               />
             </View>
           </View>
