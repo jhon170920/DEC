@@ -1,6 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
+import React, { useState, useRef, useEffect} from 'react';
+import { View,
   Text,
   TextInput,
   TouchableOpacity,
@@ -11,56 +10,59 @@ import {
   Animated,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StatusBar,
-} from 'react-native';
+  useWindowDimensions, } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import * as SecureStore from 'expo-secure-store';
+import { useNavigation } from '@react-navigation/native'; // Para navegar al login
 import axios from 'axios';
 
-const API_URL = "http://192.168.1.XX:8081/api/register";
-
-// ─── TOKENS DE DISEÑO (idénticos al Login) ─────────────────
-const C = {
-  bg:          '#f4faf5',
-  surface:     '#ffffff',
-  surfaceAlt:  '#f0faf3',
-  border:      '#dceee2',
-  borderFocus: '#22c55e',
-  primary:     '#16a34a',
-  primaryLight:'#22c55e',
-  text:        '#0f2d1a',
-  textMid:     '#2d6a4f',
-  textSoft:    '#5a8a6a',
-  textMuted:   '#8aad96',
+// Cambia por tu IP real de la computadora
+const API_URL = "http://localhost:8081/api/register"; 
+// ─── TOKENS DE COLOR ───────────────────────────────────────
+const C = {View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  useWindowDimensions,
+  bg:           '#f4faf5',
+  surface:      '#ffffff',
+  surfaceAlt:   '#f0faf3',
+  border:       '#dceee2',
+  borderFocus:  '#22c55e',
+  primary:      '#16a34a',
+  primaryLight: '#22c55e',
+  text:         '#0f2d1a',
+  textMid:      '#2d6a4f',
+  textSoft:     '#5a8a6a',
+  textMuted:    '#8aad96',
 };
-
-// ─── CAMPO CON FLOATING LABEL (mismo que Login) ────────────
-const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, rightSlot }) => {
+// ─── CAMPO CON FLOATING LABEL ──────────────────────────────
+const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, rightSlot, fieldHeight }) => {
   const [focused, setFocused] = useState(false);
   const labelAnim  = useRef(new Animated.Value(value ? 1 : 0)).current;
   const borderAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(labelAnim, {
-      toValue: focused || value ? 1 : 0,
-      duration: 180,
-      useNativeDriver: false,
-    }).start();
-    Animated.timing(borderAnim, {
-      toValue: focused ? 1 : 0,
-      duration: 180,
-      useNativeDriver: false,
-    }).start();
+    Animated.timing(labelAnim,  { toValue: focused || value ? 1 : 0, duration: 180, useNativeDriver: false }).start();
+    Animated.timing(borderAnim, { toValue: focused ? 1 : 0,          duration: 180, useNativeDriver: false }).start();
   }, [focused, value]);
 
-  const labelTop    = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [19, 7] });
-  const labelSize   = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [15, 10] });
+  const labelTop    = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [fieldHeight * 0.28, fieldHeight * 0.10] });
+  const labelSize   = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 10] });
   const labelColor  = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [C.textMuted, C.primaryLight] });
   const borderColor = borderAnim.interpolate({ inputRange: [0, 1], outputRange: [C.border, C.borderFocus] });
 
   return (
-    <Animated.View style={[styles.field, { borderColor }]}>
+    <Animated.View style={[styles.field, { borderColor, height: fieldHeight }]}>
       <Animated.Text
         style={[styles.floatingLabel, { top: labelTop, fontSize: labelSize, color: labelColor }]}
         pointerEvents="none"
@@ -85,398 +87,378 @@ const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, righ
   );
 };
 
-// ─── PANTALLA DE REGISTRO ──────────────────────────────────
 export default function Register() {
-  const navigation = useNavigation();
+    //CARGAR PRIMERO LA DIMENSION DE LA PANTALLA
+    const { width, height } = useWindowDimensions();
+    const navigation = useNavigation();
 
-  const [name,            setName]            = useState('');
-  const [email,           setEmail]           = useState('');
-  const [password,        setPassword]        = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPass,        setShowPass]        = useState(false);
-  const [showConfirm,     setShowConfirm]     = useState(false);
-  const [loading,         setLoading]         = useState(false);
+    // 1. Estados para el formulario
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPass, setShowPass] = useState(false);
+    const [loading, setLoading] = useState(false);
 
-  // Animación de entrada
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+    //ANIMACIONES ENTRADA Y CAMBIO DE PANALLAS
+      const fadeAnim  = useRef(new Animated.Value(0)).current;
+      const slideAnim = useRef(new Animated.Value(20)).current;
+        useEffect(() => {
+            Animated.parallel([
+              Animated.timing(fadeAnim,  { toValue: 1, duration: 600, useNativeDriver: true }),
+              Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+            ]).start();
+        }, []);
 
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim,  { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
-    ]).start();
-  }, []);
+            // ── Escala proporcional según altura de pantalla ──────────
+            const statusH  = Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight ?? 24);
+            const usableH  = height - statusH;
+          
+            const isSmall  = usableH < 680;   // ej: iPhone SE, pantallas <5.5"
+            const isMed    = usableH >= 680 && usableH < 780;
+          
+            const logoRingS = isSmall ? 68  : isMed ? 80  : 92;
+            const logoImgS  = isSmall ? 44  : isMed ? 54  : 62;
+            const headlineS = isSmall ? 26  : isMed ? 30  : 34;
+            const sublineS  = isSmall ? 12  : 13.5;
+            const fieldH    = isSmall ? 52  : isMed ? 56  : 60;
+            const btnH      = isSmall ? 46  : isMed ? 50  : 56;
+            const ghostH    = isSmall ? 40  : isMed ? 44  : 50;
+            const socialH   = isSmall ? 42  : isMed ? 46  : 52;
+            const iconS     = isSmall ? 18  : 22;
+            const brandS    = isSmall ? 15  : 17;
+          
+            // Espacios verticales como % de la altura útil
+            const sp = (pct) => usableH * pct;
 
-  // ── Lógica original intacta ──
-  const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
-      Alert.alert("Error", "Por favor completa todos los campos");
-      return;
-    }
-    if (password !== confirmPassword) {
-      Alert.alert("Error", "Las contraseñas no coinciden");
-      return;
-    }
+            const hPad = width * 0.072;
+    // 2. Lógica de registro
+    const handleRegister = async () => {
+        // Validaciones básicas
+        if (!name || !email || !password || !confirmPassword) {
+            Alert.alert("Error", "Por favor completa todos los campos");
+            return;
+        }
 
-    setLoading(true);
-    try {
-      await axios.post(API_URL, {
-        username: name,
-        email: email.toLowerCase().trim(),
-        password,
-      });
-      Alert.alert("¡Éxito!", "Cuenta creada correctamente. Ahora puedes iniciar sesión.");
-      navigation.navigate('Login');
-    } catch (error) {
-      console.error(error);
-      const message = error.response?.data?.message || "Error al conectar con el servidor";
-      Alert.alert("Error de Registro", message);
-    } finally {
-      setLoading(false);
-    }
-  };
+        if (password !== confirmPassword) {
+            Alert.alert("Error", "Las contraseñas no coinciden");
+            return;
+        }
 
-  return (
-    <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+        setLoading(true);
 
-      {/* Fondo con degradado suave — igual al Login */}
-      <LinearGradient
-        colors={['#e8f5ec', '#f4faf5', '#f4faf5']}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+        try {
+            const response = await axios.post(API_URL, {
+                username: name, // Ajusta según como reciba tu backend
+                email: email.toLowerCase().trim(),
+                password: password
+            });
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
+            Alert.alert("¡Éxito!", "Cuenta creada correctamente. Ahora puedes iniciar sesión.");
+            navigation.navigate('Login'); // Regresar al login tras éxito
+
+        } catch (error) {
+            console.error(error);
+            const message = error.response?.data?.message || "Error al conectar con el servidor";
+            Alert.alert("Error de Registro", message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <View style={styles.root}>
+            <StatusBar barStyle="dark-content" backgroundColor={C.bg} translucent={false} />
+
+        
+        <LinearGradient colors={['#e8f5ec', '#f4faf5', '#f4faf5']} style={StyleSheet.absoluteFill}
+        start={{x:0, y:0}}
+        end={{x:1, y:1}}
+        >
+        <KeyboardAvoidingView
+        style={{flex:1}}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-
-            {/* ── LOGO ── */}
-            <View style={styles.logoContainer}>
-              <View style={styles.logoRing}>
-                <Image
-                  source={require("../../assets/image/logo.png")}
-                  style={styles.logo}
-                  resizeMode="contain"
-                />
-              </View>
-            </View>
-
-            {/* ── TITULAR ── */}
-            <View style={styles.headlineBlock}>
-                <Text style={styles.headlineAccent}> crea tu cuenta.</Text>
-            </View>
-
-            {/* ── CAMPOS ── */}
-            <View style={styles.form}>
-              <Field
-                label="Nombre completo"
-                value={name}
-                onChangeText={setName}
-                keyboardType="default"
-              />
-              <Field
-                label="Correo electrónico"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-              />
-              <Field
-                label="Contraseña"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPass}
-                rightSlot={
-                  <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
-                    <Text style={styles.eyeIcon}>{showPass ? '🙈' : '👁'}</Text>
-                  </TouchableOpacity>
-                }
-              />
-              <Field
-                label="Confirmar contraseña"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirm}
-                rightSlot={
-                  <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)} style={styles.eyeBtn}>
-                    <Text style={styles.eyeIcon}>{showConfirm ? '🙈' : '👁'}</Text>
-                  </TouchableOpacity>
-                }
-              />
-            </View>
-
-            {/* ── BOTÓN REGISTRARSE ── */}
-            <TouchableOpacity
-              style={[styles.btnPrimary, loading && { opacity: 0.72 }]}
-              onPress={handleRegister}
-              disabled={loading}
-              activeOpacity={0.85}
+        >
+            <Animated.View
+            style={[styles.container,
+                {paddingHorizontal: hPad, opacity: fadeAnim, transform: [{translateY: slideAnim}]},
+            ]}
             >
-              <LinearGradient
-                colors={['#22c55e', '#16a34a', '#15803d']}
-                style={styles.btnPrimaryGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                {loading
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.btnPrimaryText}>Crear cuenta</Text>
-                }
-              </LinearGradient>
-            </TouchableOpacity>
 
-            {/* ── DIVISOR ── */}
-            <View style={styles.divider}>
-              <View style={styles.divLine} />
-              <Text style={styles.divText}>o regístrate con</Text>
-              <View style={styles.divLine} />
-            </View>
+               
+                {/* Logo */}
+                <View style={[styles.logoContainer, { marginBottom: sp(0.028) }]}>
+                    <View
+                    style={[
+                        styles.logoRing,{
+                            width: logoRingS,
+                            height: logoRingS,
+                            borderRadius: logoRingS / 2,
+                            marginBottom: 8,
+                        }
+                    ]}>
+                        <Image
+                        source={require("../../assets/image/logo.png")}
+                       style={{ width: logoImgS, height: logoImgS }}
+                        resizeMode="contain"
+                    />
+                    </View>
+                </View>
+                {/* Título */}
+                <View style={{ marginBottom: sp(0.030) }}>
+                    <Text style={[styles.headline, { fontSize: headlineS, lineHeight: headlineS * 1.18 }]}>Ingresa tus datos{'\n'}
+                        <Text style={styles.headlineAccent}>para continuar.</Text>
+                    </Text>
+                </View>
 
-            {/* ── SOCIAL ── */}
-            <View style={styles.socialRow}>
-              <TouchableOpacity style={styles.socialBtn}>
-                <Image source={require("../../assets/image/google.png")} style={styles.socialIcon} />
-                <Text style={styles.socialLabel}>Google</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.socialBtn}>
-                <Image source={require("../../assets/image/facebook.png")} style={styles.socialIcon} />
-                <Text style={styles.socialLabel}>Facebook</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.socialBtn}>
-                <Image source={require("../../assets/image/x.png")} style={styles.socialIcon} />
-                <Text style={styles.socialLabel}>Twitter</Text>
-              </TouchableOpacity>
-            </View>
+                {/* Formulario */}
+                <View style={{ gap: sp(0.014) }}>
+                    <Field
+                        label="Nombre"
+                        keyboardType="name"
+                        placeholder="Ingrese su nombre"
+                        placeholderTextColor="#4b6b5a"
+                        fieldHeight={fieldH}
+                        value={name}
+                        onChangeText={setName}
+                    />
+                    <Field
+                        label="Correo electrónico"
+                        placeholder="Ingrese su correo"
+                        placeholderTextColor="#4b6b5a"
+                        fieldHeight={fieldH}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        value={email}
+                        onChangeText={setEmail}
+                    />
+                    <Field
+                        label="Contraseña"
+                        placeholder="Ingrese la contraseña"
+                        placeholderTextColor="#4b6b5a"
+                        secureTextEntry={!showPass}
+                        fieldHeight={fieldH}
+                        value={password}
+                        onChangeText={setPassword}
+                        rightSlot={
+                            <TouchableOpacity onPress={()=>setShowPass(!showPass)}
+                            style={styles.eyeBtn}>
+                                <Text>{showPass? '⌣' : '👁'}</Text>
+                            </TouchableOpacity>
+                        }
+                    />
+                    <Field
+                        label="Confirmar contraseña"
+                        placeholder="Confirme su contraseña"
+                        placeholderTextColor="#4b6b5a"
+                        secureTextEntry={!showPass}
+                        fieldHeight={fieldH}
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        keyboardType="password"
+                    />
 
-            {/* ── FOOTER ── */}
-            <TouchableOpacity
-              style={styles.registerRow}
-              onPress={() => navigation.navigate('Login')}
-            >
-              <Text style={styles.registerText}>
-                ¿Ya tienes una cuenta?{' '}
-                <Text style={styles.registerLink}>Inicia sesión</Text>
-              </Text>
-            </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={[styles.btnPrimary, { marginBottom: sp(0.014) }, loading && { opacity: 0.72 }]}
+                        onPress={handleRegister}
+                        disabled={loading}
+                        activeOpacity={0.85}
+                    >
+                        <LinearGradient
+                            colors={['#22c55e', '#16a34a', '#15803d']}
+                            style={[styles.btnPrimaryGradient, { height: btnH }]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            {loading ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.btnPrimaryText} >Registrarse</Text>
+                        )}
+                        </LinearGradient>  
+                    </TouchableOpacity>
+                </View>
 
-          </Animated.View>
-      </KeyboardAvoidingView>
-    </View>
-  );
+                {/* Divisor */}
+                <View style={[styles.divider, { marginBottom: sp(0.022) }]}>
+                    <View style={styles.divLine} />
+                    <Text style={styles.divText}>Regístrate con</Text>
+                    <View  style={styles.divLine}/>
+                </View>
+
+                {/* Redes Sociales */}
+                <View style={[styles.socialRow, { marginBottom: sp(0.024) }]}>
+                            {[
+                              { img: require("../../assets/image/google.png"),   label: 'Google'   },
+                              { img: require("../../assets/image/facebook.png"), label: 'Facebook' },
+                              
+                            ].map(({ img, label }) => (
+                              <TouchableOpacity key={label} style={[styles.socialBtn, { height: socialH }]}>
+                                <Image source={img} style={{ width: iconS, height: iconS, resizeMode: 'contain' }} />
+                                <Text style={styles.socialLabel}>{label}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+
+                {/* Footer navegación al Login */}
+                <TouchableOpacity
+                    style={styles.loginRow}
+                    onPress={() => navigation.navigate('Login')}         
+                >
+                    <Text style={styles.loginText} >
+                        ¿Ya tienes una cuenta?{' '} <Text style={styles.loginLink} >Inicia sesión</Text>
+                    </Text>
+                </TouchableOpacity>
+                </Animated.View>
+        </KeyboardAvoidingView> 
+        </LinearGradient>
+        </View>
+    );
 }
 
-// ─── ESTILOS (espejo del Login) ────────────────────────────
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: 28,
-    paddingTop: Platform.OS === 'ios' ? 70 : 50,
-    paddingBottom: 48,
-  },
-
-  // Logo
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 28,
-  },
-  logoRing: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: C.surfaceAlt,
-    borderWidth: 1.5,
-    borderColor: C.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  logo: {
-    width: 56,
-    height: 56,
-  },
-  brandName: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: C.text,
-    letterSpacing: -0.3,
-  },
-  tagline: {
-    fontSize: 12,
-    color: C.textMuted,
-    marginTop: 3,
-    letterSpacing: 0.3,
-  },
-
-  // Headline
-  headlineBlock: {
-    marginBottom: 24,
-  },
-  headline: {
-    fontSize: 34,
-    lineHeight: 40,
-    fontWeight: '300',
-    color: C.text,
-    letterSpacing: -0.5,
-    marginBottom: 8,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  headlineAccent: {
-    fontStyle: 'italic',
-    color: C.primary,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  subline: {
-    fontSize: 14,
-    color: C.textSoft,
-    lineHeight: 20,
-  },
-
-  // Form
-  form: {
-    gap: 14,
-    marginBottom: 22,
-  },
-  field: {
-    backgroundColor: C.surface,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    paddingHorizontal: 16,
-    paddingTop: 22,
-    paddingBottom: 10,
-    minHeight: 62,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  floatingLabel: {
-    position: 'absolute',
-    left: 16,
-    fontWeight: '500',
-    letterSpacing: 0.2,
-  },
-  fieldRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  fieldInput: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    color: C.text,
-    paddingTop: 4,
-    paddingBottom: 0,
-  },
-  eyeBtn: {
-    paddingLeft: 8,
-    paddingVertical: 4,
-  },
-  eyeIcon: {
-    fontSize: 16,
-  },
-
-  // Botón primario
-  btnPrimary: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 26,
-    shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  btnPrimaryGradient: {
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnPrimaryText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-  },
-
-  // Divisor
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 20,
-  },
-  divLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: C.border,
-  },
-  divText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: C.textMuted,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-
-  // Social
-  socialRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 28,
-  },
-  socialBtn: {
-    flex: 1,
-    height: 52,
-    backgroundColor: C.surface,
-    borderWidth: 1.5,
-    borderColor: C.border,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  socialIcon: {
-    width: 22,
-    height: 22,
-    resizeMode: 'contain',
-  },
-  socialLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: C.textMid,
-    letterSpacing: 0.2,
-  },
-
-  // Footer
-  registerRow: {
-    alignItems: 'center',
-  },
-  registerText: {
-    fontSize: 13.5,
-    color: C.textMuted,
-    fontWeight: '500',
-  },
-  registerLink: {
-    color: C.primary,
-    fontWeight: '800',
-  },
-});
+    root:{
+        flex:1,
+        backgroundColor: C.bg,
+    },
+    container: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    // Logo
+      logoContainer: { alignItems: 'center' },
+      logoRing: {
+        backgroundColor: C.surfaceAlt,
+        borderWidth: 1.5,
+        borderColor: C.border,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: C.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 4,
+      },
+      brandName: {
+        fontWeight: '800',
+        color: C.text,
+        letterSpacing: -0.3,
+      },
+      tagline: {
+        color: C.textMuted,
+        marginTop: 2,
+        letterSpacing: 0.3,
+      },
+    
+      // Headline
+      headline: {
+        fontWeight: '300',
+        color: C.text,
+        letterSpacing: -0.5,
+        marginBottom: 6,
+        fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+      },
+      headlineAccent: {
+        fontStyle: 'italic',
+        color: C.primary,
+        fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+      },
+      subline: {
+        color: C.textSoft,
+        lineHeight: 19,
+      },
+    
+      // Campos
+      field: {
+        backgroundColor: C.surface,
+        borderRadius: 16,
+        borderWidth: 1.5,
+        paddingHorizontal: 16,
+        paddingTop: 18,
+        paddingBottom: 6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+        elevation: 1,
+      },
+      floatingLabel: {
+        position: 'absolute',
+        left: 16,
+        fontWeight: '500',
+        letterSpacing: 0.2,
+      },
+      fieldRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+      },
+      fieldInput: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '600',
+        color: C.text,
+        paddingTop: 8,
+        paddingBottom: 0,
+      },
+      eyeBtn:  { paddingLeft: 8, paddingVertical: 4 },
+      eyeIcon: { fontSize: 15 },
+    
+      // Meta
+      metaRow:    { alignItems: 'flex-end' },
+      forgotText: { fontSize: 12.5, color: C.textSoft, fontWeight: '500' },
+      forgotLink: { color: C.primary, fontWeight: '700' },
+    
+      // Botón primario
+      btnPrimary: {
+        borderRadius: 16,
+        overflow: 'hidden',
+        shadowColor: C.primary,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.32,
+        shadowRadius: 14,
+        elevation: 6,
+      },
+      btnPrimaryGradient: { alignItems: 'center', justifyContent: 'center' },
+      btnPrimaryText: { color: '#fff', fontSize: 15, fontWeight: '700', letterSpacing: 0.4 },
+    
+      // Botón invitado
+      btnGhost: {
+        borderRadius: 16,
+        borderWidth: 1.5,
+        borderColor: '#c8e6ce',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
+      },
+      btnGhostText: { color: C.textMid, fontSize: 14, fontWeight: '600', letterSpacing: 0.2 },
+    
+      // Divisor
+      divider: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+      divLine: { flex: 1, height: 1, backgroundColor: C.border },
+      divText: { fontSize: 10.5, fontWeight: '600', color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' },
+    
+      // Social
+      socialRow: { flexDirection: 'row', gap: 10 },
+      socialBtn: {
+        flex: 1,
+        backgroundColor: C.surface,
+        borderWidth: 1.5,
+        borderColor: C.border,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 3,
+        elevation: 1,
+      },
+      socialLabel: { fontSize: 11, fontWeight: '700', color: C.textMid, letterSpacing: 0.2 },
+    
+      // Footer
+      loginRow: { alignItems: 'center' },
+      loginText: { fontSize: 13, color: C.textMuted, fontWeight: '500' },
+      loginLink: { color: C.primary, fontWeight: '800' },
+    });
