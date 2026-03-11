@@ -18,7 +18,7 @@ import { useNavigation } from '@react-navigation/native'; // Para navegar al log
 import axios from 'axios';
 
 // Cambia por tu IP real de la computadora
-const API_URL = "http://localhost:8081/api/register"; 
+const API_URL = "http://10.4.1.208:8081/api/register"; 
 // ─── TOKENS DE COLOR ───────────────────────────────────────
 const C = {View,
   Text,

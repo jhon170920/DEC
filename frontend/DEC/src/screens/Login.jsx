@@ -12,30 +12,17 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
-  useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { AuthContext } from '../context/AuthContext';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
+import { Colors } from '../constants/colors';
 
-const API_URL = "http://localhost:8081/api/login";
+const API_URL = "http://10.4.1.208:8089/api/login";
 
-// ─── TOKENS DE COLOR ───────────────────────────────────────
-const C = {
-  bg:           '#f4faf5',
-  surface:      '#ffffff',
-  surfaceAlt:   '#f0faf3',
-  border:       '#dceee2',
-  borderFocus:  '#22c55e',
-  primary:      '#16a34a',
-  primaryLight: '#22c55e',
-  text:         '#0f2d1a',
-  textMid:      '#2d6a4f',
-  textSoft:     '#5a8a6a',
-  textMuted:    '#8aad96',
-};
 
 // ─── CAMPO CON FLOATING LABEL ──────────────────────────────
 const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, rightSlot, fieldHeight }) => {
@@ -50,8 +37,8 @@ const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, righ
 
   const labelTop    = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [fieldHeight * 0.28, fieldHeight * 0.10] });
   const labelSize   = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 10] });
-  const labelColor  = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [C.textMuted, C.primaryLight] });
-  const borderColor = borderAnim.interpolate({ inputRange: [0, 1], outputRange: [C.border, C.borderFocus] });
+  const labelColor  = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [Colors.textMuted, Colors.primaryLight] });
+  const borderColor = borderAnim.interpolate({ inputRange: [0, 1], outputRange: [Colors.border, Colors.borderFocus] });
 
   return (
     <Animated.View style={[styles.field, { borderColor, height: fieldHeight }]}>
@@ -71,7 +58,7 @@ const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, righ
           autoCapitalize="none"
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          selectionColor={C.primary}
+          selectionColor={Colors.primary}
         />
         {rightSlot}
       </View>
@@ -81,7 +68,6 @@ const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, righ
 
 // ─── PANTALLA PRINCIPAL ────────────────────────────────────
 export default function Login() {
-  const { width, height } = useWindowDimensions();
 
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
@@ -91,6 +77,20 @@ export default function Login() {
   const navigation = useNavigation();
   const { setUserToken, setIsGuest } = useContext(AuthContext);
 
+// ----RESPONSIVE LAYOUT
+const {
+  sp,
+  hPad,
+  logoRingS,
+  logoImgS,
+  headlineS,
+  sublineS,
+  fieldH,
+  btnH,
+  ghostH,
+  socialH,
+  iconS
+} = useResponsiveLayout();
   //ANIMACIONES ENTRADA Y CAMBIO DE PANALLAS
   const fadeAnim  = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -102,28 +102,6 @@ export default function Login() {
     ]).start();
   }, []);
 
-  // ── Escala proporcional según altura de pantalla ──────────
-  const statusH  = Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight ?? 24);
-  const usableH  = height - statusH;
-
-  const isSmall  = usableH < 680;   // ej: iPhone SE, pantallas <5.5"
-  const isMed    = usableH >= 680 && usableH < 780;
-
-  const logoRingS = isSmall ? 68  : isMed ? 80  : 92;
-  const logoImgS  = isSmall ? 44  : isMed ? 54  : 62;
-  const headlineS = isSmall ? 26  : isMed ? 30  : 34;
-  const sublineS  = isSmall ? 12  : 13.5;
-  const fieldH    = isSmall ? 52  : isMed ? 56  : 60;
-  const btnH      = isSmall ? 46  : isMed ? 50  : 56;
-  const ghostH    = isSmall ? 40  : isMed ? 44  : 50;
-  const socialH   = isSmall ? 42  : isMed ? 46  : 52;
-  const iconS     = isSmall ? 18  : 22;
-  const brandS    = isSmall ? 15  : 17;
-
-  // Espacios verticales como % de la altura útil
-  const sp = (pct) => usableH * pct;
-
-  const hPad = width * 0.072;
 
   // ── Lógica original intacta ───────────────────────────────
   const handleLogin = async () => {
@@ -155,7 +133,7 @@ export default function Login() {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} translucent={false} />
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} translucent={false} />
 
       <LinearGradient
         colors={['#e8f5ec', '#f4faf5', '#f4faf5']}
@@ -301,7 +279,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: C.bg,
+    backgroundColor: Colors.bg,
   },
 
   // flex:1 + justifyContent:'center' = todo centrado en pantalla
@@ -313,12 +291,12 @@ const styles = StyleSheet.create({
   // Logo
   logoContainer: { alignItems: 'center' },
   logoRing: {
-    backgroundColor: C.surfaceAlt,
+    backgroundColor: Colors.surfaceAlt,
     borderWidth: 1.5,
-    borderColor: C.border,
+    borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: C.primary,
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
@@ -326,11 +304,11 @@ const styles = StyleSheet.create({
   },
   brandName: {
     fontWeight: '800',
-    color: C.text,
+    color: Colors.text,
     letterSpacing: -0.3,
   },
   tagline: {
-    color: C.textMuted,
+    color: Colors.textMuted,
     marginTop: 2,
     letterSpacing: 0.3,
   },
@@ -338,24 +316,24 @@ const styles = StyleSheet.create({
   // Headline
   headline: {
     fontWeight: '300',
-    color: C.text,
+    color: Colors.text,
     letterSpacing: -0.5,
     marginBottom: 6,
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   headlineAccent: {
     fontStyle: 'italic',
-    color: C.primary,
+    color: Colors.primary,
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   subline: {
-    color: C.textSoft,
+    color: Colors.textSoft,
     lineHeight: 19,
   },
 
   // Campos
   field: {
-    backgroundColor: C.surface,
+    backgroundColor: Colors.surface,
     borderRadius: 16,
     borderWidth: 1.5,
     paddingHorizontal: 16,
@@ -382,7 +360,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: C.text,
+    color: Colors.text,
     paddingTop: 8,
     paddingBottom: 0,
   },
@@ -391,14 +369,14 @@ const styles = StyleSheet.create({
 
   // Meta
   metaRow:    { alignItems: 'flex-end' },
-  forgotText: { fontSize: 12.5, color: C.textSoft, fontWeight: '500' },
-  forgotLink: { color: C.primary, fontWeight: '700' },
+  forgotText: { fontSize: 12.5, color: Colors.textSoft, fontWeight: '500' },
+  forgotLink: { color: Colors.primary, fontWeight: '700' },
 
   // Botón primario
   btnPrimary: {
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: C.primary,
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.32,
     shadowRadius: 14,
@@ -416,20 +394,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'transparent',
   },
-  btnGhostText: { color: C.textMid, fontSize: 14, fontWeight: '600', letterSpacing: 0.2 },
+  btnGhostText: { color: Colors.textMid, fontSize: 14, fontWeight: '600', letterSpacing: 0.2 },
 
   // Divisor
   divider: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  divLine: { flex: 1, height: 1, backgroundColor: C.border },
-  divText: { fontSize: 10.5, fontWeight: '600', color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' },
+  divLine: { flex: 1, height: 1, backgroundColor: Colors.border },
+  divText: { fontSize: 10.5, fontWeight: '600', color: Colors.textMuted, letterSpacing: 1, textTransform: 'uppercase' },
 
   // Social
   socialRow: { flexDirection: 'row', gap: 10 },
   socialBtn: {
     flex: 1,
-    backgroundColor: C.surface,
+    backgroundColor: Colors.surface,
     borderWidth: 1.5,
-    borderColor: C.border,
+    borderColor: Colors.border,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -440,10 +418,10 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
-  socialLabel: { fontSize: 11, fontWeight: '700', color: C.textMid, letterSpacing: 0.2 },
+  socialLabel: { fontSize: 11, fontWeight: '700', color: Colors.textMid, letterSpacing: 0.2 },
 
   // Footer
   registerRow: { alignItems: 'center' },
-  registerText: { fontSize: 13, color: C.textMuted, fontWeight: '500' },
-  registerLink: { color: C.primary, fontWeight: '800' },
+  registerText: { fontSize: 13, color: Colors.textMuted, fontWeight: '500' },
+  registerLink: { color: Colors.primary, fontWeight: '800' },
 });

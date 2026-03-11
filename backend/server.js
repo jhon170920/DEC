@@ -18,4 +18,5 @@ app.use("/api/login", loginRoutes);
 app.get("/", (req, res) => {
   res.send(" Servidor funcionando correctamente");
 });
-app.listen(8089, ()=> console.log(`✅ ✅servidor corriendo en http://localhost:8089`));
+
+app.listen(8089, ()=> console.log("✅ ✅servidor corriendo en http://localhost:8089"));
