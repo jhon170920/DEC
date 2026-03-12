@@ -24,7 +24,7 @@ import { LoginStyles as styles } from '../styles/Loginstyles';
 
 
 
-const API_URL = "http://10.4.1.208:8089/api/login";
+const API_URL = "http://10.4.1.232:8089/api/login";
 
 
 // ─── CAMPO CON FLOATING LABEL ──────────────────────────────

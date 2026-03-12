@@ -20,7 +20,7 @@ import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { StyleRegister as styles } from '../styles/RegisterStyles';
 
 // Cambia por tu IP real de la computadora
-const API_URL = "http://10.4.1.208:8081/api/register"; 
+const API_URL = "http://10.4.1.232:8081/api/register"; 
 
 // ─── CAMPO CON FLOATING LABEL ──────────────────────────────
 const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, rightSlot, fieldHeight }) => {
