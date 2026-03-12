@@ -1,14 +1,47 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs"; // Importar bcrypt para hashear la contraseña
 import Users from "../models/users.js"; // Importar el modelo de usuario (no olvidar al importar el archivo su extensión .js)
 import jwt from "jsonwebtoken";
+
+
+export const registerUser = async (req, res) => {
+    try {
+        const {name, email, password} = req.body;
+        //verificar si los campos están vacíos
+        if(!name || !email || !password){
+            return res.status(400).json({message: 'Todos los campos son obligatorios'});
+        }
+
+        // Verificar si el usuario ya existe
+
+        const existingUser = await Users.findOne({email});
+        if (existingUser){
+            return res.status(400).json({message: 'EL correo ya existe'});
+
+        }
+        // Hashear la contraseña antes de guardarla en la base de datos
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+        //crear un nuevo usuario
+        const newUser = new Users({
+            name,
+            email,
+            password: hashedPassword
+        })
+        await newUser.save(); // Guardar el nuevo usuario en la base de datos
+        res.status(201).json({message: 'Usuario creado exitosamente'});
+
+    } catch (error) {
+        res.status(500).json({message:"Error al crear el usuario", error: error.message});
+    }
+};
+
 
 export const loginUser = async (req, res) =>{
 
     try {
         const {email, password} = req.body;
-
         // Verificar si los campos estan vacios
-
         if (!email || !password){
             return res.status(400).json({message:'Todos los campos son obligatorios'});
         }
@@ -33,9 +66,7 @@ export const loginUser = async (req, res) =>{
             user: { id: user._id, name: user.name, email: user.email }
             
         });
-        
     } catch (error) {
-        res.status(500).json({message:'Error al iniciar sesion', error: error.message});
-        
+        res.status(500).json({message:'Error al iniciar sesion', error: error.message});  
     }
 }
