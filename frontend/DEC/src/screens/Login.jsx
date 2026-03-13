@@ -24,7 +24,7 @@ import { LoginStyles as styles } from '../styles/Loginstyles';
 
 
 
-const API_URL = "http://10.4.1.208:8089/api/login";
+const API_URL = "http://192.168.101.208:8089/api/login";
 
 
 // ─── CAMPO CON FLOATING LABEL ──────────────────────────────
@@ -123,7 +123,7 @@ const {
         await SecureStore.setItemAsync('userToken', response.data.token);
         setUserToken(response.data.token);
       }
-      navigation.navigate('MainApp');
+      
     } catch (error) {
       console.error(error);
       const message = error.response?.data?.message || "No se pudo conectar con el servidor";
