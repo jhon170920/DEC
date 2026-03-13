@@ -1,60 +1,63 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as ImageManipulator from 'expo-image-manipulator';
-import { useIsFocused } from '@react-navigation/native'; // 👈 IMPORTANTE: Faltaba esto
+import { useIsFocused } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
+import { loadModel, imageToTensor, processPrediction } from '../services/aiServices'; // Importamos el servicio de la IA
 
 export default function CameraScreen({ navigation }) {
-  const isFocused = useIsFocused(); // 👈 IMPORTANTE: Faltaba definir esto
+  const isFocused = useIsFocused();
   const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
   const cameraRef = useRef(null);
   const { userToken } = useContext(AuthContext);
 
-  // 1. Manejo de permisos con useEffect para forzar la petición en Expo Go
   useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) {
       requestPermission();
     }
   }, [permission]);
 
-  // Si la pantalla NO está enfocada o no hay permisos cargados, no renderizamos nada
+  // Aseguramos que el modelo cargue al entrar a la pantalla
+  useEffect(() => {
+    loadModel();
+  }, []);
+
   if (!isFocused || !permission) return <View style={{ flex: 1, backgroundColor: '#000' }} />;
 
-  // Pantalla de "No hay permisos"
-  if (!permission.granted) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{ color: '#fff', marginBottom: 20, textAlign: 'center' }}>
-          No tenemos acceso a la cámara
-        </Text>
-        <TouchableOpacity onPress={requestPermission} style={styles.backButton}>
-          <Text style={styles.backText}>Reintentar Permisos</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  const handleCapture = async () => {
+const handleCapture = async () => {
     if (cameraRef.current && !isProcessing) {
       try {
         setIsProcessing(true);
+        
+        // 1. Capturar la foto primero
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
+        
+        // 2. Cargar el modelo (si no está cargado, lo carga, si ya lo está, lo retorna)
+        const model = await loadModel();
+        
+        // 3. Convertir la foto a tensor (usando la función que creamos)
+        const tensor = await imageToTensor(photo.uri);
+        
+        // 4. Hacer la predicción
+        const predictions = await model.predict(tensor);
+        console.log("Shape:", predictions.shape);
+        console.log("Data (primeros 20 valores):", Array.from(predictions.dataSync().slice(0, 20)));
+        
+        // 5. Procesar el resultado usando tu función del servicio
+        const result = processPrediction(predictions);
+        
+        // 6. Mostrar resultado
+        if (result) {
+            showResults(result);
+        }
 
-        const resizedPhoto = await ImageManipulator.manipulateAsync(
-          photo.uri,
-          [{ resize: { width: 640, height: 640 } }],
-          { base64: true }
-        );
-
-        // Simulación de IA YOLOv11
-        setTimeout(() => {
-          setIsProcessing(false);
-          showResults({ disease: "Roya", confidence: "92%" });
-        }, 2000);
-
+        // Importante: Limpiar la memoria del tensor
+        tensor.dispose(); 
+        
+        setIsProcessing(false);
       } catch (error) {
+        console.error("Error en IA:", error);
         Alert.alert("Error", "No se pudo procesar la imagen");
         setIsProcessing(false);
       }
@@ -68,20 +71,15 @@ export default function CameraScreen({ navigation }) {
 
     Alert.alert("Resultado del Análisis", message, [
       { text: "Cerrar", style: "cancel" },
-      { 
-        text: userToken ? "Guardar" : "Iniciar Sesión", 
-        onPress: () => userToken ? console.log("Guardando...") : navigation.navigate('Login') 
-      }
+      { text: userToken ? "Guardar" : "Iniciar Sesión", 
+        onPress: () => userToken ? console.log("Guardando...") : navigation.navigate('Login') }
     ]);
   };
 
+  // ... (El resto del render es igual)
   return (
     <View style={styles.container}>
-      <CameraView 
-        style={styles.camera} 
-        ref={cameraRef}
-        facing="back" // 👈 Aseguramos que use la cámara trasera
-      >
+      <CameraView style={styles.camera} ref={cameraRef} facing="back">
         <View style={styles.overlay}>
           <View style={styles.guideContainer}>
             <Text style={styles.guideText}>Ubica la hoja dentro del recuadro</Text>
@@ -98,13 +96,8 @@ export default function CameraScreen({ navigation }) {
               onPress={handleCapture}
               disabled={isProcessing}
             >
-              {isProcessing ? (
-                <ActivityIndicator color="#fff" size="large" />
-              ) : (
-                <View style={styles.innerCircle} />
-              )}
+              {isProcessing ? <ActivityIndicator color="#fff" size="large" /> : <View style={styles.innerCircle} />}
             </TouchableOpacity>
-            
             <View style={{ width: 60 }} /> 
           </View>
         </View>
@@ -112,7 +105,7 @@ export default function CameraScreen({ navigation }) {
     </View>
   );
 }
-
+// ... (Tus estilos se mantienen igual)
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   camera: { flex: 1 },
