@@ -39,7 +39,7 @@ export const getAllDeteccions = async (req, res) => {
 export const getAllPathologies = async (req, res) => {
     try {
         // traemos todos las potologías de la base de datos
-        const pathologies = await Pathologies.find()
+        // const pathologies = await Pathologies.find()
         // enviamos lo encontrado
         // res.status(200).json({message: "patologías obtenidas", pathologies: pathologies});
     } catch (error) {
