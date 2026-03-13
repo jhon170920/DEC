@@ -22,5 +22,5 @@ app.get("/", (req, res) => {
 
 
 
-PORT = 8089
+const PORT = 8089
 app.listen(PORT, ()=> console.log(`✅ ✅servidor corriendo en http://localhost:${PORT}`));
