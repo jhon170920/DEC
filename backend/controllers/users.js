@@ -57,13 +57,13 @@ export const loginUser = async (req, res) =>{
         const user = await Users.findOne({email});
 
         // validamos que el usuario exista en nuestra base da datos
-        if (!user) return res.status(400).json({message:'Usuario no encontrado'});
+        if (!user) return res.status(401).json({message:'Usuario o contraseña incorrectos'});
 
         // Comparar contraseña hasheada con la contraseña proporcionada
         const passwordValid = await bcrypt.compare(password, user.password);
 
         //Validar si la contraseña es incorrecta
-        if (!passwordValid) return res.status(400).json({message:'Contraseña incorrecta'});
+        if (!passwordValid) return res.status(401).json({message:'Usuario o contraseña incorrectos'});
         const token = jwt.sign(
             { id: user._id, role: user.role || 'user' }, 
             process.env.JWT_SECRET || 'clave_secreta_provisional', 
@@ -92,7 +92,7 @@ export const editUser = async (req, res) => {
         if(!expressions.name.test(name)) return res.status(400).json({message: "Escribe un nombre o un apellido válido."});
 
         // actualizamos el nombre
-        const updatedUser = await  Users.findByIdAndUpdate(req.user.id, {$set: {name: name}}, {new: true, runValidators: true}).select("-password");
+        const updatedUser = await  Users.findByIdAndUpdate(req.user.id, {$set: {name: name}}, {returnDocument: 'after', runValidators: true}).select("-password");
 
         // si no se encuentra el usuario, no se actualiza y se envía un mensaje
         if(!updatedUser) return res.status(401).json({message: "No se encontró el usuario para actualizar"});
