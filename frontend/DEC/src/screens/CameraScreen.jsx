@@ -12,7 +12,7 @@ export default function CameraScreen({ navigation }) {
   const cameraRef = useRef(null);
   const { userToken } = useContext(AuthContext);
 
-  useEffect(() => {
+  useEffect(() => { // pregunta por permisos como el uso de la camara y procede a evaluar 
     if (permission && !permission.granted && permission.canAskAgain) {
       requestPermission();
     }
