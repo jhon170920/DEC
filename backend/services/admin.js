@@ -36,14 +36,13 @@ export const getAllDeteccions = async (req, res) => {
 }
 
 // obtener las patologías (proximamente....)
-export const getAllPathologies = async (req, res) => {
-    try {
-        // traemos todos las potologías de la base de datos
-        // const pathologies = await Pathologies.find()
-        // enviamos lo encontrado
-        // res.status(200).json({message: "patologías obtenidas", pathologies: pathologies});
-    } catch (error) {
-        res.status(500).json({ message: "Error al obtener las patologías", error: error.message });
-    }
-}
-
+// export const getAllPathologies = async (req, res) => {
+//     try {
+//         // traemos todos las potologías de la base de datos
+//         // const pathologies = await Pathologies.find()
+//         // enviamos lo encontrado
+//         // res.status(200).json({message: "patologías obtenidas", pathologies: pathologies});
+//     } catch (error) {
+//         res.status(500).json({ message: "Error al obtener las patologías", error: error.message });
+//     }
+// }
