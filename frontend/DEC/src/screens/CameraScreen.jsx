@@ -41,6 +41,8 @@ const handleCapture = async () => {
         
         // 4. Hacer la predicción
         const predictions = await model.predict(tensor);
+        console.log("Shape:", predictions.shape);
+        console.log("Data (primeros 20 valores):", Array.from(predictions.dataSync().slice(0, 20)));
         
         // 5. Procesar el resultado usando tu función del servicio
         const result = processPrediction(predictions);

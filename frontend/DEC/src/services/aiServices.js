@@ -3,32 +3,22 @@ import { decodeJpeg, bundleResourceIO } from '@tensorflow/tfjs-react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 
 export const imageToTensor = async (uri) => {
-    // 1. Leer el archivo de la imagen como una cadena base64
     const imgB64 = await FileSystem.readAsStringAsync(uri, {
         encoding: 'base64',
     });
-    
-    // 2. Convertir el base64 a un buffer de bytes
     const imgBuffer = tf.util.encodeString(imgB64, 'base64').buffer;
-    
-    // 3. Decodificar la imagen (convirtiéndola en un tensor de píxeles)
     const rawImage = decodeJpeg(new Uint8Array(imgBuffer));
-    
-    // 4. Redimensionar y normalizar al formato que espera tu modelo YOLO
-    // YOLO espera: [1, 640, 640, 3] y valores entre 0 y 1
     const tensor = rawImage
         .resizeBilinear([640, 640])
-        .div(255.0) // Normalización
-        .expandDims(0); // Añade la dimensión del lote (batch dimension)
-        
+        .div(255.0)
+        .expandDims(0);
     return tensor;
 };
 
 let modelInstance = null;
 
-// Mapa real según tu .yaml
 const MAPA_ENFERMEDADES = {
-    0: "Cercospora", // LA MISMA MANCHA HIERRO
+    0: "Cercospora",
     1: "Minador de la hoja",
     2: "Roya (Leaf Rust)",
     3: "Araña roja"
@@ -37,9 +27,7 @@ const MAPA_ENFERMEDADES = {
 export const loadModel = async () => {
     if (modelInstance) return modelInstance;
     await tf.ready();
-    
-    // bundleResourceIO requires BOTH the model JSON and an array of weight binaries.
-    // Add all your .bin shard files here in order (e.g. group1-shard1of3.bin, etc.)
+
     const modelJson    = require('../../assets/model/model.json');
     const modelWeights = [
         require('../../assets/model/group1-shard1of3.bin'),
@@ -52,22 +40,43 @@ export const loadModel = async () => {
 };
 
 export const processPrediction = (predictions) => {
-    // Nota: 'predictions' suele ser un tensor. 
-    // Usamos dataSync() para obtener los números.
-    const data = predictions.dataSync();
-    
-    let maxConf = 0;
-    let bestClassIndex = 0;
-    
-    for (let i = 0; i < data.length; i++) {
-        if (data[i] > maxConf) {
-            maxConf = data[i];
-            bestClassIndex = i;
+    // Output shape: [1, 8, 8400]
+    // Filas 0-3 → coordenadas bbox (x, y, w, h)  — se ignoran
+    // Filas 4-7 → score de cada clase (4 clases)
+    // 8400 detecciones candidatas por imagen
+
+    const NUM_CLASES      = 4;
+    const NUM_DETECCIONES = 8400;
+    const FILA_CLASES     = 4;     // las clases empiezan en la fila 4
+    const UMBRAL          = 0.25;  // confianza mínima para considerar una detección válida
+
+    const data = predictions.dataSync(); // array plano de 67200 valores
+
+    let mejorConf  = 0;
+    let mejorClase = -1;
+
+    for (let det = 0; det < NUM_DETECCIONES; det++) {
+        for (let cls = 0; cls < NUM_CLASES; cls++) {
+            // Índice en array plano: fila × NUM_DETECCIONES + columna_deteccion
+            const idx   = (FILA_CLASES + cls) * NUM_DETECCIONES + det;
+            const score = data[idx];
+
+            if (score > mejorConf) {
+                mejorConf  = score;
+                mejorClase = cls;
+            }
         }
     }
-    
+
+    if (mejorConf < UMBRAL) {
+        return {
+            disease:    "No se detectó enfermedad",
+            confidence: (mejorConf * 100).toFixed(2) + "%"
+        };
+    }
+
     return {
-        disease: MAPA_ENFERMEDADES[bestClassIndex] || "Desconocido",
-        confidence: (maxConf * 100).toFixed(2) + "%"
+        disease:    MAPA_ENFERMEDADES[mejorClase] ?? "Desconocido",
+        confidence: (mejorConf * 100).toFixed(2) + "%"
     };
 };
