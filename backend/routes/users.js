@@ -1,5 +1,6 @@
 import express from 'express';
-import { registerUser, loginUser } from '../controllers/users.js';
+import { registerUser, loginUser, deleteUser } from '../controllers/users.js';
+import { verifyToken } from '../middlewares/auth.js';
 
 const router = express.Router();
 
@@ -7,6 +8,13 @@ const router = express.Router();
 router.post('/register', registerUser);
 // ruta para iniciar sesion
 router.post('/login', loginUser);
+
+// ruta para editar la cuentica
+// router.put('/edit', verifyToken, editUser);
+// no hay aún
+
+// ruta para eliminar cuentica
+router.delete('/delete', verifyToken, deleteUser);
 
 
 

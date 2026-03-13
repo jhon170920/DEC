@@ -4,6 +4,9 @@ import "./db/db.js"; // Asegura que la conexión a la base de datos se establezc
 import userRoutes from './routes/users.js';
 import detectionRoutes from './routes/detection.js';
 
+// ruta de admin 
+import adminRoutes from './routes/admin.js'
+
 
 const app = express();
 
@@ -12,9 +15,13 @@ app.use(express.urlencoded({ extended: true })); // Middleware para parsear dato
 app.use(cors());
 // ruta principal de usuarios
 app.use("/api/users", userRoutes);
-
 // ruta de historial de detecciones
 app.use("/api/detections", detectionRoutes);
+
+
+
+// ruta principal de admin
+app.use("/api/admin", adminRoutes);
 
 app.get("/", (req, res) => {
   res.send(" Servidor funcionando correctamente");

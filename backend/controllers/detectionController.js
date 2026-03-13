@@ -1,17 +1,7 @@
 import Detections from "../models/Detection.js";
 import { uploadToCloudinary } from "../services/cloudinary.js"; // ajusta la ruta si es diferente
 
-// Obtener el historial del usuario logueado
-export const getUserHistory = async (req, res) => {
-    try {
-        // req.user.id viene del middleware de autenticación (JWT)
-        const history = await Detections.find({ userId: req.user.id }).sort({ createdAt: -1 });
-        res.status(200).json(history);
-    } catch (error) {
-        res.status(500).json({ message: "Error al obtener el historial", error: error.message });
-    }
-};
-
+// guardar
 export const saveDetection = async (req, res) => {
     try {
         // 1. Validar que se haya subido un archivo
@@ -44,5 +34,16 @@ export const saveDetection = async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ message: "Error al guardar en la base de datos", error: error.message });
+    }
+};
+
+// Obtener el historial del usuario logueado
+export const getUserHistory = async (req, res) => {
+    try {
+        // req.user.id viene del middleware de autenticación (JWT)
+        const history = await Detections.find({ userId: req.user.id }).sort({ createdAt: -1 });
+        res.status(200).json(history);
+    } catch (error) {
+        res.status(500).json({ message: "Error al obtener el historial", error: error.message });
     }
 };
