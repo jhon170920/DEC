@@ -276,7 +276,7 @@ export default function MainApp() {
         </View>
 
         {/* ── BOTÓN SCAN ── */}
-        <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85} onPress={() =>navigation.navigate("Camera")}>
           <LinearGradient
             colors={["#22c55e", "#16a34a", "#15803d"]}
             style={styles.scanGradient}
