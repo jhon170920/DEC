@@ -1,5 +1,5 @@
 import express from 'express';
-import { registerUser, loginUser, deleteUser } from '../controllers/users.js';
+import { registerUser, loginUser, editUser, deleteUser } from '../controllers/users.js';
 import { verifyToken } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -10,8 +10,7 @@ router.post('/register', registerUser);
 router.post('/login', loginUser);
 
 // ruta para editar la cuentica
-// router.put('/edit', verifyToken, editUser);
-// no hay aún
+router.put('/edit', verifyToken, editUser);
 
 // ruta para eliminar cuentica
 router.delete('/delete', verifyToken, deleteUser);
