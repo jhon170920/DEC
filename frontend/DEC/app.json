@@ -12,7 +12,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jhon170920.DEC"
     },
     "android": {
       "adaptiveIcon": {
@@ -20,11 +21,13 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-        
       },
       "permissions": [
-        "CAMERA"
-      ]
+        "CAMERA",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.jhon170920.DEC"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -37,7 +40,11 @@
         }
       ],
       "expo-secure-store"
-    ]
-    
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e78a1f07-ee92-453f-8429-dc76ee395248"
+      }
+    }
   }
 }

@@ -27,22 +27,23 @@ export default function CameraScreen({ navigation }) {
 
 const handleCapture = async () => {
     if (cameraRef.current && !isProcessing) {
+      let tensor = null;
       try {
         setIsProcessing(true);
         
-        // 1. Capturar la foto primero
-        const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
+        // 1. Capturar la foto primero incluyendo la conversión a base64
+        const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, base64: true });
+        console.log("Foto capturada nativamente con base64");
         
         // 2. Cargar el modelo (si no está cargado, lo carga, si ya lo está, lo retorna)
         const model = await loadModel();
         
-        // 3. Convertir la foto a tensor (usando la función que creamos)
-        const tensor = await imageToTensor(photo.uri);
+        // 3. Convertir la foto a tensor usando el string base64 directo
+        tensor = await imageToTensor(photo.base64);
         
         // 4. Hacer la predicción
         const predictions = await model.predict(tensor);
-        console.log("Shape:", predictions.shape);
-        console.log("Data (primeros 20 valores):", Array.from(predictions.dataSync().slice(0, 20)));
+        console.log("Shape de predicción:", predictions.shape);
         
         // 5. Procesar el resultado usando tu función del servicio
         const result = processPrediction(predictions);
@@ -52,14 +53,14 @@ const handleCapture = async () => {
             showResults(result);
         }
 
-        // Importante: Limpiar la memoria del tensor
-        tensor.dispose(); 
-        
-        setIsProcessing(false);
       } catch (error) {
-        console.error("Error en IA:", error);
-        Alert.alert("Error", "No se pudo procesar la imagen");
+        console.error("Error en IA al capturar/procesar:", error);
+        Alert.alert("Error de Procesamiento", error.message || "No se pudo procesar la imagen con la Inteligencia Artificial.");
+      } finally {
         setIsProcessing(false);
+        if (tensor) {
+            tensor.dispose(); // GARANTIZAR LIMPIEZA DE MEMORIA
+        }
       }
     }
   };
