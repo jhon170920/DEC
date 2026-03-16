@@ -36,7 +36,6 @@ export const saveDetection = async (req, res) => {
         res.status(500).json({ message: "Error al guardar en la base de datos", error: error.message });
     }
 };
-
 // Obtener el historial del usuario logueado
 export const getUserHistory = async (req, res) => {
     try {
@@ -47,3 +46,27 @@ export const getUserHistory = async (req, res) => {
         res.status(500).json({ message: "Error al obtener el historial", error: error.message });
     }
 };
+// eliminar una deteccion del historial del usuario
+export const deleteUserDetection = async (req, res) => {
+    try {
+        const detectionDeleted = await Detections.findOneAndDelete({ userId: req.user.id})
+        // validamos si encontramos la deteccion por si acaso
+        if (!detectionDeleted) {
+            return res.status(404).json({ message: "No se encontró la detección para borrar" });
+        }
+    } catch (error) {
+        res.status(500).json({ message: "Error al eliminar la detección", error: error.message });
+    }
+}
+// eliminar todo el historial del usuario
+export const deleteUserHistory = async (req, res) => {
+    try {
+        const historyDeleted = await Detections.findOneAndDelete({ userId: req.user.id})
+        // validamos si hay algo por si acaso
+        if (!historyDeleted){
+            return res.status(404).json({ message: "No se encontró el historial de detecciones para borrar" });
+        }
+    } catch (error) {
+        res.status(500).json({ message: "Error al eliminar el historial de detecciones", error: error.message });
+    }
+}
