@@ -22,10 +22,7 @@ import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { Colors } from '../constants/colors';
 import { LoginStyles as styles } from '../styles/Loginstyles';
 
-
-
-const API_URL = "http://10.4.1.232:8089/api/login";
-
+const API_URL = "http://10.4.1.202:8089/api/users/login";
 
 // ─── CAMPO CON FLOATING LABEL ──────────────────────────────
 const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, rightSlot, fieldHeight }) => {

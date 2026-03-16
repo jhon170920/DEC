@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 
 
 const expressions = {
-    name: /^[a-zA-Z]{1,10}\s?(?:[a-zA-Z]{1,10})?\s?$/,
+    name: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,15}(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,15})?$/,
     email: /^[a-zA-Z0-9._%+-]+@gmail\.(com|co)$/,
     pass: /^[a-zA-Z0-9]{8,14}$/
 }
@@ -40,7 +40,7 @@ export const registerUser = async (req, res) => {
             password: hashedPassword
         })
         await newUser.save(); // Guardar el nuevo usuario en la base de datos
-        res.status(201).json({message: 'Usuario creado exitosamente'});
+        res.status(201).json({message: 'Cuenta creada correctamente'});
     } catch (error) {
         res.status(500).json({message:"Error al crear el usuario", error: error.message});
     }
