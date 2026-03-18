@@ -297,7 +297,11 @@ export default function MainApp() {
         </View>
 
         <View style={styles.menuList}>
-          <MenuCard icon="search"         title="Mis Análisis"  subtitle="Escaneos recientes de plantas" />
+          <TouchableOpacity>
+
+            <MenuCard icon="search"         title="Mis Análisis"  subtitle="Escaneos recientes de plantas" />
+          </TouchableOpacity>
+          
           <MenuCard icon="book-open"      title="Ayuda"         subtitle="Manual de uso" />
           <MenuCard icon="message-circle" title="Contáctanos"   subtitle="Medios de atención" />
         </View>
