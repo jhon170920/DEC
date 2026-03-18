@@ -7,18 +7,21 @@ const DetectionSchema = new mongoose.Schema(
             ref: "Users",
             required: true
         },
-        plantName: { // Ej: "Tomate"
-            type: String,
-            required: true,
-            trim: true
+        pathology: { 
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Pathology", 
+            required: true
         },
-        pathology: { // Ej: "Tizón Tardío"
-            type: String,
-            required: true,
-            trim: true
-        },
-        location: { // acá debería guardar la ubicacion al momento de la detección
-            type: String
+        location: {
+            type: {
+                type: String, 
+                enum: ['Point'], // Solo permite el valor 'Point'
+                default: 'Point'
+            },
+            coordinates: {
+                type: [Number], // [longitud, latitud] -> OJO: El orden es inverso en GeoJSON
+                required: true
+            }
         },
         confidence: { // Porcentaje de acierto de la IA (0 a 1)
             type: Number,
