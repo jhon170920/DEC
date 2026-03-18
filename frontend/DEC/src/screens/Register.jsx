@@ -111,6 +111,15 @@ export default function Register() {
             Alert.alert("Error", "Por favor completa todos los campos");
             return;
         }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+        Alert.alert("Error", "Por favor ingresa un correo electrónico válido");
+        return;
+        }
+         if (password.length < 6) {
+         Alert.alert("Error", "La contraseña debe tener al menos 6 caracteres");
+        return;
+        }
 
         if (password !== confirmPassword) {
             Alert.alert("Error", "Las contraseñas no coinciden");
@@ -187,7 +196,7 @@ export default function Register() {
                 <View style={{ gap: sp(0.014) }}>
                     <Field
                         label="Nombre"
-                        keyboardType="name"
+                        KeyboardType="default"
                         placeholder="Ingrese su nombre"
                         placeholderTextColor="#4b6b5a"
                         fieldHeight={fieldH}
@@ -199,7 +208,7 @@ export default function Register() {
                         placeholder="Ingrese su correo"
                         placeholderTextColor="#4b6b5a"
                         fieldHeight={fieldH}
-                        keyboardType="email-address"
+                        KeyboardType="email-address"
                         autoCapitalize="none"
                         value={email}
                         onChangeText={setEmail}
@@ -227,7 +236,7 @@ export default function Register() {
                         fieldHeight={fieldH}
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
-                        keyboardType="password"
+                        KeyboardType="default"
                     />
 
                     <TouchableOpacity 

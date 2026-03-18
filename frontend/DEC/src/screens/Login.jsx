@@ -120,7 +120,7 @@ const {
         await SecureStore.setItemAsync('userToken', response.data.token);
         setUserToken(response.data.token);
       }
-      navigation.navigate('MainApp');
+      
     } catch (error) {
       console.error(error);
       const message = error.response?.data?.message || "No se pudo conectar con el servidor";
