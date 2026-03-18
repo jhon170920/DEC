@@ -145,7 +145,7 @@ const {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' :  'height'}
       >
         <Animated.View
           style={[
@@ -206,7 +206,7 @@ const {
 
           {/* ── OLVIDÉ CONTRASEÑA ── */}
           <View style={[styles.metaRow, { marginVertical: sp(0.016) }]}>
-            <TouchableOpacity onPress={() => Alert.alert("Próximamente", "Función de recuperación en desarrollo")}>
+            <TouchableOpacity onPress={() =>  navigation.navigate('ForgotPassword')}>
               <Text style={styles.forgotText}>
                 ¿Olvidaste tu contraseña?{' '}
                 <Text style={styles.forgotLink}>Recuperala</Text>

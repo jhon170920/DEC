@@ -9,7 +9,7 @@ import { AuthContext } from '../context/AuthContext';
 // --- IMPORTACIÓN DE PANTALLAS ---
 import Login from '../screens/Login';
 import Register from '../screens/Register';
-// import ForgotPassword from '../screens/ForgotPassword'; // Paso 1: Enviar código
+import ForgotPassword from '../screens/ForgotPassword'; // Paso 1: Enviar código
 // import ResetPassword from '../screens/ResetPassword';   // Paso 2: Ingresar código y nueva pass
 
 import MainApp from '../screens/MainApp';               // El Dashboard con los 4 botones
@@ -48,9 +48,9 @@ export default function AppNavigator() {
           // --- STACK DE AUTENTICACIÓN ---
           <>
             <Stack.Screen name="Login" component={Login} />
-             <Stack.Screen name="Register" component={Register} />
-            {/*<Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-            <Stack.Screen name="ResetPassword" component={ResetPassword} /> */}
+            <Stack.Screen name="Register" component={Register} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+            {/* <Stack.Screen name="ResetPassword" component={ResetPassword} /> */}
           </>
         )}
       </Stack.Navigator>
