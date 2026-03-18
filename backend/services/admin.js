@@ -104,27 +104,23 @@ export const deleteDetection = async (req,res) => {
 }
 
 // subir las pathologías de prueba
-export const savePathology = async (req, res) => {
-    try {
-        const {name, description, treatment} = req.body;
-
-        const newPathology = new Pathology({
-            name,
-            description,
-            treatment
-        })
-
-        await newPathology.save()
-
-        res.status(201).json({
-            message: "¡Pahtología guardada con éxito en el historial!",
-            data: newPathology
-        });
-
-    } catch (error) {
-        res.status(500).json({ message: "Error al crear la pathología", error: error.message });
-    }
-}
+// export const savePathology = async (req, res) => {
+//     try {
+//         const {name, description, treatment} = req.body;
+//         const newPathology = new Pathology({
+//             name,
+//             description,
+//             treatment
+//         })
+//         await newPathology.save()
+//         res.status(201).json({
+//             message: "¡Pahtología guardada con éxito en el historial!",
+//             data: newPathology
+//         });
+//     } catch (error) {
+//         res.status(500).json({ message: "Error al crear la pathología", error: error.message });
+//     }
+// }
 
 // obtener las patologías
 export const getAllPathologies = async (req, res) => {
@@ -145,16 +141,15 @@ export const editPathology = async (req, res) => {
     try {
         const { id } = req.params; // traemos el id de la patología que vamos a editar
         const { name, description, treatment } = req.body; //traer datos desde el formulario
-        const updateData = {};   // aqui vamos a guardar los datos nuevos
         // validar datos
         if(!name || !description || !treatment ) return res.status(400).json({ message: "El nombre, la descripcion y el tratamiento son obligatorios" })
 
         // validamos el nombre porpocionado 
         if(!expressions.name.test(name)) return res.status(400).json({ message: "Escribe un nombre de patología válido" });
 
-
         // realizamos el cambio
         const updatedPathology = await Pathology.findByIdAndUpdate(id, { $set: {name: name, description: description, treatment: treatment} }, { returnDocument: 'after', runValidators: true }).select("-password");
+        // validamos si se realizo el cambio
         if(!updatedPathology) return res.status(400).json({ message: "No se encontró la pathología a actualizar" })
 
         // regresamos mensaje de feedback

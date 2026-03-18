@@ -32,13 +32,12 @@ router.get('/get-deteccions', verifyToken, onlyAdmin, getAllDeteccions);
 router.delete('/delete-deteccion/:id', verifyToken, onlyAdmin, deleteDetection)
 
 //______SECCION DE AFFECCINOES/PATOLOGÍAS______
-
 // SUBIR pathología de prueba
-router.post('/save-pathology', verifyToken, onlyAdmin, savePathology)
+// router.post('/save-pathology', verifyToken, onlyAdmin, savePathology)
 // OBTENER patologias
-router.get('/get-pathologies', getAllPathologies);
+router.get('/get-pathologies', verifyToken, onlyAdmin, getAllPathologies);
 // EDITAR pathología (nombre, tratamiento, etc)
-router.put('/edit-pathology/:id', editPathology)
+router.put('/edit-pathology/:id', verifyToken, onlyAdmin, editPathology)
 
 
 export default router
