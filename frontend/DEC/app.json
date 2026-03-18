@@ -39,7 +39,9 @@
           "cameraPermission": "Permítenos usar la cámara para detectar patologías en tus plantas de café."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "react-native-fast-tflite",
+      "expo-asset"
     ],
     "extra": {
       "eas": {
