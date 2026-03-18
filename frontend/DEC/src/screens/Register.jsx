@@ -20,7 +20,7 @@ import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { StyleRegister as styles } from '../styles/RegisterStyles';
 
 // Cambia por tu IP real de la computadora
-const API_URL = "http://192.168.101.208:8081/api/register"; 
+const API_URL = "http://10.4.1.202:8089/api/register"; 
 
 // ─── CAMPO CON FLOATING LABEL ──────────────────────────────
 const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, rightSlot, fieldHeight }) => {
@@ -130,7 +130,7 @@ export default function Register() {
 
         try {
             const response = await axios.post(API_URL, {
-                username: name, // Ajusta según como reciba tu backend
+                name: name, // Ajusta según como reciba tu backend
                 email: email.toLowerCase().trim(),
                 password: password
             });
