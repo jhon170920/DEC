@@ -7,9 +7,13 @@ const DetectionSchema = new mongoose.Schema(
             ref: "Users",
             required: true
         },
-        pathology: { 
+        pathologyId: { 
             type: mongoose.Schema.Types.ObjectId,
             ref: "Pathology", 
+            required: true
+        },
+        imageUrl: { // Link a Cloudinary o S3
+            type: String,
             required: true
         },
         location: {
@@ -27,18 +31,13 @@ const DetectionSchema = new mongoose.Schema(
             type: Number,
             min: 0,
             max: 1
-        },
-        imageUrl: { // Link a Cloudinary o S3
-            type: String,
-            required: true
-        },
-        // Aquí guardamos la solución completa de una vez para que el historial sea rico
-        treatment: { type: String }
+        }
     },
     {
         timestamps: true // Acá se hace practicamente lo mismo que date
     }
 );
-
+// Esto le dice a MongoDB: "Organiza internamente las coordenadas para búsquedas rápidas"
+DetectionSchema.index({ location: "2dsphere" });
 const Detections = mongoose.model("Detections", DetectionSchema);
 export default Detections;
