@@ -10,7 +10,7 @@ import {
     getAllDeteccions,
     deleteDetection,
     // pathologias
-    savePathology,
+    // savePathology,
     getAllPathologies,
     editPathology
 } from '../services/admin.js';
