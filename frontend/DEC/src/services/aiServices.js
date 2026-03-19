@@ -96,7 +96,7 @@ export const processPrediction = (predictionData) => {
     3: "Araña roja"
   };
 
-  const UMBRAL = 0.40; // Confianza mínima del 40%
+  const UMBRAL = 0.70; // Confianza mínima del 40%
   let mejorConf = 0;
   let mejorClase = -1;
 
