@@ -41,7 +41,8 @@
       ],
       "expo-secure-store",
       "react-native-fast-tflite",
-      "expo-asset"
+      "expo-asset",
+      "expo-sqlite"
     ],
     "extra": {
       "eas": {
