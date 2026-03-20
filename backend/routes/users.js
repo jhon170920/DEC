@@ -1,5 +1,6 @@
 import express from 'express';
 import { registerUser, loginUser, editUser, deleteUser } from '../controllers/users.js';
+import { contactUs } from '../controllers/contactUs.js';
 import { verifyToken } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -15,6 +16,9 @@ router.put('/edit', verifyToken, editUser);
 // ruta para eliminar cuentica
 router.delete('/delete', verifyToken, deleteUser);
 
+
+// ruta de contactos
+router.post('/send-message', contactUs);
 
 
     

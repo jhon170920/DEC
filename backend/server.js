@@ -1,11 +1,17 @@
 import express from 'express';
 import cors from 'cors';
 import "./db/db.js"; // Asegura que la conexión a la base de datos se establezca al iniciar el servidor
+
+// rutas del usuario
 import userRoutes from './routes/users.js';
+// rutas de las detecciones
 import detectionRoutes from './routes/detection.js';
+// rutas de recuperar contraseña
+import recoverPassword from './routes/recoverPassword.js'
 
 // ruta de admin 
 import adminRoutes from './routes/admin.js'
+
 
 
 const app = express();
@@ -17,6 +23,9 @@ app.use(cors());
 app.use("/api/users", userRoutes);
 // ruta de historial de detecciones
 app.use("/api/detections", detectionRoutes);
+// ruta para recuperar conttaseña
+app.use("/api/recover", recoverPassword);
+
 
 
 

@@ -6,7 +6,7 @@ const UserSchema = new mongoose.Schema({
     password: { type: String, required: true },
     
     // Diferenciar entre usuarios reales e invitados si decides persistirlos
-    role: { type: String, enum: ['user', 'guest'], default: 'user' },
+    role: { type: String, enum: ['user', 'guest', 'admin'], default: 'user' },
 
     // Para sincronización: saber cuándo se actualizó por última vez
     lastSync: { type: Date, default: Date.now },
