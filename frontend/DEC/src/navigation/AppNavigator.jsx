@@ -14,6 +14,7 @@ import ForgotPassword from '../screens/ForgotPassword'; // Paso 1: Enviar códig
 
 import MainApp from '../screens/MainApp';               // El Dashboard con los 4 botones
 import CameraScreen from '../screens/CameraScreen';
+import ResultScreen from '../screens/ResultScreen';
 // import HistoryScreen from '../screens/HistoryScreen';
 import Contact from '../screens/Contact';
 // import ManualScreen from '../screens/ManualScreen';
