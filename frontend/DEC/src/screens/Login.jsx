@@ -16,6 +16,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
+import { loginUser } from '../api/api';
 import * as SecureStore from 'expo-secure-store';
 import { AuthContext } from '../context/AuthContext';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
@@ -110,21 +111,33 @@ const {
       Alert.alert("Error", "Por favor, completa todos los campos");
       return;
     }
+
     setLoading(true);
+
     try {
-      const response = await axios.post(API_URL, {
-        email: email.toLowerCase().trim(),
-        password: password,
-      });
-      if (response.data.token) {
-        await SecureStore.setItemAsync('userToken', response.data.token);
-        setUserToken(response.data.token);
+      // 2. Llamamos a la función centralizada
+      // No necesitas poner la URL aquí, api.js ya la sabe
+      const data = await loginUser(email.toLowerCase().trim(), password);
+
+      if (data.token) {
+        // Guardamos el token de forma segura
+        await SecureStore.setItemAsync('userToken', data.token);
+        
+        // Actualizamos el contexto global
+        setUserToken(data.token);
+        
+        // Opcional: Si tu backend devuelve el nombre del usuario
+        // Alert.alert("Éxito", `Bienvenido de nuevo`);
       }
       
     } catch (error) {
-      console.error(error);
-      const message = error.response?.data?.message || "No se pudo conectar con el servidor";
-      Alert.alert("Error", message);
+      // 3. El error ya viene procesado desde el catch de api.js
+      console.error("Login Error:", error);
+      
+      // Si en api.js hiciste: throw error.response.data, aquí recibes el JSON del backend
+      const message = error.message || "No se pudo conectar con el servidor";
+      Alert.alert("Error de acceso", message);
+      
     } finally {
       setLoading(false);
     }

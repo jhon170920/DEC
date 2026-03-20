@@ -14,6 +14,7 @@ import ForgotPassword from '../screens/ForgotPassword'; // Paso 1: Enviar códig
 
 import MainApp from '../screens/MainApp';               // El Dashboard con los 4 botones
 import CameraScreen from '../screens/CameraScreen';
+import ResultScreen from '../screens/ResultScreen';
 // import HistoryScreen from '../screens/HistoryScreen';
 // import ContactScreen from '../screens/ContactScreen';
 // import ManualScreen from '../screens/ManualScreen';
@@ -40,6 +41,7 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="MainApp" component={MainApp} />
             <Stack.Screen name="Camera" component={CameraScreen} />
+            <Stack.Screen name='Result' component={ResultScreen}/>
             {/* <Stack.Screen name="History" component={HistoryScreen} />
             <Stack.Screen name="Contact" component={ContactScreen} />
             <Stack.Screen name="Manual" component={ManualScreen} /> */}
