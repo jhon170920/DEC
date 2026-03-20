@@ -297,10 +297,19 @@ export default function MainApp() {
         </View>
 
         <View style={styles.menuList}>
-          <TouchableOpacity>
-
-            <MenuCard icon="search"         title="Mis Análisis"  subtitle="Escaneos recientes de plantas" />
-          </TouchableOpacity>
+        <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85} onPress={() =>navigation.navigate("Result")}>
+          <LinearGradient
+            colors={["#22c55e", "#16a34a", "#15803d"]}
+            style={styles.scanGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View>
+              
+            </View>
+            <Text style={styles.scanText}>Mis Analisis</Text>
+          </LinearGradient>
+        </TouchableOpacity>
           
           <MenuCard icon="book-open"      title="Ayuda"         subtitle="Manual de uso" />
           <MenuCard icon="message-circle" title="Contáctanos"   subtitle="Medios de atención" />

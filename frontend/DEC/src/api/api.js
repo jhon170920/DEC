@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 // 1. REGLA DE ORO: Usa tu IP privada (Ej: 192.168.1.XX) 
 // 'localhost' solo funciona dentro del emulador, no en tu celular físico.
-const BASE_URL = 'http://localhost:8089/api'; 
+const BASE_URL = 'http://10.4.1.234:8089/api'; 
 
 const api = axios.create({
     baseURL: BASE_URL,
@@ -40,7 +40,7 @@ export const loginUser = async (email, password) => {
 // REGISTRO DE USUARIO
 export const registerUser = async (name, email, password) => {
   try {
-    const response = await api.post('/register', { 
+    const response = await api.post('/users/register', { 
       username: name, 
       email, 
       password 

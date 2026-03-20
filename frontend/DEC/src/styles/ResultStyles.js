@@ -7,4 +7,7 @@ export const ResultStyles = StyleSheet.create({
         backgroundColor: Colors.bg,
 
     },
+    text:{
+        color: Colors.text,
+    }
 })
