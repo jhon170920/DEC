@@ -1,11 +1,9 @@
-// styles/ForgotStyles.js
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from 'react-native';
 import { Colors } from "../constants/colors";
 
 export const styles = StyleSheet.create({
 
     // --color de fondo--
-
     safeArea: {
         flex: 1,
         backgroundColor: Colors.bg,
@@ -19,6 +17,7 @@ export const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 32,
     },
+
     // -- logo --
     logoCircle: {
         width: 110,
@@ -44,13 +43,21 @@ export const styles = StyleSheet.create({
         color: Colors.textMid,
         fontWeight: '500',
     },
-    highlight: {
-        fontSize: 22,
-        fontWeight: 'bold',
+    headline: {
+        fontWeight: '300',
+        color: Colors.text,
+        letterSpacing: -0.5,
+        marginBottom: 6,
+        fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+        fontSize: 26,
+    },
+    headlineAccent: {
+        fontStyle: 'italic',
         color: Colors.primary,
+        fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     },
 
-    // ── Tarjeta 
+    // ── Tarjeta
     card: {
         width: '100%',
         backgroundColor: Colors.surface,
@@ -72,35 +79,36 @@ export const styles = StyleSheet.create({
         marginBottom: 24,
     },
 
-    // ── Input 
-    input: {
-        borderWidth: 2,
-        borderColor: Colors.border,
+    // ── Input con borde gradiente
+    inputGradientBorder: {
         borderRadius: 12,
+        padding: 2,
+        marginBottom: 16,
+    },
+    input: {
+        borderRadius: 10,
         padding: 14,
         fontSize: 15,
         color: Colors.text,
         backgroundColor: Colors.surfaceAlt,
-        marginBottom: 16,
-        textAlign: 'center',
-    },
-    inputFocused: {
-        borderColor: Colors.borderFocus,  
+        textAlign: 'left',
+        
     },
 
-    // ── Boton de enviar 
+    // ── Botón de enviar
     button: {
+        borderRadius: 14,
+        overflow: 'hidden',
+    },
+    buttonGradient: {
         flexDirection: 'row',
-        backgroundColor: Colors.primary,
         borderRadius: 14,
         paddingVertical: 16,
         paddingHorizontal: 20,
         alignItems: 'center',
         justifyContent: 'center',
         gap: 10,
-    },
-    buttonDisabled: {
-        backgroundColor: Colors.textMuted,
+        width: '100%',
     },
     buttonText: {
         color: Colors.surface,
@@ -108,7 +116,7 @@ export const styles = StyleSheet.create({
         fontSize: 13,
     },
 
-    // ── Mensaje de acceder o error
+    // ── Mensajes de éxito o error
     messageSuccess: {
         color: Colors.primary,
         textAlign: 'center',

@@ -164,7 +164,7 @@ export const MainStyles = StyleSheet.create({
     shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
   menuIconWrap: {
-    width: 40, height: 40, borderRadius: 12,
+    width: 48, height: 48, borderRadius: 14,
     backgroundColor: Colors.surfaceAlt,
     borderWidth: 1, borderColor: Colors.border,
     alignItems: "center", justifyContent: "center",

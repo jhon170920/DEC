@@ -1,151 +1,136 @@
-import { StyleSheet } from 'react-native';
-import { Colors } from '../constants/Config'; 
+import { StyleSheet, Platform } from "react-native";
+import { Colors } from "../constants/colors";
 
-export const styles = StyleSheet.create({
-  //-- Contenedor principal --
-container: {
-    flex: 1,
-    backgroundColor: Colors.bg,
+export const ContactStyles = StyleSheet.create({
+root: { flex: 1, backgroundColor: Colors.bg },
+absoluteFill: { ...StyleSheet.absoluteFill },
+scroll: {
+    paddingHorizontal: 32,
+    paddingTop: Platform.OS === "ios" ? 80 : 120,
+    paddingBottom: 60,
+    alignItems: "center",
 },
 
-scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 28,
-    paddingBottom: 40,
-    alignItems: 'center',
-},
-
-  // -- Logo y icono --
-logoWrapper: {
-    marginTop: 36,
-    marginBottom: 20,
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+  // -- Logo --
+logoWrap: {
+    width: 90, height: 90, borderRadius: 45,
     backgroundColor: Colors.surfaceAlt,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // sombra sutil en el logo
+    borderWidth: 1.5, borderColor: Colors.border,
+    alignItems: "center", justifyContent: "center",
+    marginBottom: 30,
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15, shadowRadius: 8, elevation: 4,
 },
+logo: { width: 65, height: 65, resizeMode: "contain" },
 
-logoImage: {
-    width: 52,
-    height: 52,
-    resizeMode: 'contain',
-},
-
-  // -- Titulo --
+  // Título
 title: {
-    fontSize: 30,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: 36,
-    letterSpacing: -0.5,
-    textAlign: 'center',
+    fontSize: 45, fontWeight: "300",
+    color: Colors.text, letterSpacing: -0.4,
+    marginBottom: 90,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
 },
 
-  // -- Formulario --
-form: {
-    width: '100%',
-    gap: 24,             // aqui va los espacio entre campos 
-},
-
-  // -- Campo individual --
-fieldWrapper: {
-    width: '100%',
-},
-
+  // --Label --
 label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.primary,
-    marginBottom: 6,
+    alignSelf: "flex-start",
+    fontSize: 16, fontWeight: "700",
+    color: Colors.primary, marginBottom: 6,
     letterSpacing: 0.2,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
 },
 
-inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1.5,
-    borderBottomColor: Colors.border,
+  // Input con ícono
+inputWrap: {
+    flexDirection: "row", alignItems: "center",
+    width: "100%", marginBottom: 20,
+    borderWidth: 1.5, borderColor: Colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     paddingBottom: 8,
-},
-
-inputRowFocused: {
-    borderBottomColor: Colors.borderFocus,
-},
-
-inputIcon: {
-    marginRight: 10,
-    color: Colors.textSoft,
-},
-
-input: {
-    flex: 1,
-    fontSize: 15,
-    color: Colors.text,
-    paddingVertical: 0,          
-},
-
-inputPlaceholder: {           
-    color: Colors.textMuted,
- },
-
-  // -- Textarea  --
-textareaWrapper: {
-    width: '100%',
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderRadius: 14,
     backgroundColor: Colors.surface,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+},
+inputIcon: { marginRight: 10 },
+input: {
+    flex: 1, fontSize: 15,
+    color: Colors.text,
+},
+
+  // TextArea
+textArea: {
+    width: "100%",
     minHeight: 140,
-},
-
-textareaWrapperFocused: {
-    borderColor: Colors.borderFocus,
-},
-
-textarea: {
+    borderWidth: 1.5, borderColor: Colors.border,
+    borderRadius: 16,
+    padding: 14,
     fontSize: 15,
     color: Colors.text,
-    textAlignVertical: 'top',    
-    minHeight: 116,
+    backgroundColor: Colors.surface,
+    marginBottom: 32,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
 },
 
-  // -- Boton Enviar --
-button: {
-    width: '100%',
-    marginTop: 12,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: Colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // sombra verde
+  // Botón
+btnEnviar: {
+    width: "100%", borderRadius: 12, overflow: "hidden",
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.30,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOpacity: 0.35, shadowRadius: 16, elevation: 6,
 },
+btnGradient: {
+    height: 56, alignItems: "center", justifyContent: "center",
+},
+btnText: { color: "#fff", fontSize: 15, fontWeight: "700", letterSpacing: 0.4 },
 
-buttonPressed: {
+// modal
+modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+},
+modalBox: {
+    width: "80%",
+    backgroundColor: Colors.surface,
+    borderRadius: 20,
+    padding: 28,
+    alignItems: "center",
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15, shadowRadius: 20, elevation: 10,
+},
+modalTitle: {
+    fontSize: 18, fontWeight: "700",
+    color: Colors.text, letterSpacing: -0.2,
+},
+modalSub: {
+    fontSize: 13.5, color: Colors.textSoft,
+    textAlign: "center", lineHeight: 20,
+},
+modalBtn: {
+    marginTop: 8,
     backgroundColor: Colors.primary,
-    shadowOpacity: 0.15,
-    elevation: 2,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+},
+modalBtnText: {
+    color: "#fff", fontSize: 15, fontWeight: "700",
+},
+backBtn: {
+    position: "absolute",
+    top: Platform.OS === "ios" ? 60 : 44,
+    right: 28,
+    zIndex: 10,
+    width: 55, height: 55,
+    borderRadius: 12,
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5, borderColor: Colors.border,
+    alignItems: "center", justifyContent: "center",
 },
 
-buttonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.surface,
-    letterSpacing: 0.4,
-    },
 });

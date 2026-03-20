@@ -135,20 +135,6 @@ const UserDropdown = ({ visible, onClose, onProfile, onLogout }) => {
   );
 };
 
-// ─── MENU CARD ─────────────────────────────────────────────
-const MenuCard = ({ icon, title, subtitle, onPress }) => (
-  <TouchableOpacity style={styles.menuCard} onPress={onPress} activeOpacity={0.75}>
-    <View style={styles.menuIconWrap}>
-      <Feather name={icon} size={20} color={Colors.primary} />
-    </View>
-    <View style={styles.menuTexts}>
-      <Text style={styles.menuTitle}>{title}</Text>
-      <Text style={styles.menuSub}>{subtitle}</Text>
-    </View>
-    <Feather name="chevron-right" size={18} color={Colors.textMuted} />
-  </TouchableOpacity>
-);
-
 // ─── PANTALLA PRINCIPAL ────────────────────────────────────
 export default function MainApp() {
   
@@ -297,14 +283,45 @@ export default function MainApp() {
         </View>
 
         <View style={styles.menuList}>
-          <TouchableOpacity>
+            
 
-            <MenuCard icon="search"         title="Mis Análisis"  subtitle="Escaneos recientes de plantas" />
-          </TouchableOpacity>
-          
-          <MenuCard icon="book-open"      title="Ayuda"         subtitle="Manual de uso" />
-          <MenuCard icon="message-circle" title="Contáctanos"   subtitle="Medios de atención" />
-        </View>
+            <View style={styles.menuList}>
+
+  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("historial")}>
+    <View style={styles.menuIconWrap}>
+      <Feather name="search" size={24} color={Colors.primary} />
+    </View>
+    <View style={styles.menuTexts}>
+      <Text style={styles.menuTitle}>Mis Análisis</Text>
+      <Text style={styles.menuSub}>Escaneos recientes de plantas</Text>
+    </View>
+    <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+  </TouchableOpacity>
+
+  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("manual")}>
+    <View style={styles.menuIconWrap}>
+      <Feather name="book-open" size={24} color={Colors.primary} />
+    </View>
+    <View style={styles.menuTexts}>
+      <Text style={styles.menuTitle}>Ayuda</Text>
+      <Text style={styles.menuSub}>Manual de uso</Text>
+    </View>
+    <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+  </TouchableOpacity>
+
+  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("Contact")}>
+    <View style={styles.menuIconWrap}>
+      <Feather name="message-circle" size={24} color={Colors.primary} />
+    </View>
+    <View style={styles.menuTexts}>
+      <Text style={styles.menuTitle}>Contáctanos</Text>
+      <Text style={styles.menuSub}>Medios de atención</Text>
+    </View>
+    <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+  </TouchableOpacity>
+
+</View>
+</View>
       </ScrollView>
     </View>
   );
