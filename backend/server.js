@@ -2,8 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import "./db/db.js"; // Asegura que la conexión a la base de datos se establezca al iniciar el servidor
 import userRoutes from './routes/users.js';
-import loginRoutes from './routes/login.js';
 import detectionRoutes from './routes/detection.js';
+
+// ruta de admin 
+import adminRoutes from './routes/admin.js'
 
 
 const app = express();
@@ -11,11 +13,21 @@ const app = express();
 app.use(express.json()); // Middleware para parsear JSON en las solicitudes entrantes
 app.use(express.urlencoded({ extended: true })); // Middleware para parsear datos de formularios (application/x-www-form-urlencoded)
 app.use(cors());
-
-app.use("/api/detections", detectionRoutes);
+// ruta principal de usuarios
 app.use("/api/users", userRoutes);
-app.use("/api/login", loginRoutes);
+// ruta de historial de detecciones
+app.use("/api/detections", detectionRoutes);
+
+
+
+// ruta principal de admin
+app.use("/api/admin", adminRoutes);
+
 app.get("/", (req, res) => {
   res.send(" Servidor funcionando correctamente");
 });
-app.listen(8089, ()=> console.log(`✅ ✅servidor corriendo en http://localhost:8089`));
+
+
+
+const PORT = 8089
+app.listen(PORT, ()=> console.log(`✅ ✅servidor corriendo en http://localhost:${PORT}`));

@@ -16,7 +16,7 @@ export default function CameraScreen({ navigation }) {
   const cameraRef = useRef(null);
   const ctxRef = useRef(null); // Aquí guardaremos la INSTANCIA de la clase
 
-  useEffect(() => {
+  useEffect(() => { // pregunta por permisos como el uso de la camara y procede a evaluar 
     if (permission && !permission.granted && permission.canAskAgain) {
       requestPermission();
     }

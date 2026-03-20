@@ -23,10 +23,7 @@ import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { Colors } from '../constants/colors';
 import { LoginStyles as styles } from '../styles/Loginstyles';
 
-
-
-const API_URL = "http://192.168.101.208:8089/api/login";
-
+const API_URL = "http://10.4.1.202:8089/api/users/login";
 
 // ─── CAMPO CON FLOATING LABEL ──────────────────────────────
 const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, rightSlot, fieldHeight }) => {
@@ -161,7 +158,7 @@ const {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' :  'height'}
       >
         <Animated.View
           style={[
@@ -222,7 +219,7 @@ const {
 
           {/* ── OLVIDÉ CONTRASEÑA ── */}
           <View style={[styles.metaRow, { marginVertical: sp(0.016) }]}>
-            <TouchableOpacity onPress={() => Alert.alert("Próximamente", "Función de recuperación en desarrollo")}>
+            <TouchableOpacity onPress={() =>  navigation.navigate('ForgotPassword')}>
               <Text style={styles.forgotText}>
                 ¿Olvidaste tu contraseña?{' '}
                 <Text style={styles.forgotLink}>Recuperala</Text>
