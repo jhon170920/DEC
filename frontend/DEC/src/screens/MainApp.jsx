@@ -298,7 +298,7 @@ export default function MainApp() {
     <Feather name="chevron-right" size={16} color={Colors.textMuted} />
   </TouchableOpacity>
 
-  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("manual")}>
+  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("Manual")}>
     <View style={styles.menuIconWrap}>
       <Feather name="book-open" size={24} color={Colors.primary} />
     </View>
