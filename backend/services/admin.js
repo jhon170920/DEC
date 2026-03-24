@@ -71,7 +71,7 @@ export const deleteUser = async (req, res) => {
 }
 
 // obtener todos las detecciones obtenidas por los usuarios
-export const getAllDeteccions = async (req, res) => {
+export const getAllDetections = async (req, res) => {
     try {
         // traemos todos las detecciones de la base de datos
         const detections = await Detections.find()

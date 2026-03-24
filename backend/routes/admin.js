@@ -7,7 +7,7 @@ import {
     editUser,
     deleteUser,
     // detecciones
-    getAllDeteccions,
+    getAllDetections,
     deleteDetection,
     // pathologias
     // savePathology,
@@ -27,9 +27,9 @@ router.delete('/delete-user/:id', verifyToken, onlyAdmin, deleteUser)
 
 //______SECCION DE DETECCIONES/HISTORIAL______
 // OBTENER detecciones
-router.get('/get-deteccions', verifyToken, onlyAdmin, getAllDeteccions);
+router.get('/get-detections', verifyToken, onlyAdmin, getAllDetections);
 // ELIMINAR ALGUNA DETECCION
-router.delete('/delete-deteccion/:id', verifyToken, onlyAdmin, deleteDetection)
+router.delete('/delete-detection/:id', verifyToken, onlyAdmin, deleteDetection)
 
 //______SECCION DE AFFECCINOES/PATOLOGÍAS______
 // SUBIR pathología de prueba

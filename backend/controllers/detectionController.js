@@ -10,8 +10,9 @@ export const saveDetection = async (req, res) => {
         // subir el buffer en memoria a Cloudinary y obtener la URL
         const imageUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
         
-        // obtener los id, usuario y pathología
-        const { userId, pathologyId } = req.params;
+        // obtener los id, pathología y del usuario
+        const { pathologyId } = req.params;
+        const userId = req.user._id
         // extraer datos del análisis
         const {lng, lat, confidence} = req.body;
 
@@ -45,15 +46,26 @@ export const saveDetection = async (req, res) => {
 // Obtener el historial del usuario logueado
 export const getUserHistory = async (req, res) => {
     try {
+        // Leemos la página y el límite de la URL (query params) Si no vienen, por defecto es página 1 y límite de 10 por página
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+
+        // Calculamos cuántos registros saltar
+        // Página 1: (1-1) * 10 = 0 saltos
+        // Página 2: (2-1) * 10 = 10 saltos
+        const skip = (page - 1) * limit;
         // req.user.id viene del middleware de autenticación (JWT)
         const history = await Detections.find({ userId: req.user.id })
-        .populate("pathologyId", "name treatment description") // tratemos la patología
-        .sort({ createdAt: -1 }); // la más reciente arriba
+            .populate("pathologyId", "name treatment description") // tratemos la patología
+            .sort({ createdAt: -1 }) // la más reciente arriba
+            .skip(skip)
+            .limit(limit)
         res.status(200).json(history);
     } catch (error) {
         res.status(500).json({ message: "Error al obtener el historial", error: error.message });
     }
 };
+
 // eliminar una deteccion del historial del usuario
 export const deleteUserDetection = async (req, res) => {
     try {

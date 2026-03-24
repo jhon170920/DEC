@@ -9,6 +9,51 @@ const expressions = {
     pass: /^[a-zA-Z0-9]{8,14}$/
 }
 
+// login con google
+export const googleAuth = async (req, res) => {
+    try {
+      const { googleToken } = req.body;
+  
+      // 1. Preguntar a Google: "¿Es este token real y de quién es?"
+      const googleRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${googleToken}`);
+      const googleUser = await googleRes.json();
+  
+      if (!googleUser.email) {
+        return res.status(401).json({ message: "Token de Google inválido" });
+      }
+  
+      // 2. Buscar en nuestra base de datos por email
+      let user = await Users.findOne({ email: googleUser.email });
+  
+      // 3. SI NO EXISTE -> REGISTRO AUTOMÁTICO
+      if (!user) {
+        user = new Users({
+          name: googleUser.name,
+          email: googleUser.email,
+          avatar: googleUser.picture,
+          googleId: googleUser.sub
+        });
+        await user.save();
+      }
+  
+      // 4. SI EXISTE O RECIÉN CREADO -> GENERAR NUESTRO TOKEN (JWT)
+      const token = jwt.sign(
+        { id: user._id, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+  
+      // 5. Responder al Front
+      res.status(200).json({
+        token,
+        user: { name: user.name, email: user.email }
+      });
+  
+    } catch (error) {
+      res.status(500).json({ message: "Error en el servidor" });
+    }
+};
+
 // registrar nuevo usuario
 export const registerUser = async (req, res) => {
     try {
