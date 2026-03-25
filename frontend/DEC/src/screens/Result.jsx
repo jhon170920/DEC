@@ -12,7 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { Colors } from "../constants/colors";
-import { ResultStyles as styles } from "../styles/Resultstyles";
+import { ResultStyles as styles } from "../styles/ResultStyles";
 
 export default function Result() {
 const navigation = useNavigation();

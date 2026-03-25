@@ -16,7 +16,7 @@ export default function ResultScreen({ route, navigation }) {
       </Text>
 
       <Text style={styles.text}>
-        Confianza: {result.confidence}
+        Precision: {result.confidence}
       </Text>
 
       {userToken ? (
