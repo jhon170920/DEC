@@ -1,36 +1,43 @@
 import Detections from "../models/Detection.js";
+import Pathology from "../models/pathologies.js";
 import { uploadToCloudinary } from "../services/cloudinary.js"; // ajusta la ruta si es diferente
 
 // guardar
 export const saveDetection = async (req, res) => {
     try {
-        // 1. Validar que se haya subido un archivo
-        if (!req.file) {
-            return res.status(400).json({ message: "No se recibió ninguna imagen." });
-        }
-
-        // 2. Subir el buffer en memoria a Cloudinary y obtener la URL
+        // extraer y validar que se haya enviado la foto
+        if (!req.file) return res.status(400).json({ message: "No se recibió ninguna imagen para guardar la deteccion" });
+        // subir el buffer en memoria a Cloudinary y obtener la URL
         const imageUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
+        
+        // obtener los id, pathología y del usuario
+        const { pathologyId } = req.params;
+        const userId = req.user.id
+        // extraer datos del análisis
+        const {lng, lat, confidence} = req.body;
 
-        // 3. Extraer el resto de datos del body
-        const { plantName, pathology, confidence, treatment } = req.body;
+        // verificamos si existe el id de la pathología (enviada desde el front) en nuestra base de datos 
+        const pathologyExist = await Pathology.findById(pathologyId);
+        if (!pathologyExist) return res.status(404).json({ message: "La patología referenciada no existe." });
 
         // 4. Crear el registro vinculado al usuario (viene del JWT)
         const newDetection = new Detections({
-            userId: req.user.id,
-            plantName,
-            pathology,
-            confidence: parseFloat(confidence),
+            userId,
+            pathologyId,
+            location: {
+                type: "Point",
+                coordinates: [parseFloat(lng), parseFloat(lat)] // [Longitud, Latitud]
+            },
+            confidence,
             imageUrl,
-            treatment
         });
 
         // 5. Guardar en MongoDB
         await newDetection.save();
-
+        // enviar mensaje
         res.status(201).json({
             message: "¡Detección guardada con éxito en el historial!",
-            data: newDetection
+            detection: newDetection
         });
     } catch (error) {
         res.status(500).json({ message: "Error al guardar en la base de datos", error: error.message });
@@ -39,13 +46,26 @@ export const saveDetection = async (req, res) => {
 // Obtener el historial del usuario logueado
 export const getUserHistory = async (req, res) => {
     try {
+        // Leemos la página y el límite de la URL (query params) Si no vienen, por defecto es página 1 y límite de 10 por página
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+
+        // Calculamos cuántos registros saltar
+        // Página 1: (1-1) * 10 = 0 saltos
+        // Página 2: (2-1) * 10 = 10 saltos
+        const skip = (page - 1) * limit;
         // req.user.id viene del middleware de autenticación (JWT)
-        const history = await Detections.find({ userId: req.user.id }).sort({ createdAt: -1 });
-        res.status(200).json(history);
+        const history = await Detections.find({ userId: req.user.id })
+            .populate("pathologyId", "name treatment description") // tratemos la patología
+            .sort({ createdAt: -1 }) // la más reciente arriba
+            .skip(skip)
+            .limit(limit)
+        res.status(200).json({history});
     } catch (error) {
         res.status(500).json({ message: "Error al obtener el historial", error: error.message });
     }
 };
+
 // eliminar una deteccion del historial del usuario
 export const deleteUserDetection = async (req, res) => {
     try {
