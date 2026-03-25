@@ -266,41 +266,43 @@ export default function MainApp() {
           <View style={styles.sectionLine} />
         </View>
 
-        {/* ── MENU CARDS ───────────────────────────────────────── */}
-        <View style={[styles.menuList, { marginBottom: sp(0.02) }]}>
-          {[
-            { icon: "search",         title: "Mis Análisis", sub: "Escaneos recientes de plantas", route: "historial" },
-            { icon: "book-open",      title: "Ayuda",        sub: "Manual de uso",                route: "Manual"    },
-            { icon: "message-circle", title: "Contáctanos",  sub: "Medios de atención",            route: "Contact"   },
-          ].map(({ icon, title, sub, route }) => (
-            <TouchableOpacity
-              key={route}
-              style={[
-                styles.menuCard,
-                {
-                  paddingVertical:   menuCardPV,
-                  paddingHorizontal: menuCardPH,
-                  borderRadius:      menuCardBR,
-                  marginBottom:      menuCardMB,
-                },
-              ]}
-              activeOpacity={0.75}
-              onPress={() => navigation.navigate(route)}
-            >
-              <View style={[
-                styles.menuIconWrap,
-                { width: menuIconWrapS, height: menuIconWrapS, borderRadius: menuIconWrapBR },
-              ]}>
-                <Feather name={icon} size={menuIconS} color={Colors.primary} />
-              </View>
-              <View style={styles.menuTexts}>
-                <Text style={[styles.menuTitle, { fontSize: menuTitleS }]}>{title}</Text>
-                <Text style={[styles.menuSub,   { fontSize: menuSubS   }]}>{sub}</Text>
-              </View>
-              <Feather name="chevron-right" size={menuChevronS} color={Colors.textMuted} />
-            </TouchableOpacity>
-          ))}
-        </View>
+        <View style={styles.menuList}>
+            
+
+            <View style={styles.menuList}>
+
+  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("historial")}>
+    <View style={styles.menuIconWrap}>
+      <Feather name="search" size={24} color={Colors.primary} />
+    </View>
+    <View style={styles.menuTexts}>
+      <Text style={styles.menuTitle}>Mis Análisis</Text>
+      <Text style={styles.menuSub}>Escaneos recientes de plantas</Text>
+    </View>
+    <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+  </TouchableOpacity>
+
+  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("Manual")}>
+    <View style={styles.menuIconWrap}>
+      <Feather name="book-open" size={24} color={Colors.primary} />
+    </View>
+    <View style={styles.menuTexts}>
+      <Text style={styles.menuTitle}>Ayuda</Text>
+      <Text style={styles.menuSub}>Manual de uso</Text>
+    </View>
+    <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+  </TouchableOpacity>
+
+  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("Contact")}>
+    <View style={styles.menuIconWrap}>
+      <Feather name="message-circle" size={24} color={Colors.primary} />
+    </View>
+    <View style={styles.menuTexts}>
+      <Text style={styles.menuTitle}>Contáctanos</Text>
+      <Text style={styles.menuSub}>Medios de atención</Text>
+    </View>
+    <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+  </TouchableOpacity>
 
       </View>
     </View>
