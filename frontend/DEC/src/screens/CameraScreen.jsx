@@ -30,31 +30,60 @@ export default function CameraScreen({ navigation }) {
   if (!isFocused || !permission) return <View style={{ flex: 1, backgroundColor: '#000' }} />;
 
   const handleCapture = async () => {
-    // Verificamos que ctxRef.current sea una instancia válida
     if (cameraRef.current && ctxRef.current && !isProcessing) {
       try {
         setIsProcessing(true);
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
 
-        // Pasamos la URI y la instancia del contexto
+        // 1. Procesar con IA
         const inputData = await imageToTensor(photo.uri, ctxRef.current);
-        
-        if (!inputData) throw new Error("Error al procesar los píxeles.");
-
         const predictionData = await runInference(inputData);
-        const result = processPrediction(predictionData);
+        const prediction = processPrediction(predictionData); 
 
-        if (result) {
-          navigation.navigate('Result', { result });
+        if (prediction) {
+          // 2. Diccionario de Información (Base de conocimientos local)
+          const infoMap = { 
+            "Roya (Leaf Rust)": {
+              cientifico: "Hemileia vastatrix",
+              desc: "Hongo que genera manchas naranja en el envés. Causa caída de hojas.",
+              saludable: false
+            },
+            "Minador": {
+              cientifico: "Leucoptera coffeella",
+              desc: "Larva que come el interior de la hoja creando manchas cafés secas.",
+              saludable: false
+            },
+            "Araña roja": {
+              cientifico: "Araña que te araña",
+              desc: "La planta se encuentra viva de milagro. Siga con el monitoreo.",
+              saludable: false
+            }
+          };
+
+          const detalle = infoMap[prediction.disease] || {
+            cientifico: "N/A",
+            desc: "Detección no clasificada.",
+            saludable: true
+          };
+
+          // 3. NAVEGACIÓN con el objeto 'data'
+          navigation.navigate('Result', { 
+            data: {
+              uri: photo.uri,
+              disease: prediction.disease,
+              confidence: prediction.confidence,
+              scientificName: detalle.cientifico,
+              description: detalle.desc,
+              isHealthy: detalle.saludable  
+            }
+          });
         }
       } catch (error) {
-        console.error("Error en IA:", error);
+        console.error(error);
         Alert.alert("Error", "No se pudo realizar el diagnóstico.");
       } finally {
         setIsProcessing(false);
       }
-    } else {
-      Alert.alert("Espera", "El motor gráfico se está iniciando...");
     }
   };
 

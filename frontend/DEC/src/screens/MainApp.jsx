@@ -266,11 +266,6 @@ export default function MainApp() {
           <View style={styles.sectionLine} />
         </View>
 
-        <View style={styles.menuList}>
-            
-
-            <View style={styles.menuList}>
-
   <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("historial")}>
     <View style={styles.menuIconWrap}>
       <Feather name="search" size={24} color={Colors.primary} />
