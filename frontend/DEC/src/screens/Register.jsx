@@ -15,7 +15,6 @@ import { View,
 import { LinearGradient } from 'expo-linear-gradient';
 import { registerUser } from '../api/api';
 import { useNavigation } from '@react-navigation/native'; // Para navegar al login
-import axios from 'axios';
 import { Colors } from '../constants/colors';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { StyleRegister as styles } from '../styles/RegisterStyles';
@@ -83,10 +82,8 @@ export default function Register() {
       logoRingS,
       logoImgS,
       headlineS,
-      sublineS,
       fieldH,
       btnH,
-      ghostH,
       socialH,
       iconS
     } = useResponsiveLayout();

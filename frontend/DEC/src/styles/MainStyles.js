@@ -16,6 +16,7 @@ export const MainStyles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 28,
     zIndex: 100,
+    marginTop:10,
   },
   logoRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   logoMark: {
