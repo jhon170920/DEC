@@ -12,7 +12,7 @@ export const saveDetection = async (req, res) => {
         
         // obtener los id, pathología y del usuario
         const { pathologyId } = req.params;
-        const userId = req.user._id
+        const userId = req.user.id
         // extraer datos del análisis
         const {lng, lat, confidence} = req.body;
 
@@ -60,7 +60,7 @@ export const getUserHistory = async (req, res) => {
             .sort({ createdAt: -1 }) // la más reciente arriba
             .skip(skip)
             .limit(limit)
-        res.status(200).json(history);
+        res.status(200).json({history});
     } catch (error) {
         res.status(500).json({ message: "Error al obtener el historial", error: error.message });
     }
