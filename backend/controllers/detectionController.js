@@ -55,12 +55,24 @@ export const getUserHistory = async (req, res) => {
         // Página 2: (2-1) * 10 = 10 saltos
         const skip = (page - 1) * limit;
         // req.user.id viene del middleware de autenticación (JWT)
-        const history = await Detections.find({ userId: req.user.id })
-            .populate("pathologyId", "name treatment description") // tratemos la patología
-            .sort({ createdAt: -1 }) // la más reciente arriba
-            .skip(skip)
-            .limit(limit)
-        res.status(200).json({history});
+        // ejecutamos dos busquedas al mismo tiempo, el history y el total records
+        const [history, totalRecords] = await Promise.all([
+            Detections.find({ userId: req.user.id })
+                .populate("pathologyId", "name treatment description") // tratemos la patología
+                .sort({ createdAt: -1 }) // la más reciente arriba
+                .skip(skip)// nos saltemos los análisis ya hechos
+                .limit(limit), // el límite de detecciones cada pagina
+            Detections.countDocuments({ userId: req.user.id }) // el total de detecciones
+        ]) 
+
+        const hasMore = skip + history.length < totalRecords; // calculamos si hay mas en la siguiente pagina
+            
+        res.status(200).json({
+            history, // lita de detecciones
+            hasMore, // si hay mas o no en la pagina siguiente
+            totalRecords, // para mostrar un total de analisis
+            currentPage: page // la página actual
+        });
     } catch (error) {
         res.status(500).json({ message: "Error al obtener el historial", error: error.message });
     }
