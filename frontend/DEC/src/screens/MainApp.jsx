@@ -200,6 +200,7 @@ export default function MainApp() {
               <Image 
               source={require("../../assets/image/logo.png")}
               style={{width: logoImgS, height: logoImgS}}
+              resizeMode="contain"
               />
             </View>
             

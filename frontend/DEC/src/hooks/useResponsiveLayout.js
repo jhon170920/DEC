@@ -18,7 +18,7 @@ export const useResponsiveLayout = () => {
     hPad: width * 0.072,
 
     logoRingS: isSmall ? 68 : isMed ? 80 : 92,
-    logoImgS: isSmall ? 44 : isMed ? 54 : 62,
+    logoImgS: isSmall ? 44 : isMed ? 54 : 50,
     headlineS: isSmall ? 26 : isMed ? 30 : 34,
     sublineS: isSmall ? 12 : 13.5,
     fieldH: isSmall ? 52 : isMed ? 56 : 60,
