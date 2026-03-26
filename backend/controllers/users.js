@@ -2,6 +2,10 @@ import bcrypt from "bcryptjs"; // Importar bcrypt para hashear la contraseña
 import Users from "../models/users.js"; // Importar el modelo de usuario (no olvidar al importar el archivo su extensión .js)
 import jwt from "jsonwebtoken";
 
+import { OAuth2Client } from 'google-auth-library';
+import dotenv from 'dotenv';
+dotenv.config();
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const expressions = {
     name: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,15}(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,15})?$/,
@@ -12,45 +16,52 @@ const expressions = {
 // login con google
 export const googleAuth = async (req, res) => {
     try {
-      const { googleToken } = req.body;
-  
-      // 1. Preguntar a Google: "¿Es este token real y de quién es?"
-      const googleRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${googleToken}`);
-      const googleUser = await googleRes.json();
-  
-      if (!googleUser.email) {
-        return res.status(401).json({ message: "Token de Google inválido" });
-      }
-  
-      // 2. Buscar en nuestra base de datos por email
-      let user = await Users.findOne({ email: googleUser.email });
-  
-      // 3. SI NO EXISTE -> REGISTRO AUTOMÁTICO
-      if (!user) {
-        user = new Users({
-          name: googleUser.name,
-          email: googleUser.email,
-          avatar: googleUser.picture,
-          googleId: googleUser.sub
+        const { token } = req.body; // traemos el token de google
+        if (!token) return res.status(400).json({message: "no hay token"}) // si no hay token, pues no
+        console.log("token del back", token)
+        // verificamos si el token es real
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID,
         });
-        await user.save();
-      }
-  
-      // 4. SI EXISTE O RECIÉN CREADO -> GENERAR NUESTRO TOKEN (JWT)
-      const token = jwt.sign(
-        { id: user._id, email: user.email },
-        process.env.JWT_SECRET,
-        { expiresIn: '30d' }
-      );
-  
-      // 5. Responder al Front
-      res.status(200).json({
-        token,
-        user: { name: user.name, email: user.email }
-      });
-  
+
+        // extraemos la información del usuario
+        const { sub, email, name, picture } = ticket.getPayload()
+
+        // Buscamos si el usuario ya existe por email o por id de google
+        let user = await Users.findOne({ 
+            $or: [{ googleId: sub }, { email: email.toLowerCase() }] 
+        });
+        
+        if (!user) {
+            user = new Users({
+                name,
+                email: email.toLowerCase(), // resetemos el mail por si algo y lo guardamos
+                googleId: sub, // guardamos el id como googleId
+                role: 'user'
+            })
+            await user.save()
+        } else if(!user.googleId) {
+            user.googleId = sub;
+            await user.save()
+        }
+
+        const sessionToken = jwt.sign(
+            { id: user._id, role: user.role || 'user' }, 
+            process.env.JWT_SECRET || 'clave_secreta_provisional', 
+            { expiresIn: '30d' } // Duración larga para apps móviles
+        );
+
+        console.log("bienbien inicio bien, creo")
+        return res.status(200).json({
+            message: 'inicio de sesion con google correcto',
+            token: sessionToken,
+            user: { id: user._id, name: user.name, email: user.email }
+        })
+
     } catch (error) {
-      res.status(500).json({ message: "Error en el servidor" });
+        console.error("Error con login de google:", error.message)
+        res.status(500).json({message:'Error al iniciar sesion con Google', error: error.message});  
     }
 };
 
