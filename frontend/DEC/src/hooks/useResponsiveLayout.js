@@ -49,16 +49,16 @@ export const useResponsiveLayout = () => {
 
     // ── Greeting block (MainApp) ───────────────────────────
     greetingMT    : isSmall ? 10 : isMed ? 16 : 22,   // marginTop del bloque
-    greetingMB    : isSmall ? 12 : isMed ? 16 : 20,   // marginBottom del bloque
+    greetingMB    : isSmall ? 8 : isMed ? 12 : 16,   // marginBottom del bloque
 
     // ── Imagen principal (MainApp) ─────────────────────────
-    imageH        : isSmall ? 180 : isMed ? 210 : 240, // alto de la imagen
+    imageH        : isSmall ? 150 : isMed ? 175 : 185,// alto de la imagen
     imageBR       : isSmall ? 16  : isMed ? 20  : 24,  // borderRadius card imagen
-    imageMB       : isSmall ? 14  : isMed ? 18  : 22,  // marginBottom card imagen
+    imageMB       : isSmall ? 10  : isMed ? 12  : 14,  // marginBottom card imagen
 
     // ── Botón Scan (MainApp) ───────────────────────────────
     scanBtnH      : isSmall ? 48 : isMed ? 54 : 60,   // alto del botón scan
-    scanBtnMB     : isSmall ? 20 : isMed ? 24 : 28,   // marginBottom botón scan
+    scanBtnMB     : isSmall ? 14 : isMed ? 16 : 20,   // marginBottom botón scan
     scanBtnBR     : isSmall ? 14 : isMed ? 16 : 18,   // borderRadius botón scan
     scanIconS     : isSmall ? 18 : isMed ? 20 : 22,   // ícono cámara
     scanTextS     : isSmall ? 14 : isMed ? 15 : 16,   // texto "Escanear planta"

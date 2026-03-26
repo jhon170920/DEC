@@ -34,3 +34,28 @@ export const getUnsyncedDetections = () => {
 export const markAsSynced = (id) => {
   db.runSync('UPDATE detections SET synced = 1 WHERE id = ?', [id]);
 };
+//VER LAS TABLAS DE SQLITE EN CONSOLA
+export const debugCheckDatabase = () => {
+  try {
+    const allDetections = db.getAllSync('SELECT * FROM detections');
+    console.log("--- INICIO DE DATOS ---");
+    // El 'null, 2' hace que se vea ordenado con sangría
+    console.log(JSON.stringify(allDetections, null, 2)); 
+    console.log("--- FIN DE DATOS (Total: " + allDetections.length + ") ---");
+  } catch (error) {
+    console.error("Error al leer:", error);
+  }
+};
+// export const debugCheckDatabase = () => {
+//   try {
+//     const allDetections = db.getAllSync('SELECT * FROM detections');
+//     if (allDetections.length === 0) {
+//       console.log("📭 SQLite está vacío. ¡Haz una captura y dale a GUARDAR!");
+//     } else {
+//       console.log("📊 Datos encontrados en SQLite:");
+//       console.table(allDetections);
+//     }
+//   } catch (error) {
+//     console.error("❌ Error al leer SQLite:", error);
+//   }
+// };

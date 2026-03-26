@@ -1,28 +1,40 @@
 import React from "react";
-import {
-View,
-Text,
-Image,
-TouchableOpacity,
-StatusBar,
-ScrollView,
-StyleSheet,
-} from "react-native";
+import { View, Text, Image, TouchableOpacity, ScrollView, Alert, StyleSheet, StatusBar } from "react-native";
+import { useRoute, useNavigation } from "@react-navigation/native";
+import { saveDetectionLocal } from "../services/dbService";
+import { syncDetections } from "../services/syncService";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 import { Colors } from "../constants/colors";
-import { ResultStyles as styles } from "../styles/ResultStyles";
+import { ResultStyles as styles } from "../styles/Resultstyles";
 
 export default function Result() {
+const route = useRoute();
 const navigation = useNavigation();
 
-  // ── CONECTAR IA AQUÍ ──
-const imagenResultado = "";
-const saludable = true;
-const nombrePlanta = "";
-const nombreCientifico = "";
-const descripcion = "";
+const { data } = route.params || {};
+
+    // ── DATOS CONECTADOS ──
+    const imagenResultado = data?.uri || "";
+    const saludable = data?.isHealthy ?? true;
+    const nombreAfeccion = data?.disease || "Sin identificar";
+    const nombreCientifico = data?.scientificName || "N/A";
+    const descripcion = data?.description || "No hay descripción disponible.";
+
+  const handleSave = async () => {
+    try {
+      // Guardar en SQLite local (para uso Offline)
+      await saveDetectionLocal(data.disease, data.confidence, data.uri);
+      
+      // Intentar sincronizar con MongoDB (si hay internet)
+      await syncDetections(); 
+
+      Alert.alert("Guardado", "El análisis se guardó en tu historial.");
+      navigation.navigate('MainApp'); 
+    } catch (error) {
+      Alert.alert("Error", "No se pudo guardar localmente.");
+    }
+  };
 
 return (
     <View style={styles.root}>
@@ -46,31 +58,38 @@ return (
             source={require("../../assets/image/logo.png")}
             style={styles.logo}
             />
+
             <TouchableOpacity style={styles.avatarInner}>
             <Feather name="user" size={20} color={Colors.primary} />
             </TouchableOpacity>
+
         </View>
 
+
         {/* ── SECCION ── */}
+
         <View style={styles.sectionHeader}>
             <Text style={styles.sectionLabel}>RESULTADO</Text>
             <View style={styles.sectionLine} />
         </View>
+
 
         {/* ── IMAGEN ── */}
         <View style={styles.imageCard}>
             <Image
             source={{ uri: imagenResultado }}
             style={styles.image}
+            resizeMode="contain"
             />
         </View>
-
         {/* ── TÍTULO ── */}
         <Text style={styles.analysisTitle}>
-            Análisis: <Text style={styles.analysisAccent}>{nombrePlanta}</Text>
+            Análisis: <Text style={styles.analysisAccent}>{nombreAfeccion}</Text>
         </Text>
 
+
         {/* ── BADGE ── */}
+
         <View style={[styles.badge, !saludable && styles.badgeDanger]}>
             <Feather
             name={saludable ? "check-square" : "x-square"}
@@ -80,11 +99,10 @@ return (
             <Text style={[styles.badgeText, !saludable && styles.badgeTextDanger]}>
                 {saludable ? "Saludable" : "No saludable"}
             </Text>
-        </View>
 
+        </View>
         {/* ── CARDS INFO ── */}
         <View style={styles.menuList}>
-
             <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => {}}>
             <View style={styles.menuIconWrap}>
                 <Feather name="search" size={24} color={Colors.primary} />
@@ -100,17 +118,22 @@ return (
             <View style={styles.menuIconWrap}>
                 <Feather name="book-open" size={24} color={Colors.primary} />
             </View>
+
             <View style={styles.menuTexts}>
                 <Text style={styles.menuTitle}>Descripción</Text>
                 <Text style={styles.menuSub}>{descripcion}</Text>
-            </View>
-            <Feather name="chevron-right" size={16} color={Colors.textMuted} />
-            </TouchableOpacity>
 
+            </View>
+
+            <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+
+            </TouchableOpacity>
         </View>
 
+
         {/* ── BOTÓN GUARDAR ── */}
-        <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85} onPress={() => {}}>
+
+        <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85} onPress={handleSave}>
             <LinearGradient
             colors={["#22c55e", "#16a34a", "#15803d"]}
             style={styles.scanGradient}
@@ -122,6 +145,7 @@ return (
         </TouchableOpacity>
 
         </ScrollView>
-    </View>
+
+    </View> 
     );
 }

@@ -115,7 +115,7 @@ export const processPrediction = (predictionData) => {
 
   if (mejorConf < UMBRAL) {
     return {
-      disease: "Sana / No detectada",
+      disease: "Objeto no identificado",
       confidence: (mejorConf * 100).toFixed(2) + "%"
     };
   }
