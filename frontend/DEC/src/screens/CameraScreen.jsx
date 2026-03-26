@@ -61,8 +61,8 @@ export default function CameraScreen({ navigation }) {
           };
 
           const detalle = infoMap[prediction.disease] || {
-            cientifico: "N/A",
-            desc: "Detección no clasificada.",
+            cientifico: "No apllica",
+            desc: "Detección no clasificada. No se ha detectado ninguna enfermedad",
             saludable: true
           };
 

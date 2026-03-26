@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import axios from 'axios';
 import { loginUser } from '../api/api';
 import * as SecureStore from 'expo-secure-store';
 import { AuthContext } from '../context/AuthContext';
@@ -171,13 +170,16 @@ const {
           <View style={[styles.logoContainer, { marginBottom: sp(0.028) }]}>
             <View style={[
               styles.logoRing,
-              { width: logoRingS, height: logoRingS, borderRadius: logoRingS / 2, marginBottom: 8 },
+              { width: logoRingS, 
+                height: logoRingS, 
+                borderRadius: logoRingS / 2, 
+                marginBottom: 8 },
             ]}>
               {/* LOGO */}
               <Image
                 source={require("../../assets/image/logo.png")}
-                style={{ width: '100%', height: '100%', borderRadius: 8, }}
-                resizeMode="container"
+                style={{ width: logoImgS, height: logoImgS }}
+                resizeMode="contain"
               />
             </View>
           </View>

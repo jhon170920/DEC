@@ -17,7 +17,7 @@ const { data } = route.params || {};
     // ── DATOS CONECTADOS ──
     const imagenResultado = data?.uri || "";
     const saludable = data?.isHealthy ?? true;
-    const nombrePlanta = data?.disease || "Sin identificar";
+    const nombreAfeccion = data?.disease || "Sin identificar";
     const nombreCientifico = data?.scientificName || "N/A";
     const descripcion = data?.description || "No hay descripción disponible.";
 
@@ -84,7 +84,7 @@ return (
         </View>
         {/* ── TÍTULO ── */}
         <Text style={styles.analysisTitle}>
-            Análisis: <Text style={styles.analysisAccent}>{nombrePlanta}</Text>
+            Análisis: <Text style={styles.analysisAccent}>{nombreAfeccion}</Text>
         </Text>
 
 
