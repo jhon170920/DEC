@@ -1,7 +1,9 @@
 import { useEffect, useState, useContext } from "react";
-import { TouchableOpacity, Text, StyleSheet } from "react-native";
+import { TouchableOpacity, Text, Image, StyleSheet } from "react-native";
 import { CommonActions, useNavigation } from "@react-navigation/native";
 import { AuthContext } from '../context/AuthContext.js';
+import { Colors } from '../constants/colors.js'
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 import * as Google from 'expo-auth-session/providers/google'
 import * as AuthSession from 'expo-auth-session';
@@ -11,8 +13,22 @@ import axios from 'axios';
 WebBrowser.maybeCompleteAuthSession();
 
 export default function BtnloginGoogle() {
+    // ----RESPONSIVE LAYOUT
+    const {
+        sp,
+        hPad,
+        logoRingS,
+        logoImgS,
+        headlineS,
+        sublineS,
+        fieldH,
+        btnH,
+        ghostH,
+        socialH,
+        iconS
+    } = useResponsiveLayout();
     const { setUserToken } = useContext(AuthContext);
-    
+
     const navigation = useNavigation();
     const [loading, setLoading] = useState(false)
 
@@ -61,15 +77,30 @@ export default function BtnloginGoogle() {
             }}
 
         >
-            <Text style={{ textAlign: 'center' }}>Login con google</Text>
+            <Image
+                source={require("../../assets/image/google.png")}
+                style={{ width: iconS, height: iconS, resizeMode: 'contain' }} 
+            />
+            <Text style={styles.label}>Login con google</Text>
         </TouchableOpacity>
     )
 }
 
 const styles = StyleSheet.create({
     btn: {
-        backgroundColor: 'blue',
-        padding: 20,
-        borderRadius: 10,
-    }
+        flex: 1,
+        backgroundColor: Colors.surface,
+        borderWidth: 1.5,
+        borderColor: Colors.border,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 3,
+        elevation: 1,
+    },
+    label: { fontSize: 11, fontWeight: '700', color: Colors.textMid, letterSpacing: 0.2 },
 })
