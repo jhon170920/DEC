@@ -166,8 +166,8 @@ const {
               {/* LOGO */}
               <Image
                 source={require("../../assets/image/logo.png")}
-                style={{ width: '100%', height: '100%', borderRadius: 8, }}
-                resizeMode="container"
+                style={{ width: '80%', height: '80%', borderRadius: 8, }}
+                resizeMode="contain"
               />
             </View>
           </View>
