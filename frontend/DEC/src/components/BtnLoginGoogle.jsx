@@ -27,39 +27,47 @@ export default function BtnloginGoogle() {
         socialH,
         iconS
     } = useResponsiveLayout();
+    // traemos la funcion que actualiza el estado del token
     const { setUserToken } = useContext(AuthContext);
-
+    // navigation jajja
     const navigation = useNavigation();
+    // para el disabled del login y seguridad
     const [loading, setLoading] = useState(false)
-
+    // funcion de google, le enviamos el id del cliente Android
     const [request, response, promptAsync] = Google.useAuthRequest({
-        androidClientId: process.env.EXPO_PUBLIC_ANDROID_CLIENT_ID,
+        androidClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
     })
 
+    // esto se realiza cuando se uno se loguea CORRECTAMENTE con google
     useEffect(() => {
         if (response) {
             if (response.type === 'success') {
-                console.log(response)
-                console.log('ttoken: ', response.authentication?.idToken)
+                // mandamos el token a nuestra funcion para verificar en el backend si es de google
                 sendTokenToServer(response.authentication?.idToken || '')
             } else {
+                //para el debug, no sé si quitarlo o poner otra cosa o no sé
                 console.log("error en l autenticacion: ", response)
             }
-        } else {
-            console.log("errrrrrorrr:")
         }
     }, [response])
 
-    const sendTokenToServer = async (token) => {
+    const sendTokenToServer = async (googleToken) => {
+        // cuando se loguea correctamente
         setLoading(true)
         try {
-            console.log('ttokenn al backend: ', token)
-            const response = await axios.post('http://10.4.1.148:8089/api/users/auth/google', {
-                token: token
-            })
-            console.log(response.data.token);
-            console.log(response.data.message);
-            setUserToken(response.data.token)
+            // mandamos el googleToken para el backend
+            const response = await axios.post('http://10.4.1.148:8089/api/users/auth/google', 
+            {},
+            {
+                headers: {
+                    'Authorization' : `Bearer ${googleToken}`
+                }
+            });
+            const token = response.data.token
+            if (token){
+                setUserToken(token)
+                console.log("Sesion iniciada con éxito")
+            }
         } catch (error) {
             console.log("Error No se pudo conectar con el servidor DEC", error.message);
         } finally {
@@ -75,6 +83,7 @@ export default function BtnloginGoogle() {
                 })
                 console.log("Iniciando propmt......")
             }}
+            disabled={loading}
 
         >
             <Image
