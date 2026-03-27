@@ -121,7 +121,7 @@ export default function App() {
     const getUserHistory = async () => {
         setLoading(true)
         try {
-            const response = await axios.get(`http://10.4.1.14:8089/api/detections/history?page=${page}&limit=${limit}`,
+            const response = await axios.get(`http://10.4.1.148:8089/api/detections/history?page=${page}&limit=${limit}`,
                 {
                     headers: { 'Authorization': `Bearer ${userToken}` }
                 }
