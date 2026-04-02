@@ -56,15 +56,15 @@ export default function BtnloginGoogle() {
         setLoading(true)
         try {
             // mandamos el googleToken para el backend
-            const response = await axios.post('http://10.4.1.148:8089/api/users/auth/google', 
-            {},
-            {
-                headers: {
-                    'Authorization' : `Bearer ${googleToken}`
-                }
-            });
+            const response = await axios.post('http://10.4.1.148:8089/api/users/auth/google',
+                {},
+                {
+                    headers: {
+                        'Authorization': `Bearer ${googleToken}`
+                    }
+                });
             const token = response.data.token
-            if (token){
+            if (token) {
                 setUserToken(token)
                 console.log("Sesion iniciada con éxito")
             }
@@ -88,9 +88,9 @@ export default function BtnloginGoogle() {
         >
             <Image
                 source={require("../../assets/image/google.png")}
-                style={{ width: iconS, height: iconS, resizeMode: 'contain' }} 
+                style={{ width: iconS, height: iconS, resizeMode: 'contain' }}
             />
-            <Text style={styles.label}>Login con google</Text>
+            <Text style={styles.label}>Google</Text>
         </TouchableOpacity>
     )
 }
