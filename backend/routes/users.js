@@ -1,11 +1,26 @@
 import express from 'express';
-import { registerUser } from '../controllers/registerUser.js';
+import { registerUser, loginUser, editUser, deleteUser, googleAuth } from '../controllers/users.js';
+import { contactUs } from '../controllers/contactUs.js';
+import { verifyToken } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-// Ruta para crear un nuevo usuario
+router.post('/auth/google', googleAuth)
 
+// Ruta para crear un nuevo usuario
 router.post('/register', registerUser);
+// ruta para iniciar sesion
+router.post('/login', loginUser);
+
+// ruta para editar la cuentica
+router.put('/edit', verifyToken, editUser);
+
+// ruta para eliminar cuentica
+router.delete('/delete', verifyToken, deleteUser);
+
+// ruta de contactos
+router.post('/send-message', contactUs);
+
 
     
 export default router;

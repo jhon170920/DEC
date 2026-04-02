@@ -17,6 +17,7 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+*.apk
 
 # Metro
 .metro-health-check*
@@ -38,4 +39,6 @@ yarn-error.*
 
 # generated native folders
 /ios
-/android
+android/
+*.apk
+*.apk

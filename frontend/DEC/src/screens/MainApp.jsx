@@ -1,4 +1,4 @@
-import React, { useState, useRef, useContext } from "react";
+import React, { useState, useRef, useContext, useEffect } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { AuthContext } from "../context/AuthContext";
 import { Colors } from "../constants/colors";
 import { MainStyles as styles } from "../styles/MainStyles";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
+import { debugCheckDatabase } from "../services/dbService";
 
 
 // ─── DROPDOWN ──────────────────────────────────────────────
@@ -151,7 +152,11 @@ export default function MainApp() {
     socialH,
     iconS
   } = useResponsiveLayout();
+// VERIFICAR DATOS DE BASE DE DATOS
 
+  useEffect(() => {
+  debugCheckDatabase(); // Se ejecutará cada vez que recargues la app
+}, []);
 
   const { width } = useWindowDimensions();
   const navigation = useNavigation();
@@ -327,4 +332,3 @@ export default function MainApp() {
     </View>
   );
 }
-
