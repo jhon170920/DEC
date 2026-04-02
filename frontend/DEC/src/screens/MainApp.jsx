@@ -1,4 +1,4 @@
-import React, { useState, useRef, useContext } from "react";
+import React, { useState, useRef, useContext, useEffect } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { AuthContext } from "../context/AuthContext";
 import { Colors } from "../constants/colors";
 import { MainStyles as styles } from "../styles/MainStyles";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
+import { debugCheckDatabase } from "../services/dbService";
 
 
 // ─── DROPDOWN ──────────────────────────────────────────────
@@ -135,20 +136,6 @@ const UserDropdown = ({ visible, onClose, onProfile, onLogout }) => {
   );
 };
 
-// ─── MENU CARD ─────────────────────────────────────────────
-const MenuCard = ({ icon, title, subtitle, onPress }) => (
-  <TouchableOpacity style={styles.menuCard} onPress={onPress} activeOpacity={0.75}>
-    <View style={styles.menuIconWrap}>
-      <Feather name={icon} size={20} color={Colors.primary} />
-    </View>
-    <View style={styles.menuTexts}>
-      <Text style={styles.menuTitle}>{title}</Text>
-      <Text style={styles.menuSub}>{subtitle}</Text>
-    </View>
-    <Feather name="chevron-right" size={18} color={Colors.textMuted} />
-  </TouchableOpacity>
-);
-
 // ─── PANTALLA PRINCIPAL ────────────────────────────────────
 export default function MainApp() {
   
@@ -165,7 +152,11 @@ export default function MainApp() {
     socialH,
     iconS
   } = useResponsiveLayout();
+// VERIFICAR DATOS DE BASE DE DATOS
 
+  useEffect(() => {
+  debugCheckDatabase(); // Se ejecutará cada vez que recargues la app
+}, []);
 
   const { width } = useWindowDimensions();
   const navigation = useNavigation();
@@ -214,6 +205,7 @@ export default function MainApp() {
               <Image 
               source={require("../../assets/image/logo.png")}
               style={{width: logoImgS, height: logoImgS}}
+              resizeMode="contain"
               />
             </View>
             
@@ -276,7 +268,7 @@ export default function MainApp() {
         </View>
 
         {/* ── BOTÓN SCAN ── */}
-        <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85} onPress={() =>navigation.navigate("Camera")}>
           <LinearGradient
             colors={["#22c55e", "#16a34a", "#15803d"]}
             style={styles.scanGradient}
@@ -297,12 +289,46 @@ export default function MainApp() {
         </View>
 
         <View style={styles.menuList}>
-          <MenuCard icon="search"         title="Mis Análisis"  subtitle="Escaneos recientes de plantas" />
-          <MenuCard icon="book-open"      title="Ayuda"         subtitle="Manual de uso" />
-          <MenuCard icon="message-circle" title="Contáctanos"   subtitle="Medios de atención" />
-        </View>
+            
+
+            <View style={styles.menuList}>
+
+  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("historial")}>
+    <View style={styles.menuIconWrap}>
+      <Feather name="search" size={24} color={Colors.primary} />
+    </View>
+    <View style={styles.menuTexts}>
+      <Text style={styles.menuTitle}>Mis Análisis</Text>
+      <Text style={styles.menuSub}>Escaneos recientes de plantas</Text>
+    </View>
+    <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+  </TouchableOpacity>
+
+  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("Manual")}>
+    <View style={styles.menuIconWrap}>
+      <Feather name="book-open" size={24} color={Colors.primary} />
+    </View>
+    <View style={styles.menuTexts}>
+      <Text style={styles.menuTitle}>Ayuda</Text>
+      <Text style={styles.menuSub}>Manual de uso</Text>
+    </View>
+    <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+  </TouchableOpacity>
+
+  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("Contact")}>
+    <View style={styles.menuIconWrap}>
+      <Feather name="message-circle" size={24} color={Colors.primary} />
+    </View>
+    <View style={styles.menuTexts}>
+      <Text style={styles.menuTitle}>Contáctanos</Text>
+      <Text style={styles.menuSub}>Medios de atención</Text>
+    </View>
+    <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+  </TouchableOpacity>
+
+</View>
+</View>
       </ScrollView>
     </View>
   );
 }
-

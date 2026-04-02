@@ -15,8 +15,8 @@ import {
     useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { registerUser } from '../api/api';
 import { useNavigation } from '@react-navigation/native'; // Para navegar al login
-import axios from 'axios';
 import { Colors } from '../constants/colors';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { StyleRegister as styles } from '../styles/RegisterStyles';
@@ -68,9 +68,20 @@ export default function Register() {
 
     // 2. Lógica de registro
     const handleRegister = async () => {
-        // Validaciones básicas
+        // 1. Validaciones básicas (se mantienen igual porque son UI/UX)
         if (!name || !email || !password || !confirmPassword) {
             Alert.alert("Error", "Por favor completa todos los campos");
+            return;
+        }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            Alert.alert("Error", "Correo electrónico no válido");
+            return;
+        }
+
+        if (password.length < 6) {
+            Alert.alert("Error", "La contraseña debe tener al menos 6 caracteres");
             return;
         }
 
@@ -82,18 +93,17 @@ export default function Register() {
         setLoading(true);
 
         try {
-            const response = await axios.post(API_URL, {
-                name: name, // Ajusta según como reciba tu backend
-                email: email.toLowerCase().trim(),
-                password: password
-            });
+            // 2. Llamada a la API centralizada
+            await registerUser(name, email.toLowerCase().trim(), password);
 
+            // 3. Éxito
             Alert.alert("¡Éxito!", "Cuenta creada correctamente. Ahora puedes iniciar sesión.");
-            navigation.navigate('Login'); // Regresar al login tras éxito
+            navigation.navigate('Login');
 
         } catch (error) {
-            console.error(error);
-            const message = error.response?.data?.message || "Error al conectar con el servidor";
+            console.error("Register Error:", error);
+            // Capturamos el mensaje que viene desde el backend
+            const message = error.message || "Error al conectar con el servidor";
             Alert.alert("Error de Registro", message);
         } finally {
             setLoading(false);

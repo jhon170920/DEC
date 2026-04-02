@@ -9,13 +9,14 @@ import { AuthContext } from '../context/AuthContext';
 // --- IMPORTACIÓN DE PANTALLAS ---
 import Login from '../screens/Login';
 import Register from '../screens/Register';
-// import ForgotPassword from '../screens/ForgotPassword'; // Paso 1: Enviar código
+import ForgotPassword from '../screens/ForgotPassword'; // Paso 1: Enviar código
 // import ResetPassword from '../screens/ResetPassword';   // Paso 2: Ingresar código y nueva pass
 
 import MainApp from '../screens/MainApp';               // El Dashboard con los 4 botones
-// import CameraScreen from '../screens/CameraScreen';
+import CameraScreen from '../screens/CameraScreen';
+import Result from '../screens/Result';
 // import HistoryScreen from '../screens/HistoryScreen';
-// import ContactScreen from '../screens/ContactScreen';
+import Contact from '../screens/Contact';
 // import ManualScreen from '../screens/ManualScreen';
 
 const Stack = createStackNavigator();
@@ -39,18 +40,19 @@ export default function AppNavigator() {
           // --- STACK DE LA APP PRINCIPAL ---
           <>
             <Stack.Screen name="MainApp" component={MainApp} />
-            {/*<Stack.Screen name="Camera" component={CameraScreen} />
-            <Stack.Screen name="History" component={HistoryScreen} />
-            <Stack.Screen name="Contact" component={ContactScreen} />
-            <Stack.Screen name="Manual" component={ManualScreen} /> */}
+            <Stack.Screen name="Camera" component={CameraScreen} />
+            {/* <Stack.Screen name="History" component={HistoryScreen} /> */}
+            <Stack.Screen name="Contact" component={Contact} />
+            {/* <Stack.Screen name="Manual" component={ManualScreen} /> */}
+            <Stack.Screen name="Result" component={Result} /> 
           </>
         ) : (
           // --- STACK DE AUTENTICACIÓN ---
           <>
             <Stack.Screen name="Login" component={Login} />
-             <Stack.Screen name="Register" component={Register} />
-            {/*<Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-            <Stack.Screen name="ResetPassword" component={ResetPassword} /> */}
+            <Stack.Screen name="Register" component={Register} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+            {/* <Stack.Screen name="ResetPassword" component={ResetPassword} /> */}
           </>
         )}
       </Stack.Navigator>
