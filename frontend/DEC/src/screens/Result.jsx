@@ -58,21 +58,16 @@ return (
             source={require("../../assets/image/logo.png")}
             style={styles.logo}
             />
-
             <TouchableOpacity style={styles.avatarInner}>
             <Feather name="user" size={20} color={Colors.primary} />
             </TouchableOpacity>
-
         </View>
 
-
         {/* ── SECCION ── */}
-
         <View style={styles.sectionHeader}>
             <Text style={styles.sectionLabel}>RESULTADO</Text>
             <View style={styles.sectionLine} />
         </View>
-
 
         {/* ── IMAGEN ── */}
         <View style={styles.imageCard}>
@@ -118,22 +113,17 @@ return (
             <View style={styles.menuIconWrap}>
                 <Feather name="book-open" size={24} color={Colors.primary} />
             </View>
-
             <View style={styles.menuTexts}>
                 <Text style={styles.menuTitle}>Descripción</Text>
                 <Text style={styles.menuSub}>{descripcion}</Text>
-
             </View>
-
             <Feather name="chevron-right" size={16} color={Colors.textMuted} />
-
             </TouchableOpacity>
+
         </View>
 
-
         {/* ── BOTÓN GUARDAR ── */}
-
-        <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85} onPress={handleSave}>
+        <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85} onPress={() => {}}>
             <LinearGradient
             colors={["#22c55e", "#16a34a", "#15803d"]}
             style={styles.scanGradient}
@@ -145,7 +135,6 @@ return (
         </TouchableOpacity>
 
         </ScrollView>
-
-    </View> 
+    </View>
     );
 }
