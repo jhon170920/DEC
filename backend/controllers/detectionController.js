@@ -1,6 +1,6 @@
 import Detections from "../models/Detection.js";
 import { uploadToCloudinary } from "../services/cloudinary.js"; // ajusta la ruta si es diferente
-import User from "../models/User.js";
+import User from "../models/users.js";
 
 // guardar
 export const saveDetection = async (req, res) => {
