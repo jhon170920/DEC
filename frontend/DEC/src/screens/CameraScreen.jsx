@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useIsFocused } from '@react-navigation/native';
-import { AuthContext } from '../context/AuthContext';
 // CAMBIO CLAVE: Importamos GLView y la clase de contexto
 import { GLView } from 'expo-gl';
 import Expo2DContext from 'expo-2d-context'; 
@@ -42,27 +41,32 @@ export default function CameraScreen({ navigation }) {
 
         if (prediction) {
           // 2. Diccionario de Información (Base de conocimientos local)
-          const infoMap = { 
-            "Roya (Leaf Rust)": {
-              cientifico: "Hemileia vastatrix",
-              desc: "Hongo que genera manchas naranja en el envés. Causa caída de hojas.",
-              saludable: false
-            },
-            "Minador": {
-              cientifico: "Leucoptera coffeella",
-              desc: "Larva que come el interior de la hoja creando manchas cafés secas.",
-              saludable: false
-            },
-            "Araña roja": {
-              cientifico: "Araña que te araña",
-              desc: "La planta se encuentra viva de milagro. Siga con el monitoreo.",
-              saludable: false
-            }
-          };
+          const infoMap = {
+        "Cercospora": {
+          cientifico: "Cercospora coffeicola",
+          desc: "Manchas circulares con centro claro. Afecta calidad del grano.",
+          saludable: false
+        },
+        "Minador de la hoja": {
+          cientifico: "Leucoptera coffeella",
+          desc: "Larva que crea galerías necróticas en las hojas.",
+          saludable: false
+        },
+        "Roya (Leaf Rust)": {
+          cientifico: "Hemileia vastatrix",
+          desc: "Polvillo naranja en el envés. La enfermedad más costosa del café.",
+          saludable: false
+        },
+        "Araña roja": {
+          cientifico: "Oligonychus ilicis",
+          desc: "Ácaro que broncea las hojas en épocas de sequía.",
+          saludable: false
+        }
+      };
 
           const detalle = infoMap[prediction.disease] || {
             cientifico: "No apllica",
-            desc: "Detección no clasificada. No se ha detectado ninguna enfermedad",
+            desc: "Detección fuera de rango. No se ha detectado ninguna enfermedad",
             saludable: true
           };
 
@@ -96,9 +100,14 @@ export default function CameraScreen({ navigation }) {
           <GLView 
             style={{ width: 640, height: 640 }} 
             onContextCreate={(gl) => {
-              // Creamos la instancia de la CLASE (aquí se evita el TypeError)
-              const ctx = new Expo2DContext(gl);
-              ctxRef.current = ctx;
+              // Si ya existe una instancia, no creamos otra para no fugar memoria
+              if (!ctxRef.current) {
+                const ctx = new Expo2DContext(gl, {
+                  renderWithOffscreenBuffer: true,
+                  maxInteractions: 100 // Límite para evitar el error de Shader que vimos antes
+                });
+                ctxRef.current = ctx;
+              }
             }} 
           />
         </View>

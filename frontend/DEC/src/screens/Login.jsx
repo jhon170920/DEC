@@ -16,13 +16,12 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { loginUser } from '../api/api';
-import * as SecureStore from 'expo-secure-store';
 import { AuthContext } from '../context/AuthContext';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { Colors } from '../constants/colors';
 import { LoginStyles as styles } from '../styles/Loginstyles';
 
-const API_URL = "http://10.4.1.202:8089/api/users/login";
+
 
 // ─── CAMPO CON FLOATING LABEL ──────────────────────────────
 const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, rightSlot, fieldHeight }) => {
@@ -75,7 +74,8 @@ export default function Login() {
   const [loading,  setLoading]  = useState(false);
 
   const navigation = useNavigation();
-  const { setUserToken, setIsGuest } = useContext(AuthContext);
+  const { enterAsGuest, login } = useContext(AuthContext);
+
 
 // ----RESPONSIVE LAYOUT
 const {
@@ -106,43 +106,38 @@ const {
 
   // ── Lógica original intacta ───────────────────────────────
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Por favor, completa todos los campos");
-      return;
+  if (!email || !password) {
+    Alert.alert("Error", "Por favor, completa todos los campos");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const data = await loginUser(email.toLowerCase().trim(), password);
+
+    if (data.token) {
+      // ✅ ESTE ES EL CAMBIO:
+      // Invocamos la función centralizada que:
+      // - Guarda el token en SecureStore
+      // - Actualiza el estado global (setUserToken)
+      // - Descarga el catálogo de tratamientos para el modo OFFLINE
+      await login(data.token); 
+      
+      // No necesitas hacer nada más, AppNavigator detectará el cambio
+      // y te enviará a MainApp automáticamente.
     }
+    
+  } catch (error) {
+    console.error("Login Error:", error);
+    const message = error.message || "No se pudo conectar con el servidor";
+    Alert.alert("Error de acceso", message);
+  } finally {
+    setLoading(false);
+  }
+};
 
-    setLoading(true);
-
-    try {
-      // 2. Llamamos a la función centralizada
-      // No necesitas poner la URL aquí, api.js ya la sabe
-      const data = await loginUser(email.toLowerCase().trim(), password);
-
-      if (data.token) {
-        // Guardamos el token de forma segura
-        await SecureStore.setItemAsync('userToken', data.token);
-        
-        // Actualizamos el contexto global
-        setUserToken(data.token);
-        
-        // Opcional: Si tu backend devuelve el nombre del usuario
-        // Alert.alert("Éxito", `Bienvenido de nuevo`);
-      }
-      
-    } catch (error) {
-      // 3. El error ya viene procesado desde el catch de api.js
-      console.error("Login Error:", error);
-      
-      // Si en api.js hiciste: throw error.response.data, aquí recibes el JSON del backend
-      const message = error.message || "No se pudo conectar con el servidor";
-      Alert.alert("Error de acceso", message);
-      
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGuestEntry = () => setIsGuest(true);
+  const handleGuestEntry = () => enterAsGuest(true);
 
   return (
     <View style={styles.root}>
