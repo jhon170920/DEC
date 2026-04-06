@@ -1,12 +1,14 @@
-import React from "react";
+import React, {useContext} from "react";
+import { AuthContext } from "../../context/AuthContext";
+import * as Location from 'expo-location';
 import { View, Text, Image, TouchableOpacity, ScrollView, Alert, StyleSheet, StatusBar } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
-import { saveDetectionLocal } from "../services/dbService";
-import { syncDetections } from "../services/syncService";
+import { saveDetectionLocal } from "../../services/dbService";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
-import { Colors } from "../constants/colors";
-import { ResultStyles as styles } from "../styles/Resultstyles";
+import { Colors } from "../../constants/colors";
+import { ResultStyles as styles } from "../../styles/Resultstyles";
+
 
 export default function Result() {
 const route = useRoute();
@@ -21,20 +23,47 @@ const { data } = route.params || {};
     const nombreCientifico = data?.scientificName || "N/A";
     const descripcion = data?.description || "No hay descripción disponible.";
 
+    const { userToken, logout } = useContext(AuthContext);
+    
   const handleSave = async () => {
-    try {
-      // Guardar en SQLite local (para uso Offline)
-      await saveDetectionLocal(data.disease, data.confidence, data.uri);
-      
-      // Intentar sincronizar con MongoDB (si hay internet)
-      await syncDetections(); 
+    
+  // REGLA: Solo guardar si hay sesión (token)
+  if (!userToken) {
+    Alert.alert(
+        "Sesión Requerida", 
+        "Para guardar diagnósticos en tu historial y ver tratamientos detallados, por favor inicia sesión.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          { text: "Ir al Login", onPress: () => logout() }
+        ]
+      );
+    return;
+  }
 
-      Alert.alert("Guardado", "El análisis se guardó en tu historial.");
-      navigation.navigate('MainApp'); 
-    } catch (error) {
-      Alert.alert("Error", "No se pudo guardar localmente.");
+  try {
+    // 1. Pedir permiso y obtener ubicación rápida
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    let location = null;
+    
+    if (status === 'granted') {
+      location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
     }
-  };
+
+    // 2. Guardar en SQLite con coordenadas (aunque sean null si no dio permiso)
+    await saveDetectionLocal(
+        nombreAfeccion,
+        data?.confidence || "0%",  
+        imagenResultado,
+        location?.coords.latitude || 0,
+        location?.coords.longitude || 0
+    );
+
+    Alert.alert("Éxito", "Análisis guardado localmente con GPS.");
+    navigation.navigate('MainApp');
+  } catch (error) {
+    console.error(error);
+  }
+};
 
 return (
     <View style={styles.root}>
@@ -55,7 +84,7 @@ return (
         {/* ── HEADER ── */}
         <View style={styles.header}>
             <Image
-            source={require("../../assets/image/logo.png")}
+            source={require("../../../assets/image/logo.png")}
             style={styles.logo}
             />
             <TouchableOpacity style={styles.avatarInner}>

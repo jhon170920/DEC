@@ -13,8 +13,8 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import { Colors } from "../constants/colors";
-import { ContactStyles as styles } from "../styles/Contacstyles";
+import { Colors } from "../../constants/colors";
+import { ContactStyles as styles } from "../../styles/Contacstyles";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 
 export default function Contact() {
@@ -72,7 +72,7 @@ export default function Contact() {
           marginBottom: sp(0.025),
         }]}>
           <Image
-            source={require("../../assets/image/logo.png")}
+            source={require("../../../assets/image/logo.png")}
             style={{ width: logoImgS, height: logoImgS, resizeMode: "contain" }}
           />
         </View>

@@ -15,16 +15,14 @@ import {
     useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { registerUser } from '../api/api';
+import { registerUser } from '../../api/api';
 import { useNavigation } from '@react-navigation/native'; // Para navegar al login
-import { Colors } from '../constants/colors';
-import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
-import { StyleRegister as styles } from '../styles/RegisterStyles';
+import { Colors } from '../../constants/colors';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
+import { StyleRegister as styles } from '../../styles/RegisterStyles';
 import FloatingInput from '../components/FloatingInput';
 import BtnLoginGoogle from '../components/BtnLoginGoogle';
 
-// Cambia por tu IP real de la computadora
-const API_URL = "http://10.4.1.148:8089/api/users/register";
 
 export default function Register() {
     //CARGAR PRIMERO LA DIMENSION DE LA PANTALLA
@@ -129,31 +127,31 @@ export default function Register() {
                         ]}
                     >
 
-
-                        {/* Logo */}
-                        <View style={[styles.logoContainer, { marginBottom: sp(0.028) }]}>
-                            <View
-                                style={[
-                                    styles.logoRing, {
-                                        width: logoRingS,
-                                        height: logoRingS,
-                                        borderRadius: logoRingS / 2,
-                                        marginBottom: 8,
-                                    }
-                                ]}>
-                                <Image
-                                    source={require("../../assets/image/logo.png")}
-                                    style={{ width: logoImgS, height: logoImgS }}
-                                    resizeMode="contain"
-                                />
-                            </View>
-                        </View>
-                        {/* Título */}
-                        <View style={{ marginBottom: sp(0.030) }}>
-                            <Text style={[styles.headline, { fontSize: headlineS, lineHeight: headlineS * 1.18 }]}>Ingresa tus datos{'\n'}
-                                <Text style={styles.headlineAccent}>para continuar.</Text>
-                            </Text>
-                        </View>
+               
+                {/* Logo */}
+                <View style={[styles.logoContainer, { marginBottom: sp(0.028) }]}>
+                    <View
+                    style={[
+                        styles.logoRing,{
+                            width: logoRingS,
+                            height: logoRingS,
+                            borderRadius: logoRingS / 2,
+                            marginBottom: 8,
+                        }
+                    ]}>
+                        <Image
+                        source={require("../../../assets/image/logo.png")}
+                       style={{ width: logoImgS, height: logoImgS }}
+                        resizeMode="contain"
+                    />
+                    </View>
+                </View>
+                {/* Título */}
+                <View style={{ marginBottom: sp(0.030) }}>
+                    <Text style={[styles.headline, { fontSize: headlineS, lineHeight: headlineS * 1.18 }]}>Ingresa tus datos{'\n'}
+                        <Text style={styles.headlineAccent}>para continuar.</Text>
+                    </Text>
+                </View>
 
                         {/* Formulario */}
                         <View style={{ gap: sp(0.014) }}>

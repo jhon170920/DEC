@@ -15,16 +15,56 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { loginUser } from '../api/api';
-import * as SecureStore from 'expo-secure-store';
-import { AuthContext } from '../context/AuthContext';
-import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
-import { Colors } from '../constants/colors';
-import { LoginStyles as styles } from '../styles/Loginstyles';
+import { loginUser } from '../../api/api';
+
+import { AuthContext } from '../../context/AuthContext';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
+import { Colors } from '../../constants/colors';
+import { LoginStyles as styles } from '../../styles/Loginstyles';
 import BtnLoginGoogle from '../components/BtnLoginGoogle.jsx';
 import FloatingInput from '../components/FloatingInput.jsx';
 
-const API_URL = "http://10.4.1.148:8089/api/users/login";
+// ─── CAMPO CON FLOATING LABEL ──────────────────────────────
+const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, rightSlot, fieldHeight }) => {
+  const [focused, setFocused] = useState(false);
+  const labelAnim  = useRef(new Animated.Value(value ? 1 : 0)).current;
+  const borderAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(labelAnim,  { toValue: focused || value ? 1 : 0, duration: 180, useNativeDriver: false }).start();
+    Animated.timing(borderAnim, { toValue: focused ? 1 : 0,          duration: 180, useNativeDriver: false }).start();
+  }, [focused, value]);
+
+  const labelTop    = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [fieldHeight * 0.28, fieldHeight * 0.10] });
+  const labelSize   = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 10] });
+  const labelColor  = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [Colors.textMuted, Colors.primaryLight] });
+  const borderColor = borderAnim.interpolate({ inputRange: [0, 1], outputRange: [Colors.border, Colors.borderFocus] });
+
+  return (
+    <Animated.View style={[styles.field, { borderColor, height: fieldHeight }]}>
+      <Animated.Text
+        style={[styles.floatingLabel, { top: labelTop, fontSize: labelSize, color: labelColor }]}
+        pointerEvents="none"
+      >
+        {focused || value ? label.toUpperCase() : label}
+      </Animated.Text>
+      <View style={styles.fieldRow}>
+        <TextInput
+          style={styles.fieldInput}
+          value={value}
+          onChangeText={onChangeText}
+          secureTextEntry={secureTextEntry}
+          keyboardType={keyboardType || 'default'}
+          autoCapitalize="none"
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          selectionColor={Colors.primary}
+        />
+        {rightSlot}
+      </View>
+    </Animated.View>
+  );
+};
 
 // ─── PANTALLA PRINCIPAL ────────────────────────────────────
 export default function Login() {
@@ -34,8 +74,9 @@ export default function Login() {
     const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const navigation = useNavigation();
-    const { setUserToken, setIsGuest } = useContext(AuthContext);
+  const navigation = useNavigation();
+  const { enterAsGuest, login } = useContext(AuthContext);
+
 
     // ----RESPONSIVE LAYOUT
     const {
@@ -64,32 +105,40 @@ export default function Login() {
     }, []);
 
 
-    // ── Lógica original intacta ───────────────────────────────
-    const handleLogin = async () => {
-        if (!email || !password) {
-            Alert.alert("Error", "Por favor, completa todos los campos");
-            return;
-        }
-        setLoading(true);
-        try {
-            const response = await axios.post(API_URL, {
-                email: email.toLowerCase().trim(),
-                password: password,
-            });
-            if (response.data.token) {
-                await SecureStore.setItemAsync('userToken', response.data.token);
-                setUserToken(response.data.token);
-            }
-        } catch (error) {
-            console.error(error);
-            const message = error.response?.data?.message || "No se pudo conectar con el servidor";
-            Alert.alert("Error", message);
-        } finally {
-            setLoading(false);
-        }
-    };
+  // ── Lógica original intacta ───────────────────────────────
+  const handleLogin = async () => {
+  if (!email || !password) {
+    Alert.alert("Error", "Por favor, completa todos los campos");
+    return;
+  }
 
-    const handleGuestEntry = () => setIsGuest(true);
+  setLoading(true);
+
+  try {
+    const data = await loginUser(email.toLowerCase().trim(), password);
+
+    if (data.token) {
+      // ✅ ESTE ES EL CAMBIO:
+      // Invocamos la función centralizada que:
+      // - Guarda el token en SecureStore
+      // - Actualiza el estado global (setUserToken)
+      // - Descarga el catálogo de tratamientos para el modo OFFLINE
+      await login(data.token); 
+      
+      // No necesitas hacer nada más, AppNavigator detectará el cambio
+      // y te enviará a MainApp automáticamente.
+    }
+    
+  } catch (error) {
+    console.error("Login Error:", error);
+    const message = error.message || "No se pudo conectar con el servidor";
+    Alert.alert("Error de acceso", message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const handleGuestEntry = () => enterAsGuest(true);
 
     return (
         <View style={styles.root}>
@@ -113,20 +162,23 @@ export default function Login() {
                     ]}
                 >
 
-                    {/* ── LOGO ── */}
-                    <View style={[styles.logoContainer, { marginBottom: sp(0.028) }]}>
-                        <View style={[
-                            styles.logoRing,
-                            { width: logoRingS, height: logoRingS, borderRadius: logoRingS / 2, marginBottom: 8 },
-                        ]}>
-                            {/* LOGO */}
-                            <Image
-                                source={require("../../assets/image/logo.png")}
-                                style={{ width: '100%', height: '100%', borderRadius: 8, }}
-                                resizeMode="container"
-                            />
-                        </View>
-                    </View>
+          {/* ── LOGO ── */}
+          <View style={[styles.logoContainer, { marginBottom: sp(0.028) }]}>
+            <View style={[
+              styles.logoRing,
+              { width: logoRingS, 
+                height: logoRingS, 
+                borderRadius: logoRingS / 2, 
+                marginBottom: 8 },
+            ]}>
+              {/* LOGO */}
+              <Image
+                source={require("../../../assets/image/logo.png")}
+                style={{ width: logoImgS, height: logoImgS }}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
 
                     {/* ── TITULAR ── */}
                     <View style={{ marginBottom: sp(0.030) }}>
@@ -204,11 +256,18 @@ export default function Login() {
                         <View style={styles.divLine} />
                     </View>
 
-                    {/* ── SOCIAL ── */}
-                    <View style={[styles.socialRow, { marginBottom: sp(0.024) }]}>
-                        <BtnLoginGoogle />
-                        <BtnLoginGoogle />
-                    </View>
+          {/* ── SOCIAL ── */}
+          <View style={[styles.socialRow, { marginBottom: sp(0.024) }]}>
+            {[
+              { img: require("../../../assets/image/google.png"),   label: 'Google'   },
+              { img: require("../../../assets/image/facebook.png"), label: 'Facebook' },
+            ].map(({ img, label }) => (
+              <TouchableOpacity key={label} style={[styles.socialBtn, { height: socialH }]}>
+                <Image source={img} style={{ width: iconS, height: iconS, resizeMode: 'contain' }} />
+                <Text style={styles.socialLabel}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
                     {/* ── FOOTER ── */}
                     <TouchableOpacity style={styles.registerRow} onPress={() => navigation.navigate('Register')}>

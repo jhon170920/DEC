@@ -8,6 +8,7 @@ import userRoutes from './routes/users.js';
 import detectionRoutes from './routes/detection.js';
 // rutas de recuperar contraseña
 import recoverPassword from './routes/recoverPassword.js'
+import pathologyRoutes from './routes/pathologyRoutes.js';
 
 // ruta de admin 
 import adminRoutes from './routes/admin.js'
@@ -26,6 +27,7 @@ app.use("/api/detections", detectionRoutes);
 // ruta para recuperar conttaseña
 app.use("/api/recover", recoverPassword);
 
+app.use("/api/pathologies", pathologyRoutes) // ruta para obtener las patologías desde la base de datos
 
 
 
@@ -39,4 +41,4 @@ app.get("/", (req, res) => {
 
 
 const PORT = 8089
-app.listen(PORT, ()=> console.log(`✅ ✅servidor corriendo en http://localhost:${PORT}`));
+app.listen(PORT, '0.0.0.0',()=> console.log(`✅ ✅servidor corriendo en http://localhost:${PORT}`));

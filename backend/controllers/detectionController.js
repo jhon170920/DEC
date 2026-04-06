@@ -1,9 +1,15 @@
 import Detections from "../models/Detection.js";
 import Pathology from "../models/pathologies.js";
 import { uploadToCloudinary } from "../services/cloudinary.js"; // ajusta la ruta si es diferente
+import User from "../models/users.js";
 
 // guardar
 export const saveDetection = async (req, res) => {
+    console.log("Cuerpo recibido:", req.body);
+    console.log("Archivo recibido:", req.file); // <--- Si esto es undefined, el FormData falló
+    if (!req.file) {
+    return res.status(400).json({ message: "No se recibió la imagen de la afección" });
+  }
     try {
         // extraer y validar que se haya enviado la foto
         if (!req.file) return res.status(400).json({ message: "No se recibió ninguna imagen para guardar la deteccion" });
@@ -33,7 +39,12 @@ export const saveDetection = async (req, res) => {
         });
 
         // 5. Guardar en MongoDB
-        await newDetection.save();
+        const savedDetection = await newDetection.save();
+
+        await User.findByIdAndUpdate(req.user.id, {
+            $push: { history: savedDetection._id }, // Empuja el ID al array
+            $set: { lastSync: new Date() }          // Actualiza la fecha de sincronización
+        });
         // enviar mensaje
         res.status(201).json({
             message: "¡Detección guardada con éxito en el historial!",
@@ -81,24 +92,33 @@ export const getUserHistory = async (req, res) => {
 // eliminar una deteccion del historial del usuario
 export const deleteUserDetection = async (req, res) => {
     try {
-        const detectionDeleted = await Detections.findOneAndDelete({ userId: req.user.id})
-        // validamos si encontramos la deteccion por si acaso
+        const { id } = req.params; // Necesitas pasar el ID en la ruta: /detections/:id
+        const detectionDeleted = await Detections.findOneAndDelete({ _id: id, userId: req.user.id });
+
         if (!detectionDeleted) {
-            return res.status(404).json({ message: "No se encontró la detección para borrar" });
+            return res.status(404).json({ message: "No se encontró la detección" });
         }
+
+        // También sacarla del array del usuario
+        await User.findByIdAndUpdate(req.user.id, { $pull: { history: id } });
+
+        res.status(200).json({ message: "Detección eliminada" });
     } catch (error) {
-        res.status(500).json({ message: "Error al eliminar la detección", error: error.message });
+        res.status(500).json({ message: "Error al eliminar", error: error.message });
     }
-}
-// eliminar todo el historial del usuario
+};
+
+// Eliminar TODO el historial del usuario
 export const deleteUserHistory = async (req, res) => {
     try {
-        const historyDeleted = await Detections.findOneAndDelete({ userId: req.user.id})
-        // validamos si hay algo por si acaso
-        if (!historyDeleted){
-            return res.status(404).json({ message: "No se encontró el historial de detecciones para borrar" });
-        }
+        // Usamos deleteMany para borrar todas las que coincidan con el userId
+        const result = await Detections.deleteMany({ userId: req.user.id });
+
+        // Limpiar el array en el modelo de Usuario
+        await User.findByIdAndUpdate(req.user.id, { $set: { history: [] } });
+
+        res.status(200).json({ message: `Se eliminaron ${result.deletedCount} detecciones.` });
     } catch (error) {
-        res.status(500).json({ message: "Error al eliminar el historial de detecciones", error: error.message });
+        res.status(500).json({ message: "Error al eliminar el historial", error: error.message });
     }
-}
+};

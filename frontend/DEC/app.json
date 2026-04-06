@@ -25,7 +25,10 @@
       "permissions": [
         "CAMERA",
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+        
       ],
       "package": "com.jhon170920.DEC"
     },
