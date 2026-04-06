@@ -43,7 +43,7 @@ export default function AdminDashboard() {
           <View style={[styles.statsGrid, { flexDirection: isDesktop ? 'row' : 'column' }]}>
             <StatCard title="Detecciones Hoy" value="42" icon="target" color={COLORS.primary} />
             <StatCard title="Incidencia Roya" value="12%" icon="trending-up" color={COLORS.danger} />
-            <StatCard title="Usuarios Activos" value="156" icon="users" color={COLORS.secondary} />
+            <StatCard title="Usuarios Activos" value="22" icon="users" color={COLORS.secondary} />
           </View>
 
           {/* ÁREA DE GRÁFICAS (Placeholder) */}

@@ -28,7 +28,6 @@
         "android.permission.RECORD_AUDIO",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
-        
       ],
       "package": "com.jhon170920.DEC"
     },
@@ -45,7 +44,8 @@
       "expo-secure-store",
       "react-native-fast-tflite",
       "expo-asset",
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

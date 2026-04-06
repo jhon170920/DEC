@@ -13,9 +13,9 @@ Platform,
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import { Colors } from "../constants/colors";
-import { ProfileStyles as styles } from "../styles/Profilestyles";
-import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
+import { Colors } from "../../constants/colors";
+import { ProfileStyles as styles } from "../../styles/Profilestyles";
+import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 
 export default function Profile() {
 const navigation = useNavigation();
@@ -61,7 +61,7 @@ return (
             { width: logoRingS, height: logoRingS, borderRadius: logoRingS / 2 },
         ]}>
             <Image
-                source={require("../../assets/image/logo.png")}
+                source={require("../../../assets/image/logo.png")}
                 style={{ width: logoImgS, height: logoImgS }}
                 resizeMode="contain"
             />

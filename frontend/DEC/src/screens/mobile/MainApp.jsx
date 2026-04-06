@@ -171,7 +171,7 @@ export default function MainApp() {
   };
 
   const handleProfile = () => {
-    navigation.navigate("Profile"); // ajusta el nombre de tu ruta
+    navigation.navigate("Perfil"); // ajusta el nombre de tu ruta
   };
 
   return (
@@ -294,7 +294,7 @@ export default function MainApp() {
 
             <View style={styles.menuList}>
 
-  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("historial")}>
+  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("History")}>
     <View style={styles.menuIconWrap}>
       <Feather name="search" size={24} color={Colors.primary} />
     </View>

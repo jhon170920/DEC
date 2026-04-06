@@ -1,6 +1,5 @@
 import React, { useContext } from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
 // Contexto
@@ -15,8 +14,9 @@ import ForgotPassword from '../screens/mobile/ForgotPassword'; // Paso 1: Enviar
 import MainApp from '../screens/mobile/MainApp'; // El Tab Navigator principal de la app
 import CameraScreen from '../screens/mobile/CameraScreen';
 import Result from '../screens/mobile/Result';
-// import HistoryScreen from '../screens/HistoryScreen';
+import HistoryScreen from '../screens/mobile/HistoryScreen';
 import Contact from '../screens/mobile/Contact';
+import Profile from '../screens/mobile/Profile';
 // import ManualScreen from '../screens/ManualScreen';
 
 const Stack = createStackNavigator();
@@ -40,7 +40,7 @@ export default function AppNavigator() {
         <>
           <Stack.Screen name="MainApp" component={MainApp} />
           <Stack.Screen name="Camera" component={CameraScreen} />
-          {/* <Stack.Screen name="History" component={HistoryScreen} /> */}
+          <Stack.Screen name="History" component={HistoryScreen} />
           <Stack.Screen name="Contact" component={Contact} />
           {/* <Stack.Screen name="Manual" component={ManualScreen} /> */}
           <Stack.Screen name="Result" component={Result} /> 
@@ -51,6 +51,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="Register" component={Register} />
           <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+          <Stack.Screen name='Perfil' component={Profile}/>
           {/* <Stack.Screen name="ResetPassword" component={ResetPassword} /> */}
         </>
       )}
