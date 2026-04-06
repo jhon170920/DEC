@@ -13,11 +13,11 @@ import { View,
   StatusBar,
   useWindowDimensions, } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { registerUser } from '../api/api';
+import { registerUser } from '../../api/api';
 import { useNavigation } from '@react-navigation/native'; // Para navegar al login
-import { Colors } from '../constants/colors';
-import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
-import { StyleRegister as styles } from '../styles/RegisterStyles';
+import { Colors } from '../../constants/colors';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
+import { StyleRegister as styles } from '../../styles/RegisterStyles';
 
 // ─── CAMPO CON FLOATING LABEL ──────────────────────────────
 const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, rightSlot, fieldHeight }) => {
@@ -175,7 +175,7 @@ export default function Register() {
                         }
                     ]}>
                         <Image
-                        source={require("../../assets/image/logo.png")}
+                        source={require("../../../assets/image/logo.png")}
                        style={{ width: logoImgS, height: logoImgS }}
                         resizeMode="contain"
                     />
@@ -266,8 +266,8 @@ export default function Register() {
                 {/* Redes Sociales */}
                 <View style={[styles.socialRow, { marginBottom: sp(0.024) }]}>
                             {[
-                              { img: require("../../assets/image/google.png"),   label: 'Google'   },
-                              { img: require("../../assets/image/facebook.png"), label: 'Facebook' },
+                              { img: require("../../../assets/image/google.png"),   label: 'Google'   },
+                              { img: require("../../../assets/image/facebook.png"), label: 'Facebook' },
                               
                             ].map(({ img, label }) => (
                               <TouchableOpacity key={label} style={[styles.socialBtn, { height: socialH }]}>

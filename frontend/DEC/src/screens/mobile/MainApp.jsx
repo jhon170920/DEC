@@ -14,12 +14,11 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import * as SecureStore from "expo-secure-store";
-import { AuthContext } from "../context/AuthContext";
-import { Colors } from "../constants/colors";
-import { MainStyles as styles } from "../styles/MainStyles";
-import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
-import { debugCheckDatabase } from "../services/dbService";
+import { AuthContext } from "../../context/AuthContext";
+import { Colors } from "../../constants/colors";
+import { MainStyles as styles } from "../../styles/MainStyles";
+import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
+import { debugCheckDatabase } from "../../services/dbService";
 
 
 // ─── DROPDOWN ──────────────────────────────────────────────
@@ -160,13 +159,15 @@ export default function MainApp() {
 
   const { width } = useWindowDimensions();
   const navigation = useNavigation();
-  const { setUserToken, setIsGuest } = useContext(AuthContext);
+  const { logout } = useContext(AuthContext);
   const [dropOpen, setDropOpen] = useState(false);
 
   const handleLogout = async () => {
-    try { await SecureStore.deleteItemAsync("userToken"); } catch (_) {}
-    setUserToken(null);
-    setIsGuest(false);
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
   };
 
   const handleProfile = () => {
@@ -203,7 +204,7 @@ export default function MainApp() {
                 end={{ x: 1, y: 1 }}
               />
               <Image 
-              source={require("../../assets/image/logo.png")}
+              source={require("../../../assets/image/logo.png")}
               style={{width: logoImgS, height: logoImgS}}
               resizeMode="contain"
               />

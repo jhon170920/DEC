@@ -13,8 +13,8 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import { Colors } from "../constants/colors";
-import { ContactStyles as styles } from "../styles/Contacstyles";
+import { Colors } from "../../constants/colors";
+import { ContactStyles as styles } from "../../styles/Contacstyles";
 
 export default function Contact() {
   const navigation = useNavigation();
@@ -55,7 +55,7 @@ const handleEnviar = () => {
         {/* ── LOGO ── */}
         <View style={styles.logoWrap}>
           <Image
-            source={require("../../assets/image/logo.png")}
+            source={require("../../../assets/image/logo.png")}
             style={styles.logo}
           />
         </View>

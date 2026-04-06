@@ -1,13 +1,13 @@
 import React, {useContext} from "react";
-import { AuthContext } from "../context/AuthContext";
+import { AuthContext } from "../../context/AuthContext";
 import * as Location from 'expo-location';
 import { View, Text, Image, TouchableOpacity, ScrollView, Alert, StyleSheet, StatusBar } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
-import { saveDetectionLocal } from "../services/dbService";
+import { saveDetectionLocal } from "../../services/dbService";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
-import { Colors } from "../constants/colors";
-import { ResultStyles as styles } from "../styles/Resultstyles";
+import { Colors } from "../../constants/colors";
+import { ResultStyles as styles } from "../../styles/Resultstyles";
 
 
 export default function Result() {
@@ -84,7 +84,7 @@ return (
         {/* ── HEADER ── */}
         <View style={styles.header}>
             <Image
-            source={require("../../assets/image/logo.png")}
+            source={require("../../../assets/image/logo.png")}
             style={styles.logo}
             />
 

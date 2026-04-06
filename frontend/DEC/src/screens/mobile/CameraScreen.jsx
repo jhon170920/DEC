@@ -5,7 +5,7 @@ import { useIsFocused } from '@react-navigation/native';
 // CAMBIO CLAVE: Importamos GLView y la clase de contexto
 import { GLView } from 'expo-gl';
 import Expo2DContext from 'expo-2d-context'; 
-import { imageToTensor, processPrediction, runInference } from '../services/aiServices';
+import { imageToTensor, processPrediction, runInference } from '../../services/aiServices';
 
 export default function CameraScreen({ navigation }) {
   const isFocused = useIsFocused();
@@ -23,7 +23,7 @@ export default function CameraScreen({ navigation }) {
 
   // Precarga del modelo
   useEffect(() => {
-    import('../services/aiServices').then(({ loadModel }) => loadModel());
+    import('../../services/aiServices').then(({ loadModel }) => loadModel());
   }, []);
 
   if (!isFocused || !permission) return <View style={{ flex: 1, backgroundColor: '#000' }} />;

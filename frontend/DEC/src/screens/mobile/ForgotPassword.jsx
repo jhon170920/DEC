@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
-import { styles } from '../styles/Forgotstyles';
+import { styles } from '../../styles/Forgotstyles';
 
 
 const API_URL = ''; //colocar la url que correspondiente
@@ -59,7 +59,7 @@ const isDisabled = loading || !email.trim();
         <View style={styles.topSection}>
         <View style={styles.logoCircle}>
             <Image
-            source={require('../../assets/image/logo.png')} // logo
+            source={require('../../../assets/image/logo.png')} // logo
             style={{ width: 80, height: 80 }}
             resizeMode="contain"
             />

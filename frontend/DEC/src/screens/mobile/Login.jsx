@@ -15,11 +15,11 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { loginUser } from '../api/api';
-import { AuthContext } from '../context/AuthContext';
-import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
-import { Colors } from '../constants/colors';
-import { LoginStyles as styles } from '../styles/Loginstyles';
+import { loginUser } from '../../api/api';
+import { AuthContext } from '../../context/AuthContext';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
+import { Colors } from '../../constants/colors';
+import { LoginStyles as styles } from '../../styles/Loginstyles';
 
 
 
@@ -172,7 +172,7 @@ const {
             ]}>
               {/* LOGO */}
               <Image
-                source={require("../../assets/image/logo.png")}
+                source={require("../../../assets/image/logo.png")}
                 style={{ width: logoImgS, height: logoImgS }}
                 resizeMode="contain"
               />
@@ -263,8 +263,8 @@ const {
           {/* ── SOCIAL ── */}
           <View style={[styles.socialRow, { marginBottom: sp(0.024) }]}>
             {[
-              { img: require("../../assets/image/google.png"),   label: 'Google'   },
-              { img: require("../../assets/image/facebook.png"), label: 'Facebook' },
+              { img: require("../../../assets/image/google.png"),   label: 'Google'   },
+              { img: require("../../../assets/image/facebook.png"), label: 'Facebook' },
             ].map(({ img, label }) => (
               <TouchableOpacity key={label} style={[styles.socialBtn, { height: socialH }]}>
                 <Image source={img} style={{ width: iconS, height: iconS, resizeMode: 'contain' }} />
