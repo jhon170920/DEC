@@ -1,8 +1,11 @@
 import express from 'express';
-import { registerUser, loginUser, editUser, deleteUser } from '../controllers/users.js';
+import { registerUser, loginUser, editUser, deleteUser, googleAuth } from '../controllers/users.js';
+import { contactUs } from '../controllers/contactUs.js';
 import { verifyToken } from '../middlewares/auth.js';
 
 const router = express.Router();
+
+router.post('/auth/google', googleAuth)
 
 // Ruta para crear un nuevo usuario
 router.post('/register', registerUser);
@@ -15,6 +18,8 @@ router.put('/edit', verifyToken, editUser);
 // ruta para eliminar cuentica
 router.delete('/delete', verifyToken, deleteUser);
 
+// ruta de contactos
+router.post('/send-message', contactUs);
 
 
     

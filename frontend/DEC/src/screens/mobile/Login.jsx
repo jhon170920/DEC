@@ -1,27 +1,28 @@
 import React, { useState, useContext, useRef, useEffect } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  Animated,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
+    View,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    Image,
+    StyleSheet,
+    Alert,
+    ActivityIndicator,
+    Animated,
+    KeyboardAvoidingView,
+    Platform,
+    StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { loginUser } from '../../api/api';
+
 import { AuthContext } from '../../context/AuthContext';
 import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 import { Colors } from '../../constants/colors';
 import { LoginStyles as styles } from '../../styles/Loginstyles';
-
-
+import BtnLoginGoogle from '../components/BtnLoginGoogle.jsx';
+import FloatingInput from '../components/FloatingInput.jsx';
 
 // ─── CAMPO CON FLOATING LABEL ──────────────────────────────
 const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, rightSlot, fieldHeight }) => {
@@ -68,40 +69,40 @@ const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, righ
 // ─── PANTALLA PRINCIPAL ────────────────────────────────────
 export default function Login() {
 
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
-  const [loading,  setLoading]  = useState(false);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [showPass, setShowPass] = useState(false);
+    const [loading, setLoading] = useState(false);
 
   const navigation = useNavigation();
   const { enterAsGuest, login } = useContext(AuthContext);
 
 
-// ----RESPONSIVE LAYOUT
-const {
-  sp,
-  hPad,
-  logoRingS,
-  logoImgS,
-  headlineS,
-  sublineS,
-  fieldH,
-  btnH,
-  ghostH,
-  socialH,
-  iconS
-} = useResponsiveLayout();
+    // ----RESPONSIVE LAYOUT
+    const {
+        sp,
+        hPad,
+        logoRingS,
+        logoImgS,
+        headlineS,
+        sublineS,
+        fieldH,
+        btnH,
+        ghostH,
+        socialH,
+        iconS
+    } = useResponsiveLayout();
 
-  //ANIMACIONES ENTRADA Y CAMBIO DE PANALLAS
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+    //ANIMACIONES ENTRADA Y CAMBIO DE PANALLAS
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(20)).current;
 
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim,  { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
-    ]).start();
-  }, []);
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+            Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+        ]).start();
+    }, []);
 
 
   // ── Lógica original intacta ───────────────────────────────
@@ -139,27 +140,27 @@ const {
 
   const handleGuestEntry = () => enterAsGuest(true);
 
-  return (
-    <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} translucent={false} />
+    return (
+        <View style={styles.root}>
+            <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} translucent={false} />
 
-      <LinearGradient
-        colors={['#e8f5ec', '#f4faf5', '#f4faf5']}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+            <LinearGradient
+                colors={['#e8f5ec', '#f4faf5', '#f4faf5']}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' :  'height'}
-      >
-        <Animated.View
-          style={[
-            styles.container,
-            { paddingHorizontal: hPad, opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-          ]}
-        >
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+                <Animated.View
+                    style={[
+                        styles.container,
+                        { paddingHorizontal: hPad, opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+                    ]}
+                >
 
           {/* ── LOGO ── */}
           <View style={[styles.logoContainer, { marginBottom: sp(0.028) }]}>
@@ -179,86 +180,81 @@ const {
             </View>
           </View>
 
-          {/* ── TITULAR ── */}
-          <View style={{ marginBottom: sp(0.030) }}>
-            <Text style={[styles.headline, { fontSize: headlineS, lineHeight: headlineS * 1.18 }]}>
-              Hola, bienvenido{'\n'}
-              <Text style={styles.headlineAccent}>de vuelta.</Text>
-            </Text>
-            <Text style={[styles.subline, { fontSize: sublineS }]}>
-              Ingresa para continuar.
-            </Text>
-          </View>
+                    {/* ── TITULAR ── */}
+                    <View style={{ marginBottom: sp(0.030) }}>
+                        <Text style={[styles.headline, { fontSize: headlineS, lineHeight: headlineS * 1.18 }]}>
+                            Hola, bienvenido{'\n'}
+                            <Text style={styles.headlineAccent}>de vuelta.</Text>
+                        </Text>
+                        <Text style={[styles.subline, { fontSize: sublineS }]}>
+                            Ingresa para continuar.
+                        </Text>
+                    </View>
 
-          {/* ── CAMPOS ── */}
-          <View style={{ gap: sp(0.014) }}>
-            <Field
-              label="Correo electrónico"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              fieldHeight={fieldH}
-              
-            />
-            <Field
-              label="Contraseña"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPass}
-              fieldHeight={fieldH}
-              rightSlot={
-                <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
-                  <Text style={styles.eyeIcon}>{showPass ? '⌣' : '👁'}</Text>
-                </TouchableOpacity>
-              }
-            />
-          </View>
+                    {/* ── CAMPOS ── */}
+                    <View style={{ gap: sp(0.014) }}>
+                        <FloatingInput
+                            label="Correo electrónico"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize='none'
+                            fieldHeight={fieldH}
+                        />
+                        <FloatingInput
+                            label="Contraseña"
+                            value={password}
+                            onChangeText={setPassword}
+                            isPassword={true}
+                            fieldHeight={fieldH}
+                        />
+                    </View>
 
-          {/* ── OLVIDÉ CONTRASEÑA ── */}
-          <View style={[styles.metaRow, { marginVertical: sp(0.016) }]}>
-            <TouchableOpacity onPress={() =>  navigation.navigate('ForgotPassword')}>
-              <Text style={styles.forgotText}>
-                ¿Olvidaste tu contraseña?{' '}
-                <Text style={styles.forgotLink}>Recuperala</Text>
-              </Text>
-            </TouchableOpacity>
-          </View>
+                    {/* ── OLVIDÉ CONTRASEÑA ── */}
+                    <View style={[styles.metaRow, { marginVertical: sp(0.016) }]}>
+                        <TouchableOpacity onPress={() => Alert.alert("Próximamente", "Función de recuperación en desarrollo")}>
+                            <Text style={styles.forgotText}>
+                                ¿Olvidaste tu contraseña?{' '}
+                                <Text style={styles.forgotLink}>Recuperala</Text>
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
 
-          {/* ── BOTÓN INGRESAR ── */}
-          <TouchableOpacity
-            style={[styles.btnPrimary, { marginBottom: sp(0.014) }, loading && { opacity: 0.72 }]}
-            onPress={handleLogin}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={['#22c55e', '#16a34a', '#15803d']}
-              style={[styles.btnPrimaryGradient, { height: btnH }]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              {loading
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.btnPrimaryText}>Ingresar</Text>
-              }
-            </LinearGradient>
-          </TouchableOpacity>
+                    {/* ── BOTÓN INGRESAR ── */}
+                    <TouchableOpacity
+                        style={[styles.btnPrimary, { marginBottom: sp(0.014) }, loading && { opacity: 0.72 }]}
+                        onPress={handleLogin}
+                        disabled={loading}
+                        activeOpacity={0.85}
+                    >
+                        <LinearGradient
+                            colors={['#22c55e', '#16a34a', '#15803d']}
+                            style={[styles.btnPrimaryGradient, { height: btnH }]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            {loading
+                                ? <ActivityIndicator color="#fff" />
+                                : <Text style={styles.btnPrimaryText}>Ingresar</Text>
+                            }
+                        </LinearGradient>
+                    </TouchableOpacity>
 
-          {/* ── BOTÓN INVITADO ── */}
-          <TouchableOpacity
-            style={[styles.btnGhost, { height: ghostH, marginBottom: sp(0.024) }]}
-            onPress={handleGuestEntry}
-            activeOpacity={0.75}
-          >
-            <Text style={styles.btnGhostText}>Continuar como Invitado</Text>
-          </TouchableOpacity>
+                    {/* ── BOTÓN INVITADO ── */}
+                    <TouchableOpacity
+                        style={[styles.btnGhost, { height: ghostH, marginBottom: sp(0.024) }]}
+                        onPress={handleGuestEntry}
+                        activeOpacity={0.75}
+                    >
+                        <Text style={styles.btnGhostText}>Continuar como Invitado</Text>
+                    </TouchableOpacity>
 
-          {/* ── DIVISOR ── */}
-          <View style={[styles.divider, { marginBottom: sp(0.022) }]}>
-            <View style={styles.divLine} />
-            <Text style={styles.divText}>o ingresa con</Text>
-            <View style={styles.divLine} />
-          </View>
+                    {/* ── DIVISOR ── */}
+                    <View style={[styles.divider, { marginBottom: sp(0.022) }]}>
+                        <View style={styles.divLine} />
+                        <Text style={styles.divText}>o ingresa con</Text>
+                        <View style={styles.divLine} />
+                    </View>
 
           {/* ── SOCIAL ── */}
           <View style={[styles.socialRow, { marginBottom: sp(0.024) }]}>
@@ -273,17 +269,17 @@ const {
             ))}
           </View>
 
-          {/* ── FOOTER ── */}
-          <TouchableOpacity style={styles.registerRow} onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.registerText}>
-              ¿No tienes una cuenta?{' '}
-              <Text style={styles.registerLink}>Regístrate</Text>
-            </Text>
-          </TouchableOpacity>
+                    {/* ── FOOTER ── */}
+                    <TouchableOpacity style={styles.registerRow} onPress={() => navigation.navigate('Register')}>
+                        <Text style={styles.registerText}>
+                            ¿No tienes una cuenta?{' '}
+                            <Text style={styles.registerLink}>Regístrate</Text>
+                        </Text>
+                    </TouchableOpacity>
 
-        </Animated.View>
-      </KeyboardAvoidingView>
-    </View>
-  );
+                </Animated.View>
+            </KeyboardAvoidingView>
+        </View>
+    );
 }
 

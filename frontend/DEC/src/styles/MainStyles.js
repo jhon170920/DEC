@@ -20,7 +20,7 @@ export const MainStyles = StyleSheet.create({
   },
   logoRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   logoMark: {
-    width: 46, height: 46, borderRadius: 11,
+    width: 60, height: 60, borderRadius: 11,
     alignItems: "center", justifyContent: "center",
     overflow: "hidden",
     shadowColor: Colors.primary,

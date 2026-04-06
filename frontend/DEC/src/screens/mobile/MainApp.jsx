@@ -201,7 +201,7 @@ export default function MainApp() {
                 colors={[Colors.bg, Colors.primaryLight, Colors.surface]}
                 style={StyleSheet.absoluteFill}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                end={{ x: 0, y: 0 }}
               />
               <Image 
               source={require("../../../assets/image/logo.png")}

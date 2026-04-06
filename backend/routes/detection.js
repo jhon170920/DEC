@@ -8,7 +8,7 @@ const router = express.Router();
 
 // Aplicamos el middleware verifyToken para proteger AMBAS rutas
 // Un invitado no podrá ni guardar ni ver historiales
-router.post("/save", verifyToken, upload.single("image"), saveDetection);
+router.post("/save", verifyToken, saveDetection);
 // obtener el historial del usuario
 router.get("/history", verifyToken, getUserHistory);
 //eliminar una deteccion del historial

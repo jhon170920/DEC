@@ -5,7 +5,6 @@ export const ContactStyles = StyleSheet.create({
 root: { flex: 1, backgroundColor: Colors.bg },
 absoluteFill: { ...StyleSheet.absoluteFill },
 scroll: {
-    paddingHorizontal: 32,
     paddingTop: Platform.OS === "ios" ? 80 : 120,
     paddingBottom: 60,
     alignItems: "center",
