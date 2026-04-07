@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, 
-  useWindowDimensions, Platform 
+  useWindowDimensions, Platform, ActivityIndicator, TextInput, Alert 
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import IncidentCharts from './components/IncidentCharts'; // Importa el componente anterior
+import api from "../../api/api"
+// import axios from 'axios'; // Asegúrate de tener axios instalado
 
-// --- PALETA DE COLORES (Basada en tu proyecto DEC) ---
 const COLORS = {
-  primary: '#16a34a', // Verde cafetal
+  primary: '#16a34a',
   secondary: '#064e3b',
   bg: '#f0f9f1',
   surface: '#ffffff',
@@ -19,11 +21,40 @@ const COLORS = {
 export default function AdminDashboard() {
   const { width } = useWindowDimensions();
   const isDesktop = width > 768;
+  
+  // --- ESTADOS ---
   const [activeTab, setActiveTab] = useState('Dashboard');
+  const [loading, setLoading] = useState(true);
+  const [chartData, setChartData] = useState([]);
+  const [kpis, setKpis] = useState({ totalUsers: 0, activeUsers: 0, detectionsInPeriod: 0 });
+  const [dates, setDates] = useState({ startDate: '', endDate: '' });
+
+  // --- LÓGICA DE CONEXIÓN ---
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [resIncidence, resKpis] = await Promise.all([
+        api.get('/stats/incidence', { params: dates }),
+        api.get('/stats/kpis', { params: dates })
+      ]);
+
+      // Axios guarda la respuesta en la propiedad .data
+      setChartData(resIncidence.data);
+      setKpis(resKpis.data);
+    } catch (error) {
+      console.error("Error con Axios:", error.response?.data || error.message);
+      Alert.alert("Error", "No se pudieron cargar las estadísticas.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []); // Carga inicial
 
   return (
     <View style={styles.container}>
-      {/* SIDEBAR (Solo se muestra fijo en Desktop) */}
       {isDesktop && (
         <View style={styles.sidebar}>
           <Text style={styles.logo}>DEC Admin</Text>
@@ -34,27 +65,48 @@ export default function AdminDashboard() {
         </View>
       )}
 
-      {/* CONTENIDO PRINCIPAL */}
       <View style={styles.mainContent}>
         <ScrollView contentContainerStyle={styles.scrollPadding}>
-          <Text style={styles.welcomeText}>Panel de Control - Garzón, Huila</Text>
+          <View style={styles.headerRow}>
+            <Text style={styles.welcomeText}>Panel de Control</Text>
+            
+            {/* BARRA DE FILTROS INTEGRADA */}
+            <View style={styles.filterBar}>
+              <TextInput 
+                style={styles.dateInput} 
+                type="date" // Solo funciona en Web
+                onChangeText={(val) => setDates({...dates, startDate: val})}
+                placeholder="Desde"
+              />
+              <TextInput 
+                style={styles.dateInput} 
+                type="date" 
+                onChangeText={(val) => setDates({...dates, endDate: val})}
+                placeholder="Hasta"
+              />
+              <TouchableOpacity style={styles.filterBtn} onPress={fetchData}>
+                <Feather name="filter" size={16} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </View>
           
-          {/* GRILLA DE ESTADÍSTICAS */}
           <View style={[styles.statsGrid, { flexDirection: isDesktop ? 'row' : 'column' }]}>
-            <StatCard title="Detecciones Hoy" value="42" icon="target" color={COLORS.primary} />
-            <StatCard title="Incidencia Roya" value="12%" icon="trending-up" color={COLORS.danger} />
-            <StatCard title="Usuarios Activos" value="22" icon="users" color={COLORS.secondary} />
+            <StatCard title="Detecciones (Periodo)" value={kpis.detectionsInPeriod} icon="target" color={COLORS.primary} />
+            <StatCard title="Usuarios Totales" value={kpis.totalUsers} icon="users" color={COLORS.secondary} />
+            <StatCard title="Usuarios Activos" value={kpis.activeUsers} icon="zap" color={COLORS.warning} />
           </View>
 
-          {/* ÁREA DE GRÁFICAS (Placeholder) */}
           <View style={styles.chartPlaceholder}>
-            <Text style={styles.sectionTitle}>Incidencia Semanal</Text>
-            <View style={styles.fakeChart}>
-               <Text style={{color: COLORS.text, opacity: 0.5}}> [ Aquí integrarás tus gráficas de Victory o Recharts ] </Text>
+            <Text style={styles.sectionTitle}>Tendencia de Incidencia</Text>
+            <View style={styles.chartSpace}>
+               {loading ? (
+                 <ActivityIndicator size="large" color={COLORS.primary} />
+               ) : (
+                 <IncidentCharts data={chartData} />
+               )}
             </View>
           </View>
 
-          {/* TABLA DE RECIENTES */}
           <View style={styles.tableContainer}>
             <Text style={styles.sectionTitle}>Últimas Detecciones</Text>
             <DetectionItem label="Roya detectada" zone="Vereda La Jagua" time="Hace 10 min" />
@@ -205,5 +257,39 @@ const styles = StyleSheet.create({
   },
   rowTitle: { fontWeight: '600', color: COLORS.text },
   rowSub: { fontSize: 12, color: '#6b7280' },
-  rowTime: { fontSize: 12, color: COLORS.primary, fontWeight: '600' }
+  rowTime: { fontSize: 12, color: COLORS.primary, fontWeight: '600' },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 25,
+    flexWrap: 'wrap',
+    gap: 15
+  },
+  filterBar: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    padding: 8,
+    borderRadius: 12,
+    gap: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e5e7eb'
+  },
+  dateInput: {
+    padding: 8,
+    fontSize: 13,
+    color: COLORS.text,
+    width: 130
+  },
+  filterBtn: {
+    backgroundColor: COLORS.primary,
+    padding: 10,
+    borderRadius: 8
+  },
+  chartSpace: {
+    marginTop: 20,
+    minHeight: 300,
+    justifyContent: 'center'
+  }
 });
