@@ -15,7 +15,7 @@ import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { Colors } from "../../constants/colors";
 import { ContactStyles as styles } from "../../styles/Contacstyles";
-import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
+import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 
 export default function Contact() {
   const navigation = useNavigation();

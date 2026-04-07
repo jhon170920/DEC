@@ -21,8 +21,8 @@ import { AuthContext } from '../../context/AuthContext';
 import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 import { Colors } from '../../constants/colors';
 import { LoginStyles as styles } from '../../styles/Loginstyles';
-import BtnLoginGoogle from '../components/BtnLoginGoogle.jsx';
-import FloatingInput from '../components/FloatingInput.jsx';
+import BtnLoginGoogle from '../../components/BtnLoginGoogle.jsx';
+import FloatingInput from '../../components/FloatingInput.jsx';
 
 // ─── CAMPO CON FLOATING LABEL ──────────────────────────────
 const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, rightSlot, fieldHeight }) => {

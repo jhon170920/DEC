@@ -20,8 +20,8 @@ import { useNavigation } from '@react-navigation/native'; // Para navegar al log
 import { Colors } from '../../constants/colors';
 import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 import { StyleRegister as styles } from '../../styles/RegisterStyles';
-import FloatingInput from '../components/FloatingInput';
-import BtnLoginGoogle from '../components/BtnLoginGoogle';
+import FloatingInput from '../../components/FloatingInput';
+import BtnLoginGoogle from '../../components/BtnLoginGoogle';
 
 
 export default function Register() {

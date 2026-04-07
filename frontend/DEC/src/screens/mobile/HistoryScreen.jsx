@@ -13,10 +13,7 @@ import {
     Alert
 } from 'react-native';
 import axios from 'axios'
-import { AuthContext } from "../context/AuthContext";
-
-
-
+import { AuthContext } from "../../context/AuthContext";
 
 // función para formatear la fecha y mostrarla asi: 20 de Marzo de 2026
 // dateString es el string que recibimos de monguito
