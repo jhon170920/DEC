@@ -30,28 +30,29 @@ export default function AdminDashboard() {
   const [dates, setDates] = useState({ startDate: '', endDate: '' });
 
   // --- LÓGICA DE CONEXIÓN ---
+  const [groupBy, setGroupBy] = useState('day');
+
   const fetchData = async () => {
     setLoading(true);
     try {
       const [resIncidence, resKpis] = await Promise.all([
-        api.get('/stats/incidence', { params: dates }),
-        api.get('/stats/kpis', { params: dates })
+        // 👈 Enviamos el parámetro groupBy a la API
+        api.get('stats/incidence', { params: { ...dates, groupBy } }),
+        api.get('stats/kpis', { params: dates })
       ]);
-
-      // Axios guarda la respuesta en la propiedad .data
       setChartData(resIncidence.data);
       setKpis(resKpis.data);
     } catch (error) {
-      console.error("Error con Axios:", error.response?.data || error.message);
-      Alert.alert("Error", "No se pudieron cargar las estadísticas.");
+      console.log(error);
     } finally {
       setLoading(false);
     }
   };
-
+  
+  // Ejecutar fetchData cuando cambie la agrupación
   useEffect(() => {
     fetchData();
-  }, []); // Carga inicial
+  }, [groupBy, dates]); // Carga inicial
 
   return (
     <View style={styles.container}>
@@ -98,6 +99,26 @@ export default function AdminDashboard() {
 
           <View style={styles.chartPlaceholder}>
             <Text style={styles.sectionTitle}>Tendencia de Incidencia</Text>
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 15 }}>
+  {['day', 'week', 'month'].map(type => (
+    <TouchableOpacity 
+      key={type}
+      onPress={() => setGroupBy(type)}
+      style={{
+        paddingHorizontal: 15,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: groupBy === type ? '#16a34a' : '#fff',
+        borderWidth: 1,
+        borderColor: '#16a34a'
+      }}
+    >
+      <Text style={{ color: groupBy === type ? '#fff' : '#16a34a', fontWeight: '600' }}>
+        {type === 'day' ? 'Diario' : type === 'week' ? 'Semanal' : 'Mensual'}
+      </Text>
+    </TouchableOpacity>
+  ))}
+</View>
             <View style={styles.chartSpace}>
                {loading ? (
                  <ActivityIndicator size="large" color={COLORS.primary} />

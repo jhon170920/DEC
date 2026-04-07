@@ -20,15 +20,20 @@ const buildDateFilter = (startDate, endDate) => {
 // 1. Incidencia con Filtros (Línea de tiempo)
 export const getIncidenceStats = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
+        const { startDate, endDate, groupBy = 'day' } = req.query; // 'day', 'week', 'month'
         const dateFilter = buildDateFilter(startDate, endDate);
+
+        // Definimos el formato de fecha según la elección
+        let format = "%Y-%m-%d"; // Por defecto día
+        if (groupBy === 'week') format = "%Y-W%U"; // Año y número de semana
+        if (groupBy === 'month') format = "%Y-%m";  // Año y mes
 
         const stats = await Detection.aggregate([
             { $match: dateFilter },
             {
                 $group: {
                     _id: {
-                        day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                        period: { $dateToString: { format: format, date: "$createdAt" } },
                         pathology: "$pathologyId"
                     },
                     count: { $sum: 1 }
@@ -36,7 +41,7 @@ export const getIncidenceStats = async (req, res) => {
             },
             {
                 $lookup: {
-                    from: 'pathologies', // Verifica que este nombre coincida con tu colección en MongoDB
+                    from: 'pathologies',
                     localField: '_id.pathology',
                     foreignField: '_id',
                     as: 'pathologyInfo'
@@ -44,19 +49,21 @@ export const getIncidenceStats = async (req, res) => {
             }
         ]);
 
+        // Procesar datos para Recharts
         const chartMap = {};
         stats.forEach(item => {
-            if (!chartMap[item._id.day]) {
-                chartMap[item._id.day] = { name: item._id.day };
-            }
-            // 👈 IMPORTANTE: pathologyInfo es un arreglo, tomamos el índice [0]
+            const period = item._id.period;
+            if (!chartMap[period]) chartMap[period] = { name: period };
+            
             const diseaseName = item.pathologyInfo[0]?.name || "Desconocido";
-            chartMap[item._id.day][diseaseName] = item.count;
+            chartMap[period][diseaseName] = item.count;
         });
 
-        res.json(Object.values(chartMap));
+        // Ordenar por fecha antes de enviar
+        const sortedData = Object.values(chartMap).sort((a, b) => a.name.localeCompare(b.name));
+        res.json(sortedData);
     } catch (error) {
-        res.status(500).json({ message: "Error en incidencia", error: error.message });
+        res.status(500).json({ message: "Error", error: error.message });
     }
 };
 // 2. Datos del Mapa con Filtros
