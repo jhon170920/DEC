@@ -17,14 +17,21 @@ export const saveDetection = async (req, res) => {
         const imageUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
         
         // obtener los id, pathología y del usuario
-        const { pathologyId } = req.params;
         const userId = req.user.id
         // extraer datos del análisis
         const {lng, lat, confidence} = req.body;
 
         // verificamos si existe el id de la pathología (enviada desde el front) en nuestra base de datos 
-        const pathologyExist = await Pathology.findById(pathologyId);
+        const { disease } = req.body;
+        console.log("🔍 disease recibido:", JSON.stringify(disease));
+        const todasLasPatologias = await Pathology.find({});
+console.log("📚 Total documentos en pathologies:", todasLasPatologias.length);
+console.log("📚 Primero:", todasLasPatologias[0]);
+        console.log("📦 Colección que usa Mongoose:", Pathology.collection.collectionName);
+        const pathologyExist = await Pathology.findOne({ name: disease.trim()  });
+        console.log("📋 Resultado findOne:", pathologyExist);
         if (!pathologyExist) return res.status(404).json({ message: "La patología referenciada no existe." });
+        const pathologyId = pathologyExist._id;
 
         // 4. Crear el registro vinculado al usuario (viene del JWT)
         const newDetection = new Detections({

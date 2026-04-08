@@ -22,37 +22,30 @@ export default function AdminDashboard() {
   const { width } = useWindowDimensions();
   const isDesktop = width > 768;
   
-  // --- ESTADOS ---
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState([]);
   const [kpis, setKpis] = useState({ totalUsers: 0, activeUsers: 0, detectionsInPeriod: 0 });
   const [dates, setDates] = useState({ startDate: '', endDate: '' });
-
-  // --- LÓGICA DE CONEXIÓN ---
   const [groupBy, setGroupBy] = useState('day');
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [resIncidence, resKpis] = await Promise.all([
-        // 👈 Enviamos el parámetro groupBy a la API
         api.get('stats/incidence', { params: { ...dates, groupBy } }),
         api.get('stats/kpis', { params: dates })
       ]);
       setChartData(resIncidence.data);
       setKpis(resKpis.data);
     } catch (error) {
-      console.log(error);
+      console.log("Error en Dashboard:", error);
     } finally {
       setLoading(false);
     }
   };
-  
-  // Ejecutar fetchData cuando cambie la agrupación
-  useEffect(() => {
-    fetchData();
-  }, [groupBy, dates]); // Carga inicial
+
+  useEffect(() => { fetchData(); }, [groupBy, dates]);
 
   return (
     <View style={styles.container}>
@@ -60,84 +53,101 @@ export default function AdminDashboard() {
         <View style={styles.sidebar}>
           <Text style={styles.logo}>DEC Admin</Text>
           <SidebarItem icon="grid" label="Dashboard" active={activeTab === 'Dashboard'} onPress={() => setActiveTab('Dashboard')} />
-          <SidebarItem icon="map" label="Mapa de Brotes" active={activeTab === 'Mapa'} onPress={() => setActiveTab('Mapa')} />
           <SidebarItem icon="users" label="Usuarios" active={activeTab === 'Usuarios'} onPress={() => setActiveTab('Usuarios')} />
-          <SidebarItem icon="cpu" label="Validación IA" active={activeTab === 'IA'} onPress={() => setActiveTab('IA')} />
+          <SidebarItem icon="book-open" label="Catálogo" active={activeTab === 'Catalog'} onPress={() => setActiveTab('Catalog')} />
+          <SidebarItem icon="camera" label="Detecciones" active={activeTab === 'Detections'} onPress={() => setActiveTab('Detections')} />
         </View>
       )}
 
-      <View style={styles.mainContent}>
-        <ScrollView contentContainerStyle={styles.scrollPadding}>
-          <View style={styles.headerRow}>
-            <Text style={styles.welcomeText}>Panel de Control</Text>
-            
-            {/* BARRA DE FILTROS INTEGRADA */}
-            <View style={styles.filterBar}>
-              <TextInput 
-                style={styles.dateInput} 
-                type="date" // Solo funciona en Web
-                onChangeText={(val) => setDates({...dates, startDate: val})}
-                placeholder="Desde"
-              />
-              <TextInput 
-                style={styles.dateInput} 
-                type="date" 
-                onChangeText={(val) => setDates({...dates, endDate: val})}
-                placeholder="Hasta"
-              />
-              <TouchableOpacity style={styles.filterBtn} onPress={fetchData}>
-                <Feather name="filter" size={16} color="#fff" />
-              </TouchableOpacity>
+      <ScrollView style={styles.mainContent} contentContainerStyle={styles.scrollPadding}>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.welcomeText}>Panel General</Text>
+            <Text style={styles.subText}>Estado del sistema en Garzón y alrededores</Text>
+          </View>
+          
+          <View style={styles.filterBar}>
+            <TextInput 
+              style={styles.dateInput} 
+              placeholder="Fecha inicio" 
+              onChangeText={(v) => setDates({...dates, startDate: v})} 
+            />
+            <View style={{ width: 1, height: 20, backgroundColor: '#e5e7eb' }} />
+            <TextInput 
+              style={styles.dateInput} 
+              placeholder="Fecha fin" 
+              onChangeText={(v) => setDates({...dates, endDate: v})} 
+            />
+            <TouchableOpacity style={styles.filterBtn} onPress={fetchData}>
+              <Feather name="refresh-cw" size={16} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* TARJETAS DE RESUMEN (ACCESOS RÁPIDOS) */}
+        <View style={[styles.statsGrid, { flexDirection: isDesktop ? 'row' : 'column' }]}>
+          <QuickActionCard 
+            title="Usuarios" 
+            value={kpis.totalUsers} 
+            sub="Gestionar cuentas" 
+            icon="users" 
+            color="#3b82f6" 
+            onPress={() => setActiveTab('Usuarios')}
+          />
+          <QuickActionCard 
+            title="Detecciones" 
+            value={kpis.detectionsInPeriod} 
+            sub="Ver hallazgos" 
+            icon="camera" 
+            color="#16a34a" 
+            onPress={() => setActiveTab('Detections')}
+          />
+          <QuickActionCard 
+            title="Catálogo" 
+            value="4 Patologías" 
+            sub="Roya, Minador..." 
+            icon="book" 
+            color="#f59e0b" 
+            onPress={() => setActiveTab('Catalog')}
+          />
+        </View>
+
+        {/* CONTENEDOR DE GRÁFICA */}
+        <View style={styles.whiteCard}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.sectionTitle}>Distribución de Enfermedades</Text>
+            <View style={styles.tabGroup}>
+              {['day', 'week', 'month'].map(t => (
+                <TouchableOpacity key={t} onPress={() => setGroupBy(t)} style={[styles.tabBtn, groupBy === t && styles.tabBtnActive]}>
+                  <Text style={[styles.tabBtnText, groupBy === t && { color: '#fff' }]}>{t === 'day' ? 'D' : t === 'week' ? 'S' : 'M'}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
           
-          <View style={[styles.statsGrid, { flexDirection: isDesktop ? 'row' : 'column' }]}>
-            <StatCard title="Detecciones (Periodo)" value={kpis.detectionsInPeriod} icon="target" color={COLORS.primary} />
-            <StatCard title="Usuarios Totales" value={kpis.totalUsers} icon="users" color={COLORS.secondary} />
-            <StatCard title="Usuarios Activos" value={kpis.activeUsers} icon="zap" color={COLORS.warning} />
+          <View style={styles.chartSpace}>
+            {loading ? <ActivityIndicator color="#16a34a" /> : <IncidentCharts data={chartData} />}
           </View>
-
-          <View style={styles.chartPlaceholder}>
-            <Text style={styles.sectionTitle}>Tendencia de Incidencia</Text>
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 15 }}>
-  {['day', 'week', 'month'].map(type => (
-    <TouchableOpacity 
-      key={type}
-      onPress={() => setGroupBy(type)}
-      style={{
-        paddingHorizontal: 15,
-        paddingVertical: 8,
-        borderRadius: 20,
-        backgroundColor: groupBy === type ? '#16a34a' : '#fff',
-        borderWidth: 1,
-        borderColor: '#16a34a'
-      }}
-    >
-      <Text style={{ color: groupBy === type ? '#fff' : '#16a34a', fontWeight: '600' }}>
-        {type === 'day' ? 'Diario' : type === 'week' ? 'Semanal' : 'Mensual'}
-      </Text>
-    </TouchableOpacity>
-  ))}
-</View>
-            <View style={styles.chartSpace}>
-               {loading ? (
-                 <ActivityIndicator size="large" color={COLORS.primary} />
-               ) : (
-                 <IncidentCharts data={chartData} />
-               )}
-            </View>
-          </View>
-
-          <View style={styles.tableContainer}>
-            <Text style={styles.sectionTitle}>Últimas Detecciones</Text>
-            <DetectionItem label="Roya detectada" zone="Vereda La Jagua" time="Hace 10 min" />
-            <DetectionItem label="Minador detectado" zone="Finca El Recreo" time="Hace 45 min" />
-          </View>
-        </ScrollView>
-      </View>
+        </View>
+      </ScrollView>
     </View>
   );
 }
+
+// Componente para las tarjetas superiores
+const QuickActionCard = ({ title, value, sub, icon, color, onPress }) => (
+  <TouchableOpacity style={styles.statCard} onPress={onPress}>
+    <View style={[styles.iconCircle, { backgroundColor: color + '15' }]}>
+      <Feather name={icon} size={22} color={color} />
+    </View>
+    <View style={{ flex: 1 }}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statTitle}>{title}</Text>
+      <Text style={styles.cardSub}>{sub}</Text>
+    </View>
+    <Feather name="chevron-right" size={18} color="#d1d5db" />
+  </TouchableOpacity>
+);
 
 // --- SUBCOMPONENTES ---
 
@@ -312,5 +322,46 @@ const styles = StyleSheet.create({
     marginTop: 20,
     minHeight: 300,
     justifyContent: 'center'
-  }
+  }, 
+  whiteCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 30,
+    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 25
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+    borderWidth: 1,
+    borderColor: '#f3f4f6'
+  },
+  cardSub: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
+  tabGroup: {
+    flexDirection: 'row',
+    backgroundColor: '#f3f4f6',
+    padding: 4,
+    borderRadius: 12
+  },
+  tabBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8
+  },
+  tabBtnActive: {
+    backgroundColor: '#16a34a',
+  },
+  tabBtnText: { fontSize: 12, fontWeight: '700', color: '#6b7280' },
+  subText: { fontSize: 14, color: '#6b7280', marginTop: -20, marginBottom: 20 }
 });

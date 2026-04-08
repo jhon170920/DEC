@@ -138,7 +138,7 @@ return (
             <Feather name="chevron-right" size={16} color={Colors.textMuted} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => {}}>
+            <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={handleSave}>
             <View style={styles.menuIconWrap}>
                 <Feather name="book-open" size={24} color={Colors.primary} />
             </View>
@@ -152,7 +152,7 @@ return (
         </View>
 
         {/* ── BOTÓN GUARDAR ── */}
-        <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85} onPress={() => {}}>
+        <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85} onPress={handleSave}>
             <LinearGradient
             colors={["#22c55e", "#16a34a", "#15803d"]}
             style={styles.scanGradient}
