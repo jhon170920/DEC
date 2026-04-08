@@ -11,7 +11,7 @@ import Login from '../screens/Login';
 import Register from '../screens/Register';
 import ForgotPassword from '../screens/ForgotPassword'; // Paso 1: Enviar código
 // import ResetPassword from '../screens/ResetPassword';   // Paso 2: Ingresar código y nueva pass
-
+import EditProfile from '../screens/EditProfile';
 import MainApp from '../screens/MainApp';               // El Dashboard con los 4 botones
 import CameraScreen from '../screens/CameraScreen';
 import Profile from '../screens/Profile';
@@ -47,10 +47,12 @@ export default function AppNavigator() {
             <Stack.Screen name="Contact" component={Contact} />
             {/* <Stack.Screen name="Manual" component={ManualScreen} /> */}
             {/*<Stack.Screen name="Result" component={Result} /> */}
+            <Stack.Screen name="EditProfile" component={EditProfile} />
           </>
         ) : (
           // --- STACK DE AUTENTICACIÓN ---
           <>
+          
             <Stack.Screen name="Login" component={Login} />
             <Stack.Screen name="Register" component={Register} />
             <Stack.Screen name="ForgotPassword" component={ForgotPassword} />

@@ -9,6 +9,10 @@ Switch,
 StyleSheet,
 Image,
 Platform,
+Modal,
+TextInput,
+KeyboardAvoidingView,
+ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -17,11 +21,13 @@ import { Colors } from "../constants/colors";
 import { ProfileStyles as styles } from "../styles/Profilestyles";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 
+// PANTALLA PRINCIPAL
+
 export default function Profile() {
 const navigation = useNavigation();
 const { sp, hPad, logoRingS, logoImgS, iconS, btnH, headlineS, sublineS, brandS } = useResponsiveLayout();
 const [notificaciones, setNotificaciones] = useState(true);
-
+const [modalContrasena, setModalContrasena] = useState(false); 
 const nombreUsuario = "Juancho";
 const inicial = nombreUsuario.charAt(0).toUpperCase();
 
@@ -29,65 +35,65 @@ const plantas   = 1;
 const analisis  = 3;
 const guardadas = 7;
 
-  // Derivados compactos
 const avatarSize = sp(0.085);
-const badgeS     = avatarSize * 0.24;
-const menuIconS  = iconS * 1.7;
+  const badgeS     = avatarSize * 0.24;
+  const menuIconS  = iconS * 1.7;
 const menuPadV   = sp(0.0070);
 const scrollPadT = Platform.OS === "ios" ? sp(0.07) : sp(0.06);
+
 return (
     <View style={styles.root}>
         <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
 
-    <LinearGradient
+        <LinearGradient
         colors={["#e8f5ec", "#f4faf5", "#f4faf5"]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-/>
+        />
 
-    <ScrollView
+        <ScrollView
         contentContainerStyle={[
             styles.scroll,
             { paddingHorizontal: hPad, paddingTop: scrollPadT },
         ]}
         showsVerticalScrollIndicator={false}
-    >
+        >
 
         {/* ── HEADER ── */}
         <View style={[styles.header, { marginBottom: sp(0.018) }]}>
             <View style={[
             styles.logoMark,
             { width: logoRingS, height: logoRingS, borderRadius: logoRingS / 2 },
-        ]}>
+            ]}>
             <Image
                 source={require("../../assets/image/logo.png")}
                 style={{ width: logoImgS, height: logoImgS }}
                 resizeMode="contain"
             />
-        </View>
-        <TouchableOpacity
+            </View>
+            <TouchableOpacity
             style={[styles.backBtn, { width: logoRingS * 0.60, height: logoRingS * 0.68 }]}
             activeOpacity={0.75}
             onPress={() => navigation.goBack()}
-        >
+            >
             <Feather name="arrow-left" size={iconS} color={Colors.text} />
-        </TouchableOpacity>
+            </TouchableOpacity>
         </View>
 
         {/* ── AVATAR ── */}
         <View style={styles.avatarWrap}>
-        <View style={[
+            <View style={[
             styles.avatarCircle,
             { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 },
-        ]}>
+            ]}>
             <Text style={[styles.avatarInitial, { fontSize: avatarSize * 0.42 }]}>
                 {inicial}
             </Text>
-        </View>
-        <View style={[styles.avatarBadge, { width: badgeS, height: badgeS }]}>
+            </View>
+            <View style={[styles.avatarBadge, { width: badgeS, height: badgeS }]}>
             <Feather name="edit-2" size={badgeS * 0.5} color="#fff" />
-        </View>
+            </View>
         </View>
 
         {/* ── NOMBRE ── */}
@@ -98,7 +104,7 @@ return (
         {/* ── STATS ── */}
         <View style={[
         styles.statsCard,
-        { marginBottom: sp(0.02), paddingVertical: sp(0.015) },
+            { marginBottom: sp(0.02), paddingVertical: sp(0.015) },
         ]}>
         <View style={styles.statItem}>
             <Text style={[styles.statNumber, { fontSize: headlineS * 0.5 }]}>{plantas}</Text>
@@ -113,46 +119,36 @@ return (
         <View style={styles.statItem}>
             <Text style={[styles.statNumber, { fontSize: headlineS * 0.5 }]}>{guardadas}</Text>
             <Text style={[styles.statLabel, { fontSize: sublineS }]}>Guardadas</Text>
-        </View>
+            </View>
         </View>
 
         {/* ── MI CUENTA ── */}
         <View style={[styles.sectionHeader, { marginBottom: 6, marginTop: 8 }]}>
-        <Text style={[styles.sectionLabel, { fontSize: sublineS - 1 }]}>MI CUENTA</Text>
-        <View style={styles.sectionLine} />
+            <Text style={[styles.sectionLabel, { fontSize: sublineS - 1 }]}>MI CUENTA</Text>
+            <View style={styles.sectionLine} />
         </View>
 
         <View style={styles.groupCard}>
 
-        <TouchableOpacity
+            <TouchableOpacity
             style={[styles.menuItem, { paddingVertical: menuPadV }]}
             activeOpacity={0.75}
-            onPress={() => {}}
+            onPress={() => navigation.navigate("EditProfile")}
         >
             <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: "#f0faf3" }]}>
-            <Feather name="edit-2" size={iconS} color={Colors.primary} />
+                <Feather name="edit-2" size={iconS} color={Colors.primary} />
             </View>
             <Text style={[styles.menuTitle, { fontSize: brandS }]}>Editar perfil</Text>
             <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
-        </TouchableOpacity>
+            </TouchableOpacity>
 
-        <View style={styles.itemDivider} />
+            <View style={styles.itemDivider} />
 
-        <TouchableOpacity
-            style={[styles.menuItem, { paddingVertical: menuPadV }]}
-            activeOpacity={0.75}
-            onPress={() => {}}
-        >
-            <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: "#fefce8" }]}>
-                <Feather name="lock" size={iconS} color="#ca8a04" />
-            </View>
-            <Text style={[styles.menuTitle, { fontSize: brandS }]}>Cambiar contraseña</Text>
-            <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
-        </TouchableOpacity>
+          {/* onpres */}
 
-        <View style={styles.itemDivider} />
+            <View style={styles.itemDivider} />
 
-        <View style={[styles.menuItem, { paddingVertical: menuPadV }]}>
+            <View style={[styles.menuItem, { paddingVertical: menuPadV }]}>
             <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: "#eff6ff" }]}>
                 <Feather name="bell" size={iconS} color="#3b82f6" />
             </View>
@@ -163,7 +159,7 @@ return (
                 trackColor={{ false: Colors.border, true: Colors.primary }}
                 thumbColor="#fff"
             />
-        </View>
+            </View>
 
         </View>
 
@@ -179,7 +175,7 @@ return (
             style={[styles.menuItem, { paddingVertical: menuPadV }]}
             activeOpacity={0.75}
             onPress={() => {}}
-        >
+            >
             <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: "#eff6ff" }]}>
                 <Feather name="help-circle" size={iconS} color="#3b82f6" />
             </View>
@@ -187,27 +183,27 @@ return (
             <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
         </TouchableOpacity>
 
-        <View style={styles.itemDivider} />
+            <View style={styles.itemDivider} />
 
-        <TouchableOpacity
+            <TouchableOpacity
             style={[styles.menuItem, { paddingVertical: menuPadV }]}
             activeOpacity={0.75}
             onPress={() => {}}
-        >
+            >
             <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: Colors.surfaceAlt }]}>
                 <Feather name="file-text" size={iconS} color={Colors.textMuted} />
             </View>
-            <Text style={[styles.menuTitle, { fontSize: brandS }]}>Términos y privacidad</Text>
-            <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
-        </TouchableOpacity>
+                <Text style={[styles.menuTitle, { fontSize: brandS }]}>Términos y privacidad</Text>
+                <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
+            </TouchableOpacity>
 
         </View>
 
-        {/* ── BOTONES PELIGROSOS ── */}
+        {/* ── BOTONES  ── */}
         <TouchableOpacity
-        style={[styles.btnDanger, { height: btnH }]}
-        activeOpacity={0.75}
-        onPress={() => {}}
+            style={[styles.btnDanger, { height: btnH }]}
+            activeOpacity={0.75}
+            onPress={() => {navigation.navigate("Login");}}
         >
             <Text style={[styles.btnDangerText, { fontSize: brandS }]}>Cerrar sesión</Text>
         </TouchableOpacity>
@@ -220,7 +216,7 @@ return (
             <Text style={[styles.btnDangerText, { fontSize: brandS }]}>Eliminar cuenta</Text>
         </TouchableOpacity>
 
-    </ScrollView>
+        </ScrollView>
     </View>
-    );
+);
 }
