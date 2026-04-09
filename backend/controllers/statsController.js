@@ -66,6 +66,30 @@ export const getIncidenceStats = async (req, res) => {
         res.status(500).json({ message: "Error", error: error.message });
     }
 };
+// Nueva función para el Pie Chart específicamente
+export const getPieStats = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        const dateFilter = buildDateFilter(startDate, endDate);
+
+        const stats = await Detection.aggregate([
+            { $match: dateFilter },
+            { $group: { _id: "$pathologyId", value: { $sum: 1 } } },
+            { 
+                $lookup: { 
+                    from: 'pathologies', 
+                    localField: '_id', 
+                    foreignField: '_id', 
+                    as: 'info' 
+                } 
+            },
+            { $project: { name: { $arrayElemAt: ["$info.name", 0] }, value: 1 } }
+        ]);
+        res.json(stats);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
 // 2. Datos del Mapa con Filtros
 export const getMapData = async (req, res) => {
     try {

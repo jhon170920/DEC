@@ -171,7 +171,7 @@ export default function MainApp() {
   };
 
   const handleProfile = () => {
-    navigation.navigate("Perfil"); // ajusta el nombre de tu ruta
+    navigation.navigate("Profile"); // ajusta el nombre de tu ruta
   };
 
   return (

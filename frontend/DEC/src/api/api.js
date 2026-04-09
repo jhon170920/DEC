@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 // 1. REGLA DE ORO: Usa tu IP privada (Ej: 192.168.1.XX) 
 // 'localhost' solo funciona dentro del emulador, no en tu celular físico.
-const BASE_URL = 'http://192.168.101.210:8089/api/'; 
+const BASE_URL = 'http://10.4.1.234:8089/api/'; 
 
 const api = axios.create({
     baseURL: BASE_URL,
@@ -54,6 +54,20 @@ export const registerUser = async (name, email, password) => {
     // Lanzamos el error para que el componente lo capture
     throw error.response ? error.response.data : new Error('Error de conexión');
   }
+};
+
+export const statsService = {
+  // Para el Pie Chart y estadísticas de línea
+  getIncidence: (start, end, groupBy) => 
+      api.get(`/stats/incidence?startDate=${start}&endDate=${end}&groupBy=${groupBy}`),
+  
+  // Para el Mapa de Calor
+  getMapData: (start, end) => 
+      api.get(`/stats/map?startDate=${start}&endDate=${end}`),
+  
+  // Para los contadores superiores
+  getKPIs: (start, end) => 
+      api.get(`/stats/kpis?startDate=${start}&endDate=${end}`)
 };
 
 export default api;
