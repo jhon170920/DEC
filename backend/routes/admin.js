@@ -12,7 +12,8 @@ import {
     // pathologias
     // savePathology,
     getAllPathologies,
-    editPathology
+    editPathology,
+    toggleBanUser
 } from '../services/admin.js';
 
 const router = express.Router();
@@ -37,7 +38,9 @@ router.delete('/delete-detection/:id', verifyToken, onlyAdmin, deleteDetection)
 // OBTENER patologias
 router.get('/get-pathologies', verifyToken, onlyAdmin, getAllPathologies);
 // EDITAR pathología (nombre, tratamiento, etc)
-router.put('/edit-pathology/:id', verifyToken, onlyAdmin, editPathology)
+router.put('/edit-pathology/:id', verifyToken, onlyAdmin, editPathology);
+// Ban
+router.patch('/toggle-ban/:id', verifyToken, onlyAdmin, toggleBanUser)
 
 
 export default router
