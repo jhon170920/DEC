@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 // 1. REGLA DE ORO: Usa tu IP privada (Ej: 192.168.1.XX) 
 // 'localhost' solo funciona dentro del emulador, no en tu celular físico.
@@ -7,23 +8,26 @@ const BASE_URL = 'http://192.168.101.210:8089/api/';
 
 const api = axios.create({
     baseURL: BASE_URL,
-    timeout: 10000, // Si el internet en el campo es lento, espera 10s antes de fallar
+    timeout: 15000, // Si el internet en el campo es lento, espera 10s antes de fallar
 });
 
 // 2. INTERCEPTOR: Este código se ejecuta ANTES de cada petición
 api.interceptors.request.use(
-    async (config) => {
-        const token = await SecureStore.getItemAsync('userToken'); // 👈 Usa SecureStore aquí también
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        // Si es una subida de imagen, Axios ajusta el Content-Type automáticamente
-        return config;
-    },
-        
-    (error) => {
-        return Promise.reject(error);
-    }
+  async (config) => {
+      let token;
+      // 👈 Validación híbrida para evitar el error en Web
+      if (Platform.OS === 'web') {
+          token = localStorage.getItem('userToken');
+      } else {
+          token = await SecureStore.getItemAsync('userToken');
+      }
+
+      if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+  },
+  (error) => Promise.reject(error)
 );
 
 // LOGIN DE USUARIO

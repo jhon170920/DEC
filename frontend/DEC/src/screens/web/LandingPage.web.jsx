@@ -88,7 +88,7 @@ export default function LandingPage({ navigation }) {
                     <Feather name="download" size={20} color="#fff" />
                     <Text style={styles.btnText}>Descargar APK</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.adminLink} onPress={() => navigation.navigate('AdminDashboard')}>
+                  <TouchableOpacity style={styles.adminLink} onPress={() => navigation.navigate('LoginAdmin')}>
                     <Text style={styles.adminLinkText}>Acceso Admin</Text>
                   </TouchableOpacity>
                 </View>

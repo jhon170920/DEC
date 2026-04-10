@@ -5,6 +5,6 @@ const PathologySchema = new mongoose.Schema({
     description: {type: String, required: true},
     treatment: { type: String, required: true}
 })
-const Pathology = mongoose.model("Pathology", PathologySchema);
+const Pathology = mongoose.model("Pathology", PathologySchema, "pathologies");
 
 export default Pathology;
