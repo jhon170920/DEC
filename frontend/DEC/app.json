@@ -12,7 +12,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jhon170920.DEC"
     },
     "android": {
       "adaptiveIcon": {
@@ -20,11 +21,15 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-        
       },
       "permissions": [
-        "CAMERA"
-      ]
+        "CAMERA",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.jhon170920.DEC"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -36,8 +41,16 @@
           "cameraPermission": "Permítenos usar la cámara para detectar patologías en tus plantas de café."
         }
       ],
-      "expo-secure-store"
-    ]
-    
+      "expo-secure-store",
+      "react-native-fast-tflite",
+      "expo-asset",
+      "expo-sqlite",
+      "expo-web-browser"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e78a1f07-ee92-453f-8429-dc76ee395248"
+      }
+    }
   }
 }

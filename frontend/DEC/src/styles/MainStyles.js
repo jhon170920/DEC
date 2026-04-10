@@ -16,6 +16,7 @@ export const MainStyles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 28,
     zIndex: 100,
+    marginTop:10,
   },
   logoRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   logoMark: {
@@ -109,7 +110,7 @@ export const MainStyles = StyleSheet.create({
 
   // Image card
   imageCard: {
-    borderRadius: 20, overflow: "hidden", marginBottom: 20,
+    borderRadius: 20, overflow: "hidden", marginBottom: 14,
     borderWidth: 1.5, borderColor: Colors.border,
     backgroundColor: Colors.surface,
     shadowColor: "#000",
@@ -126,7 +127,7 @@ export const MainStyles = StyleSheet.create({
   },
   badgeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.primaryLight },
   badgeText: { fontSize: 11, fontWeight: "600", color: Colors.textMid, letterSpacing: 0.3 },
-  image: { height: 200, resizeMode: "cover" },
+  image: { height: 185, resizeMode: "cover" },
   imageOverlay: { position: "absolute", bottom: 0, left: 0, right: 0, height: 60 },
 
   // Scan button
