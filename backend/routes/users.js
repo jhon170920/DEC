@@ -33,6 +33,7 @@ router.put('/delete', verifyToken, deleteUser);
 // ruta de contactanos
 router.post('/send-message', contactUs);
 
+// falta ruta de actualizar contraseña
 
     
 export default router;

@@ -43,7 +43,7 @@ export const facebookAuth = async (req, res) => {
             user.email = existEmail.toLowerCase();
             user.facebookId = id;
             user.isVerified = true;
-            if (picture) user.pictureUrl = pictureUrl;
+            if (picture && user.pictureUrl) user.pictureUrl = pictureUrl;
             await user.save()
         }
         // Creamos el token de este login

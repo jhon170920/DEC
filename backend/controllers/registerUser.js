@@ -63,7 +63,7 @@ export const registerUser = async (req, res) => {
         res.status(500).json({ message: "Error al crear el usuario", error: error.message });
     }
 };
-
+// verificar código de registro
 export const verifyCode = async (req, res) => {
     try {
         const { email, code } = req.body;

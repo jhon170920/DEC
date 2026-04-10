@@ -10,7 +10,7 @@ const expressions = {
     email: /^[a-zA-Z0-9._%+-]+@gmail\.(com|co)$/, // solo gmail, .com o .co. Dejar que solo sea .com, no?
     pass: /^[a-zA-Z0-9]{8,14}$/ // contraseña, validación simple, no sé si ponerle validacion de mayusculas minusculas, números y carácteres especiales
 }
-// login
+// login de usuario con formilario
 export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -28,8 +28,8 @@ export const loginUser = async (req, res) => {
         }
         // Validar verificación
         if (!user.isVerified) {
-            return res.status(403).json({ 
-                message: "Cuenta no verificada. Por favor, revisa tu correo.", 
+            return res.status(403).json({
+                message: "Cuenta no verificada. Por favor, revisa tu correo.",
                 verified: false,
                 email: user.email // Útil para que el frontend sepa a dónde reenviar el código
             });

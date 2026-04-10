@@ -6,7 +6,6 @@ const UserSchema = new mongoose.Schema({
     password: { type: String, required: false }, // FALSE PARA LOGIN GOOGLE Y FACEBOOK
     pictureUrl: { type: String, defaut: '' }, // FOTO (URL DE GOOGLE Y FACEBOOK)
     isVerified: { type: Boolean, default: false}, // REGISTRO CON FORMULARIO
-
     // CAMPOS PARA VERIFICAR EL CORREO DEL FORMULARIO DE REGISTRO
     verificationCode: { type: String },
     verificationCodeExpires: { type: Date },

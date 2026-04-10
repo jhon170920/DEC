@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import dotenv from 'dotenv';
 dotenv.config();
 const client = new OAuth2Client(process.env.GOOGLE_WEB_CLIENT_ID);
-// login con google
+// login con google 
 export const googleAuth = async (req, res) => {
     try {
         const tokenHeader = req.headers.authorization; // traemos el token de google

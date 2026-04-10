@@ -17,7 +17,7 @@ const transporter = nodemailer.createTransport({
 const codeGenerator = () => {
     return Math.floor(100000 + Math.random()*900000).toString();
 };
-
+// pedir el codigo
 export const requestCode = async (req, res) => {
     try {
         // traemos el email del usuario
