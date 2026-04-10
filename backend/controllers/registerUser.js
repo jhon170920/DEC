@@ -1,0 +1,91 @@
+import bcrypt from "bcryptjs"; // Importar bcrypt para hashear la contraseña
+import Users from "../models/users.js"; // Importar el modelo de usuario (no olvidar al importar el archivo su extensión .js)
+import dotenv from 'dotenv';
+import nodemailer from "nodemailer";
+
+
+dotenv.config();
+
+const expressions = {
+    name: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,15}(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,15})?$/, // nombre, solo palabras con acentos y eso, nada de numeros ni cosas raras
+    email: /^[a-zA-Z0-9._%+-]+@gmail\.(com|co)$/, // solo gmail, .com o .co. Dejar que solo sea .com, no?
+    pass: /^[a-zA-Z0-9]{8,14}$/ // contraseña, validación simple, no sé si ponerle validacion de mayusculas minusculas, números y carácteres especiales
+}
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
+
+// registrar nuevo usuario
+export const registerUser = async (req, res) => {
+    try {
+        const { name, email, password } = req.body; // traemos los datos del usuario
+        //verificar si los campos están vacíos
+        if (!name || !email || !password) return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+        //validar nombre
+        if (!expressions.name.test(name)) return res.status(400).json({ message: "Escribe un nombre o un apellido válido." });
+        //validar correo
+        if (!expressions.email.test(email)) return res.status(400).json({ message: "Escribe un correo válido. (gmail, .com o .co)" });
+        // Verificar si el usuario ya existe
+        let user = await Users.findOne({ email });
+        if (user) return res.status(400).json({ message: 'Este correo ya está registrado' });
+
+        // Generar código de 6 dígitos para verificar el correo
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        // Hashear la contraseña antes de guardarla en la base de datos
+        const hashedPassword = await bcrypt.hash(password, 10);
+        //crear un nuevo usuario
+        user = new Users({
+            name,
+            email,
+            password: hashedPassword,
+            provider: 'local',
+            verificationCode: code,
+            verificationCodeExpires: new Date (Date.now() + 1800000) // Media hora de validez
+        })
+        await user.save(); // Guardar el nuevo usuario en la base de datos
+        // Configurar correo
+        const emailOption = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: 'Código de Verificación - DEC',
+            text: `Tu código es: ${code}`
+        };
+        // Enviar el correo con el código de verificacion
+        await transporter.sendMail(emailOption);
+
+        res.status(201).json({ message: 'Se ha enviado el código de veerificación a tu correo' });
+    } catch (error) {
+        res.status(500).json({ message: "Error al crear el usuario", error: error.message });
+    }
+};
+
+export const verifyCode = async (req, res) => {
+    try {
+        const { email, code } = req.body;
+        // validaciones
+        if (!email || !code) return res.status(400).json({message: "Todos los campos son obligatorios."});
+        // validamos el codigo
+        if (!/^[0-9]{6}$/.test(code)) return res.status(400).json({message: "Escribe un código válido"})
+        // encontrar al usuario que cimpla con el codigo y el tiempo
+        const user = await Users.findOne({
+          email,
+          verificationCode: code,
+          verificationCodeExpires: {$gt: new Date()} // Que no haya expirado
+        });
+        // validamos
+        if (!user) return res.status(400).json({ message: 'Código inválido o expirado' });
+        // Limpiamos el código y lo verificamos
+        user.isVerified = true;
+        user.verificationCode = undefined; 
+        user.verificationCodeExpires = undefined;
+        await user.save();
+        res.status(200).json({ message: 'Cuenta verificada con éxito' });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+}
