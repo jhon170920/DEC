@@ -13,7 +13,7 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import { makeRedirectUri } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-
+// funciona si no tiene google play services
 WebBrowser.maybeCompleteAuthSession();
 
 GoogleSignin.configure({

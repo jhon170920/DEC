@@ -3,7 +3,6 @@ import { TouchableOpacity, Text, Image, StyleSheet, Alert } from "react-native";
 import { AuthContext } from '../context/AuthContext.js';
 import { Colors } from '../constants/colors.js'
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
-
 import axios from 'axios';
 import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
 import * as SecureStore from 'expo-secure-store';
