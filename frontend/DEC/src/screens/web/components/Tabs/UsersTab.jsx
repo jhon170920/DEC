@@ -280,30 +280,66 @@ const UserRow = ({ user, isLast, onViewDetail, onDelete, onToggleBan }) => {
 // VISTA DE DETALLE / HISTORIAL
 // ─────────────────────────────────────────────
 const UserDetailView = ({ user, onBack, onDelete, onToggleBan }) => {
-  const [detections, setDetections] = useState([]);
+  const [allDetections, setAllDetections] = useState([]);      // datos originales sin filtrar
+  const [filteredDetections, setFilteredDetections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ pathology: '', startDate: '', endDate: '' });
 
+  // Cargar todas las detecciones del usuario (backend no filtra, lo haremos local)
   const fetchDetections = async () => {
     setLoading(true);
     try {
-      // Ruta propuesta: GET /admin/get-detections?userId=...
-      const res = await api.get('admin/get-detections', {
-        params: { userId: user._id, ...filters }
-      });
-      // Filtramos en el cliente por si el backend devuelve todo
-      const userDetections = res.data.detections.filter(d =>
+      // Se puede pasar userId como query param, pero el backend lo ignora.
+      // Obtenemos todas las detecciones y luego filtramos por userId en cliente.
+      const res = await api.get('admin/get-detections');
+      // Filtramos las que pertenecen a este usuario
+      const userDetections = res.data.detections.filter(d => 
         d.userId === user._id || d.userId?._id === user._id
       );
-      setDetections(userDetections);
-    } catch {
-      setDetections([]);
+      setAllDetections(userDetections);
+    } catch (err) {
+      console.error(err);
+      setAllDetections([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => { fetchDetections(); }, [user._id]);
+
+  // Aplicar filtros locales cada vez que cambien allDetections o filters
+  useEffect(() => {
+    let filtered = [...allDetections];
+
+    // 1. Filtro por nombre de afección (búsqueda parcial, insensible a mayúsculas)
+    if (filters.pathology.trim() !== '') {
+      const searchTerm = filters.pathology.toLowerCase().trim();
+      filtered = filtered.filter(d => 
+        d.pathologyId?.name?.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // 2. Filtro por fecha de inicio (startDate)
+    if (filters.startDate) {
+      const start = new Date(filters.startDate);
+      start.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(d => new Date(d.createdAt) >= start);
+    }
+
+    // 3. Filtro por fecha de fin (endDate)
+    if (filters.endDate) {
+      const end = new Date(filters.endDate);
+      end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(d => new Date(d.createdAt) <= end);
+    }
+
+    setFilteredDetections(filtered);
+  }, [allDetections, filters]);
+
+  // Limpiar todos los filtros
+  const clearFilters = () => {
+    setFilters({ pathology: '', startDate: '', endDate: '' });
+  };
 
   const isBanned = user.active === false;
 
@@ -355,11 +391,11 @@ const UserDetailView = ({ user, onBack, onDelete, onToggleBan }) => {
       {/* Filtros */}
       <View style={styles.filterCard}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.filterLabel}>Afección</Text>
+          <Text style={styles.filterLabel}>Afección (nombre)</Text>
           <TextInput
             style={styles.filterInput}
-            placeholder="Ej: Roya"
-            value={filters.pathologyId?.name}
+            placeholder="Ej: Roya, Minador..."
+            value={filters.pathology}
             onChangeText={v => setFilters(f => ({ ...f, pathology: v }))}
           />
         </View>
@@ -381,9 +417,9 @@ const UserDetailView = ({ user, onBack, onDelete, onToggleBan }) => {
             onChangeText={v => setFilters(f => ({ ...f, endDate: v }))}
           />
         </View>
-        <TouchableOpacity style={styles.applyBtn} onPress={fetchDetections}>
-          <Feather name="filter" size={14} color="#fff" />
-          <Text style={styles.applyBtnText}>Filtrar</Text>
+        <TouchableOpacity style={styles.applyBtn} onPress={clearFilters}>
+          <Feather name="x" size={14} color="#fff" />
+          <Text style={styles.applyBtnText}>Limpiar</Text>
         </TouchableOpacity>
       </View>
 
@@ -400,20 +436,24 @@ const UserDetailView = ({ user, onBack, onDelete, onToggleBan }) => {
           <View style={styles.centerBox}>
             <ActivityIndicator color="#16a34a" />
           </View>
-        ) : detections.length === 0 ? (
+        ) : filteredDetections.length === 0 ? (
           <View style={styles.emptyBox}>
             <Feather name="camera-off" size={32} color="#d1d5db" />
-            <Text style={styles.emptyText}>Sin detecciones registradas</Text>
+            <Text style={styles.emptyText}>
+              {allDetections.length === 0 
+                ? 'Sin detecciones registradas' 
+                : 'No hay coincidencias con los filtros aplicados'}
+            </Text>
           </View>
         ) : (
-          detections.map((d, i) => (
+          filteredDetections.map((d, i) => (
             <DetectionDetailRow
               key={d._id || i}
               date={new Date(d.createdAt).toLocaleString('es-CO')}
               type={d.pathologyId?.name || '—'}
               coords={d.location?.coordinates}
               confidence={d.confidence}
-              isLast={i === detections.length - 1}
+              isLast={i === filteredDetections.length - 1}
             />
           ))
         )}
