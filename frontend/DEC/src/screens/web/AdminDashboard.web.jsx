@@ -4,10 +4,10 @@ import {
   useWindowDimensions, Platform, ActivityIndicator, TextInput, 
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import IncidentCharts from './components/IncidentCharts'; 
 import api from "../../api/api";
 
 // 1. IMPORTA EL NUEVO COMPONENTE
+import IncidentPieChart from './components/graficas/IncidentPieChart';
 import UsersTab from './components/Tabs/UsersTab';
 import CatalogTab from './components/Tabs/CatalogTab';
 import DetectionsTab from './components/Tabs/DetectionsTab'; 
@@ -143,9 +143,14 @@ export default function AdminDashboard() {
                   </View>
                 </View>
                 
-                <View style={styles.chartSpace}>
-                  {loading ? <ActivityIndicator color="#16a34a" size="large" /> : <IncidentCharts data={chartData} />}
-                </View>
+                <View style={styles.card}>
+  <Text style={styles.cardTitle}>Distribución de Afecciones</Text>
+  <Text style={styles.cardSub}>Porcentaje total detectado en la zona</Text>
+  
+  <View style={{ marginTop: 20 }}>
+    <IncidentPieChart />
+  </View>
+</View>
               </View>
             </>
           )}

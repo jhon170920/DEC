@@ -31,7 +31,10 @@ const DetectionSchema = new mongoose.Schema(
             type: Number,
             min: 0,
             max: 1
-        }
+        },
+        approved: { 
+            type: Boolean, 
+            default: false } 
     },
     {
         timestamps: true // Acá se hace practicamente lo mismo que date

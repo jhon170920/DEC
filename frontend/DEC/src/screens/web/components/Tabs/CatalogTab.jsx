@@ -1,22 +1,121 @@
-import React, { useState } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, TextInput, 
-  ScrollView, Image, Platform, Switch, Modal 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, TextInput,
+  ScrollView, Image, Platform, Switch, Modal, ActivityIndicator, Alert
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import api from '../../../../api/api';
 
 const CatalogTab = () => {
-  const [selectedPathology, setSelectedPathology] = useState(MOCK_CATALOG[0]);
+  const [pathologies, setPathologies] = useState([]);
+  const [selectedPathology, setSelectedPathology] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [detectionsCount, setDetectionsCount] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  // Cargar patologías y conteo de detecciones
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [resPath, resDet] = await Promise.all([
+        api.get('admin/get-pathologies'),
+        api.get('admin/get-detections')
+      ]);
+      const pathologiesData = resPath.data.pathologies || [];
+      setPathologies(pathologiesData);
+      if (pathologiesData.length > 0 && !selectedPathology) {
+        setSelectedPathology(pathologiesData[0]);
+      }
+
+      // Contar detecciones por pathologyId
+      const detections = resDet.data.detections || [];
+      const counts = {};
+      detections.forEach(d => {
+        const pid = d.pathologyId?._id || d.pathologyId;
+        if (pid) counts[pid] = (counts[pid] || 0) + 1;
+      });
+      setDetectionsCount(counts);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'No se pudieron cargar los datos');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Guardar cambios de la patología actual
+  const handleSave = async () => {
+    if (!selectedPathology) return;
+    setSaving(true);
+    try {
+      const { _id, name, description, treatment, alert } = selectedPathology;
+      await api.put(`admin/edit-pathology/${_id}`, { name, description, treatment, alert });
+      // Actualizar lista local
+      setPathologies(prev => prev.map(p => p._id === _id ? { ...selectedPathology } : p));
+      setIsEditing(false);
+      Alert.alert('Éxito', 'Patología actualizada');
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'No se pudo guardar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Cambiar el estado de alerta (toggle)
+  const toggleAlert = async (value) => {
+    if (!selectedPathology) return;
+    const updated = { ...selectedPathology, alert: value };
+    setSelectedPathology(updated);
+    // Guardar automáticamente al cambiar el switch
+    try {
+      await api.put(`admin/edit-pathology/${updated._id}`, {
+        name: updated.name,
+        description: updated.description,
+        treatment: updated.treatment,
+        alert: updated.alert
+      });
+      setPathologies(prev => prev.map(p => p._id === updated._id ? updated : p));
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'No se pudo actualizar el estado de alerta');
+      // revertir
+      setSelectedPathology(prev => ({ ...prev, alert: !value }));
+    }
+  };
+
+  // Enviar alerta push (mock)
+  const handleSendAlert = (location, message) => {
+    console.log('Enviar alerta push:', { pathology: selectedPathology.name, location, message });
+    // Aquí llamarías a un endpoint real, ej: api.post('/notifications/send', {...})
+    Alert.alert('Alerta enviada', `Notificación sobre ${selectedPathology.name} en ${location}`);
+    setModalVisible(false);
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#16a34a" />
+        <Text style={styles.loadingText}>Cargando catálogo...</Text>
+      </View>
+    );
+  }
+
+  if (!selectedPathology) return null;
 
   return (
     <View style={styles.container}>
-      {/* MODAL DE NOTIFICACIÓN PUSH */}
-      <AlertModal 
-        visible={modalVisible} 
-        onClose={() => setModalVisible(false)} 
-        pathologyName={selectedPathology.name} 
+      <AlertModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        pathologyName={selectedPathology.name}
+        onSend={handleSendAlert}
       />
 
       <View style={styles.header}>
@@ -24,9 +123,7 @@ const CatalogTab = () => {
           <Text style={styles.title}>Catálogo Fitopatológico</Text>
           <Text style={styles.sub}>Base de conocimientos y alertas sanitarias</Text>
         </View>
-        
-        {/* BOTÓN DE ALERTA RÁPIDA */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.broadcastBtn}
           onPress={() => setModalVisible(true)}
         >
@@ -36,21 +133,20 @@ const CatalogTab = () => {
       </View>
 
       <View style={styles.mainLayout}>
-        {/* LISTA IZQUIERDA: Selector de Patologías */}
+        {/* Lista izquierda */}
         <View style={styles.listSide}>
-          {MOCK_CATALOG.map((item) => (
-            <TouchableOpacity 
-              key={item.id} 
-              style={[styles.itemCard, selectedPathology?.id === item.id && styles.itemCardActive]}
+          {pathologies.map((item) => (
+            <TouchableOpacity
+              key={item._id}
+              style={[styles.itemCard, selectedPathology?._id === item._id && styles.itemCardActive]}
               onPress={() => { setSelectedPathology(item); setIsEditing(false); }}
             >
-              <Text style={[styles.itemTitle, selectedPathology?.id === item.id && styles.activeText]}>
+              <Text style={[styles.itemTitle, selectedPathology?._id === item._id && styles.activeText]}>
                 {item.name}
               </Text>
-              <Feather name="chevron-right" size={16} color={selectedPathology?.id === item.id ? '#fff' : '#9ca3af'} />
+              <Feather name="chevron-right" size={16} color={selectedPathology?._id === item._id ? '#fff' : '#9ca3af'} />
             </TouchableOpacity>
           ))}
-          
           <View style={styles.historyCard}>
             <Text style={styles.historyTitle}>Últimas Alertas</Text>
             <View style={styles.historyItem}>
@@ -60,26 +156,28 @@ const CatalogTab = () => {
           </View>
         </View>
 
-        {/* LADO DERECHO: Editor de Contenido */}
+        {/* Lado derecho: editor */}
         <View style={styles.editorSide}>
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.editorHeader}>
               <View>
                 <Text style={styles.pathologyTitle}>{selectedPathology.name}</Text>
-                <Text style={styles.scientificName}>{selectedPathology.scientificName}</Text>
+                {/* Si tuvieras nombre científico, agrégalo */}
+                <Text style={styles.scientificName}>{selectedPathology.scientificName || 'Nombre científico no disponible'}</Text>
               </View>
-              <TouchableOpacity 
-                style={[styles.editBtn, isEditing && styles.saveBtn]} 
-                onPress={() => setIsEditing(!isEditing)}
+              <TouchableOpacity
+                style={[styles.editBtn, isEditing && styles.saveBtn]}
+                onPress={isEditing ? handleSave : () => setIsEditing(true)}
+                disabled={saving}
               >
                 <Feather name={isEditing ? "check" : "edit-3"} size={18} color="#fff" />
-                <Text style={styles.editBtnText}>{isEditing ? "Guardar Cambios" : "Editar Ficha"}</Text>
+                <Text style={styles.editBtnText}>{isEditing ? (saving ? 'Guardando...' : 'Guardar') : "Editar Ficha"}</Text>
               </TouchableOpacity>
             </View>
 
-            {/* IMAGEN DE REFERENCIA */}
+            {/* Imagen de referencia (mock, podrías agregar campo imageUrl a Pathology) */}
             <View style={styles.imageContainer}>
-              <Image source={{ uri: selectedPathology.image }} style={styles.refImage} />
+              <Image source={{ uri: 'https://images.unsplash.com/photo-1592819695396-064b9570a5d0?w=500' }} style={styles.refImage} />
               {isEditing && (
                 <TouchableOpacity style={styles.uploadOverlay}>
                   <Feather name="camera" size={24} color="#fff" />
@@ -88,22 +186,23 @@ const CatalogTab = () => {
               )}
             </View>
 
-            {/* FORMULARIO DE EDICIÓN */}
             <View style={styles.form}>
               <Text style={styles.label}>Descripción de la Afección (Síntomas)</Text>
-              <TextInput 
-                multiline 
+              <TextInput
+                multiline
                 editable={isEditing}
                 style={[styles.input, styles.textArea, isEditing && styles.inputActive]}
                 value={selectedPathology.description}
+                onChangeText={(text) => setSelectedPathology({ ...selectedPathology, description: text })}
               />
 
               <Text style={styles.label}>Protocolo de Tratamiento Sugerido</Text>
-              <TextInput 
-                multiline 
+              <TextInput
+                multiline
                 editable={isEditing}
                 style={[styles.input, styles.textArea, isEditing && styles.inputActive]}
                 value={selectedPathology.treatment}
+                onChangeText={(text) => setSelectedPathology({ ...selectedPathology, treatment: text })}
               />
 
               <View style={styles.row}>
@@ -113,17 +212,19 @@ const CatalogTab = () => {
                     <Text style={[styles.statusText, { color: selectedPathology.alert ? '#ef4444' : '#6b7280' }]}>
                       {selectedPathology.alert ? 'ALTA PRIORIDAD' : 'Normal'}
                     </Text>
-                    <Switch 
-                      value={selectedPathology.alert} 
+                    <Switch
+                      value={selectedPathology.alert || false}
+                      onValueChange={toggleAlert}
                       trackColor={{ false: "#d1d5db", true: "#fca5a5" }}
                       thumbColor={selectedPathology.alert ? "#ef4444" : "#f4f3f4"}
                     />
                   </View>
                 </View>
-                
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Incidencia en Garzón</Text>
-                  <Text style={styles.incidenciaValue}>{selectedPathology.totalDetections} casos</Text>
+                  <Text style={styles.incidenciaValue}>
+                    {detectionsCount[selectedPathology._id] || 0} casos
+                  </Text>
                 </View>
               </View>
             </View>
@@ -134,8 +235,21 @@ const CatalogTab = () => {
   );
 };
 
-/* COMPONENTE INTERNO: Modal de Notificación */
-const AlertModal = ({ visible, onClose, pathologyName }) => {
+// Modal para enviar alerta push
+const AlertModal = ({ visible, onClose, pathologyName, onSend }) => {
+  const [location, setLocation] = useState('');
+  const [message, setMessage] = useState('');
+
+  const handleSend = () => {
+    if (!location.trim()) {
+      Alert.alert('Error', 'Ingresa la ubicación del brote');
+      return;
+    }
+    onSend(location, message);
+    setLocation('');
+    setMessage('');
+  };
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.modalOverlay}>
@@ -144,27 +258,30 @@ const AlertModal = ({ visible, onClose, pathologyName }) => {
             <Feather name="alert-triangle" size={24} color="#ef4444" />
             <Text style={styles.modalTitle}>Emitir Notificación Push</Text>
           </View>
-          
           <Text style={styles.modalSub}>
             Esta alerta llegará al celular de todos los usuarios vinculados.
           </Text>
-
           <Text style={styles.label}>Ubicación del Brote</Text>
-          <TextInput placeholder="Ej: Vereda La Jagua, Garzón" style={styles.modalInput} />
-
-          <Text style={styles.label}>Instrucciones para el usuario</Text>
-          <TextInput 
-            multiline 
-            numberOfLines={4}
-            placeholder="Ej: Se reporta alta incidencia. Favor intensificar muestreos y cuidados." 
-            style={[styles.modalInput, { height: 80, textAlignVertical: 'top' }]} 
+          <TextInput
+            placeholder="Ej: Vereda La Jagua, Garzón"
+            style={styles.modalInput}
+            value={location}
+            onChangeText={setLocation}
           />
-
+          <Text style={styles.label}>Instrucciones para el usuario</Text>
+          <TextInput
+            multiline
+            numberOfLines={4}
+            placeholder="Ej: Se reporta alta incidencia. Favor intensificar muestreos y cuidados."
+            style={[styles.modalInput, { height: 80, textAlignVertical: 'top' }]}
+            value={message}
+            onChangeText={setMessage}
+          />
           <View style={styles.modalActions}>
             <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
               <Text style={styles.cancelBtnText}>Cancelar</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.confirmBtn} onPress={onClose}>
+            <TouchableOpacity style={styles.confirmBtn} onPress={handleSend}>
               <Feather name="send" size={16} color="#fff" />
               <Text style={styles.confirmBtnText}>Enviar Alerta</Text>
             </TouchableOpacity>
@@ -175,37 +292,14 @@ const AlertModal = ({ visible, onClose, pathologyName }) => {
   );
 };
 
-// --- DATOS DE EJEMPLO ---
-const MOCK_CATALOG = [
-  { 
-    id: '1', 
-    name: 'Roya del Café', 
-    scientificName: 'Hemileia vastatrix',
-    description: 'Pústulas de color naranja en el envés de las hojas. Provoca defoliación severa.',
-    treatment: 'Manejo de sombra, fertilización adecuada y fungicidas cúpricos en periodos de lluvia.',
-    image: 'https://images.unsplash.com/photo-1592819695396-064b9570a5d0?q=80&w=500',
-    totalDetections: 452,
-    alert: true
-  },
-  { 
-    id: '2', 
-    name: 'Minador de Hoja', 
-    scientificName: 'Leucoptera coffeella',
-    description: 'Manchas cafés secas (minas) que reducen la capacidad fotosintética del árbol.',
-    treatment: 'Control cultural mediante podas y monitoreo de poblaciones de avispas depredadoras.',
-    image: 'https://images.unsplash.com/photo-1521503862181-2cdd007b0555?q=80&w=500',
-    totalDetections: 215,
-    alert: false
-  }
-];
-
+// Estilos (los mismos que tenías, solo añado centerContainer, loadingText, etc.)
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginBottom: 25 
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 25
   },
   title: { fontSize: 26, fontWeight: '800', color: '#1f2937' },
   sub: { color: '#6b7280', marginTop: 4 },
@@ -217,13 +311,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    ...Platform.select({ web: { cursor: 'pointer' } })
   },
   broadcastBtnText: { color: '#fff', fontWeight: '700' },
-
   mainLayout: { flexDirection: 'row', gap: 20, flex: 1 },
-
-  /* Lista Izquierda */
   listSide: { width: 300 },
   itemCard: {
     backgroundColor: '#fff',
@@ -239,39 +329,33 @@ const styles = StyleSheet.create({
   itemCardActive: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
   itemTitle: { fontWeight: '700', color: '#374151', fontSize: 15 },
   activeText: { color: '#fff' },
-
   historyCard: { marginTop: 20, backgroundColor: '#fff', padding: 15, borderRadius: 15, borderStyle: 'dashed', borderWidth: 1, borderColor: '#d1d5db' },
   historyTitle: { fontSize: 12, fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', marginBottom: 10 },
   historyItem: { marginBottom: 8 },
   historyDate: { fontSize: 11, fontWeight: '700', color: '#16a34a' },
   historyText: { fontSize: 12, color: '#6b7280' },
-
-  /* Lado Derecho */
-  editorSide: { 
-    flex: 1, 
-    backgroundColor: '#fff', 
-    borderRadius: 24, 
+  editorSide: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 24,
     padding: 30,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    ...Platform.select({ web: { boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' } })
   },
   editorHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 25 },
   pathologyTitle: { fontSize: 28, fontWeight: '800', color: '#111827' },
   scientificName: { fontStyle: 'italic', color: '#6b7280', fontSize: 18 },
-  
-  editBtn: { 
-    flexDirection: 'row', 
-    backgroundColor: '#374151', 
-    paddingHorizontal: 16, 
-    paddingVertical: 10, 
-    borderRadius: 10, 
-    alignItems: 'center', 
-    gap: 8 
+  editBtn: {
+    flexDirection: 'row',
+    backgroundColor: '#374151',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    gap: 8
   },
   saveBtn: { backgroundColor: '#16a34a' },
   editBtnText: { color: '#fff', fontWeight: '700' },
-
   imageContainer: { width: '100%', height: 220, borderRadius: 20, overflow: 'hidden', marginBottom: 30, position: 'relative' },
   refImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   uploadOverlay: {
@@ -282,7 +366,6 @@ const styles = StyleSheet.create({
     gap: 10
   },
   uploadText: { color: '#fff', fontWeight: '700' },
-
   form: { gap: 20 },
   label: { fontSize: 13, fontWeight: '800', color: '#4b5563', marginBottom: 8 },
   input: {
@@ -296,14 +379,11 @@ const styles = StyleSheet.create({
   },
   inputActive: { backgroundColor: '#fff', borderColor: '#16a34a', borderWidth: 1.5 },
   textArea: { minHeight: 120, textAlignVertical: 'top' },
-  
   row: { flexDirection: 'row', gap: 25 },
   fieldGroup: { flex: 1 },
   switchContainer: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 5 },
   statusText: { fontSize: 12, fontWeight: '800' },
   incidenciaValue: { fontSize: 22, fontWeight: '800', color: '#16a34a', marginTop: 5 },
-
-  /* Modal */
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
   modalCard: { backgroundColor: '#fff', width: 450, padding: 30, borderRadius: 24 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
@@ -314,7 +394,9 @@ const styles = StyleSheet.create({
   cancelBtn: { padding: 15 },
   cancelBtnText: { color: '#6b7280', fontWeight: '700' },
   confirmBtn: { backgroundColor: '#ef4444', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  confirmBtnText: { color: '#fff', fontWeight: '700' }
+  confirmBtnText: { color: '#fff', fontWeight: '700' },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, color: '#6b7280' }
 });
 
 export default CatalogTab;

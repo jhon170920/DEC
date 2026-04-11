@@ -76,7 +76,7 @@ export const getUserHistory = async (req, res) => {
         // ejecutamos dos busquedas al mismo tiempo, el history y el total records
         const [history, totalRecords] = await Promise.all([
             Detections.find({ userId: req.user.id })
-                .populate("pathologyId", "name treatment description") // tratemos la patología
+                .populate("pathologyId", "name treatment") // tratemos la patología
                 .sort({ createdAt: -1 }) // la más reciente arriba
                 .skip(skip)// nos saltemos los análisis ya hechos
                 .limit(limit), // el límite de detecciones cada pagina

@@ -7,7 +7,8 @@ const UserSchema = new mongoose.Schema({
     googleId: { type: String, unique: true, sparse: true }, // aquí guardamos si se loguea con google
     // Diferenciar entre usuarios reales e invitados si decides persistirlos
     role: { type: String, enum: ['user', 'guest', 'admin'], default: 'user' },
-
+    
+    active: { type: Boolean, default: true },
     // Para sincronización: saber cuándo se actualizó por última vez
     lastSync: { type: Date, default: Date.now },
     // Referencia al historial de detecciones

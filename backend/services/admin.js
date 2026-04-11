@@ -75,6 +75,7 @@ export const getAllDetections = async (req, res) => {
     try {
         // traemos todos las detecciones de la base de datos
         const detections = await Detections.find()
+            .populate('pathologyId', 'name')
         // enviamos lo encontrado
         res.status(200).json({
             message: "Detecciones obtenidas",
@@ -158,3 +159,52 @@ export const editPathology = async (req, res) => {
         res.status(500).json({ message: "Error al editar una patologías", error: error.message });
     }
 }
+export const toggleBanUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) return res.status(400).json({ message: "No hay id de usuario" });
+ 
+        // Buscar el usuario actual para conocer su estado
+        const user = await Users.findById(id).select("-password");
+        if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+ 
+        // Invertir el estado active
+        const newActive = user.active === false ? true : false;
+        const updatedUser = await Users.findByIdAndUpdate(
+            id,
+            { $set: { active: newActive } },
+            { returnDocument: 'after' }
+        ).select("-password");
+ 
+        res.status(200).json({
+            message: newActive ? "Usuario habilitado exitosamente" : "Usuario inhabilitado exitosamente",
+            active: updatedUser.active,
+            user: updatedUser
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error al cambiar estado del usuario", error: error.message });
+    }
+};
+// Aprobar o desaprobar una detección
+export const toggleApproveDetection = async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Buscar la detección
+        const detection = await Detections.findById(id);
+        if (!detection) {
+            return res.status(404).json({ message: "Detección no encontrada" });
+        }
+
+        // Invertir el estado actual
+        const newApproved = !detection.approved;
+        detection.approved = newApproved;
+        await detection.save();
+
+        res.status(200).json({
+            message: newApproved ? "Detección aprobada" : "Aprobación revertida",
+            approved: newApproved
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error al cambiar estado de aprobación", error: error.message });
+    }
+};

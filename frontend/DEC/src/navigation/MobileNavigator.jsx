@@ -44,6 +44,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Contact" component={Contact} />
           {/* <Stack.Screen name="Manual" component={ManualScreen} /> */}
           <Stack.Screen name="Result" component={Result} /> 
+          <Stack.Screen name="Profile" component={Profile} />
         </>
       ) : (
         // --- STACK DE AUTENTICACIÓN ---
@@ -51,7 +52,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="Register" component={Register} />
           <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-          <Stack.Screen name='Perfil' component={Profile}/>
+      
           {/* <Stack.Screen name="ResetPassword" component={ResetPassword} /> */}
         </>
       )}

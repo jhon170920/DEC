@@ -56,4 +56,18 @@ export const registerUser = async (name, email, password) => {
   }
 };
 
+export const statsService = {
+  // Para el Pie Chart y estadísticas de línea
+  getIncidence: (start, end, groupBy) => 
+      api.get(`/stats/incidence?startDate=${start}&endDate=${end}&groupBy=${groupBy}`),
+  
+  // Para el Mapa de Calor
+  getMapData: (start, end) => 
+      api.get(`/stats/map?startDate=${start}&endDate=${end}`),
+  
+  // Para los contadores superiores
+  getKPIs: (start, end) => 
+      api.get(`/stats/kpis?startDate=${start}&endDate=${end}`)
+};
+
 export default api;
