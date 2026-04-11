@@ -185,3 +185,26 @@ export const toggleBanUser = async (req, res) => {
         res.status(500).json({ message: "Error al cambiar estado del usuario", error: error.message });
     }
 };
+// Aprobar o desaprobar una detección
+export const toggleApproveDetection = async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Buscar la detección
+        const detection = await Detections.findById(id);
+        if (!detection) {
+            return res.status(404).json({ message: "Detección no encontrada" });
+        }
+
+        // Invertir el estado actual
+        const newApproved = !detection.approved;
+        detection.approved = newApproved;
+        await detection.save();
+
+        res.status(200).json({
+            message: newApproved ? "Detección aprobada" : "Aprobación revertida",
+            approved: newApproved
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error al cambiar estado de aprobación", error: error.message });
+    }
+};

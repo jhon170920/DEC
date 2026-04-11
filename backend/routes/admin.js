@@ -13,7 +13,8 @@ import {
     // savePathology,
     getAllPathologies,
     editPathology,
-    toggleBanUser
+    toggleBanUser,
+    toggleApproveDetection
 } from '../services/admin.js';
 
 const router = express.Router();
@@ -41,6 +42,8 @@ router.get('/get-pathologies', verifyToken, onlyAdmin, getAllPathologies);
 router.put('/edit-pathology/:id', verifyToken, onlyAdmin, editPathology);
 // Ban
 router.patch('/toggle-ban/:id', verifyToken, onlyAdmin, toggleBanUser)
+
+router.patch("/toggle-approve/:id", verifyToken, onlyAdmin, toggleApproveDetection);
 
 
 export default router
