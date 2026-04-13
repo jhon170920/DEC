@@ -91,12 +91,21 @@ const CatalogTab = () => {
   };
 
   // Enviar alerta push (mock)
-  const handleSendAlert = (location, message) => {
-    console.log('Enviar alerta push:', { pathology: selectedPathology.name, location, message });
-    // Aquí llamarías a un endpoint real, ej: api.post('/notifications/send', {...})
-    Alert.alert('Alerta enviada', `Notificación sobre ${selectedPathology.name} en ${location}`);
+  
+const handleSendAlert = async (location, message) => {
+  try {
+    await api.post('/admin/send-notification', {
+      title: `🚨 Alerta: ${selectedPathology.name}`,
+      body: `${message}\n📍 Ubicación: ${location}`,
+      data: { pathologyId: selectedPathology._id, location, type: 'alert' }
+    });
+    Alert.alert('Alerta enviada', 'La notificación se ha enviado a todos los usuarios.');
     setModalVisible(false);
-  };
+  } catch (error) {
+    console.error(error);
+    Alert.alert('Error', 'No se pudo enviar la alerta. Intenta de nuevo.');
+  }
+};
 
   if (loading) {
     return (

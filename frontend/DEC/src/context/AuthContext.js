@@ -4,6 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import { syncPathologiesLocal } from '../services/dbService';
 import api from '../api/api';
 import { syncDetections } from '../services/syncService';
+import { registerForPushNotificationsAsync } from '../services/notificationService';
 
 export const AuthContext = createContext();
 
@@ -68,6 +69,11 @@ useEffect(() => {
   setUserToken(token);
   setIsGuest(false);
   fetchAndSyncPathologies(token); 
+
+  // Registrar para notificaciones push después del login
+  if (Platform.OS !== 'web'){
+    await registerForPushNotificationsAsync(token);
+  }
 };
 
  const logout = async () => {

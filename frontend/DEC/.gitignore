@@ -42,3 +42,7 @@ yarn-error.*
 android/
 *.apk
 *.apk
+
+# credentials
+google-services.json
+GoogleService-Info.plist
