@@ -2,6 +2,7 @@ import express from 'express';
 import { registerUser, loginUser, editUser, deleteUser, googleAuth } from '../controllers/users.js';
 import { contactUs } from '../controllers/contactUs.js';
 import { verifyToken } from '../middlewares/auth.js';
+import { savePushToken } from '../controllers/notificationController.js';
 
 const router = express.Router();
 
@@ -21,6 +22,9 @@ router.delete('/delete', verifyToken, deleteUser);
 // ruta de contactos
 router.post('/send-message', contactUs);
 
+//Ruta push NOTIFICACIONES
+
+router.post('/save-push-token', verifyToken, savePushToken);
 
     
 export default router;

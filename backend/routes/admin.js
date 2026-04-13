@@ -1,5 +1,6 @@
 import express from 'express';
 import { verifyToken, onlyAdmin } from '../middlewares/auth.js';
+import { sendNotificationToAll } from '../controllers/notificationController.js';
 
 import {
     // usuarios
@@ -43,7 +44,8 @@ router.put('/edit-pathology/:id', verifyToken, onlyAdmin, editPathology);
 // Ban
 router.patch('/toggle-ban/:id', verifyToken, onlyAdmin, toggleBanUser)
 
+// Aprobar deteccion
 router.patch("/toggle-approve/:id", verifyToken, onlyAdmin, toggleApproveDetection);
 
-
+router.post('/send-notification', verifyToken, onlyAdmin, sendNotificationToAll);
 export default router

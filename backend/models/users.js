@@ -9,11 +9,13 @@ const UserSchema = new mongoose.Schema({
     role: { type: String, enum: ['user', 'guest', 'admin'], default: 'user' },
     
     active: { type: Boolean, default: true },
+    pushTokens: { type: [String], default: [] },
     // Para sincronización: saber cuándo se actualizó por última vez
     lastSync: { type: Date, default: Date.now },
     // Referencia al historial de detecciones
     history: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Detection' }]
-}, { timestamps: true }); // Crea createdAt y updatedAt automáticamente
+}, 
+{ timestamps: true }); // Crea createdAt y updatedAt automáticamente
 
 const User = mongoose.model("User", UserSchema);
 
