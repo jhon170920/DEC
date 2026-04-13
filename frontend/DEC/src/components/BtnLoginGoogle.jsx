@@ -20,7 +20,7 @@ GoogleSignin.configure({
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, // SE USA EL ID DEL CLIENTE DE WEB PARA EL BACKEND
     offlineAccess: true, // Si necesita que el backend pida tokens nuevos
 });
-// PARA QUE FUNCIONE: INSTALAR LIBRERIAS NATIVAS, expo-auth-session Y '@react-native-google-signin/google-signin'. Modificar un poco el AppJson y volver a hacer un Build con expo. 3h masomenos. Hacerlo el build con el de Facebook de una vez.
+// PARA QUE FUNCIONE: INSTALAR LIBRERIAS NATIVAS, expo-auth-session Y '@react-native-google-signin/google-signin'. Modificar un poco el AppJson y volver a hacer un Build con expo. 3h masomenos. Hacerlo el build con el de Facebook de una vez
 export default function BtnloginGoogle() {
     // ----RESPONSIVE LAYOUT
     const { iconS } = useResponsiveLayout();

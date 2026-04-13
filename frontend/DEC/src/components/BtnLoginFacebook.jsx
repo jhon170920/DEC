@@ -36,7 +36,7 @@ export default function BtnLoginFacebook() {
             setLoading(false);
         }
     }
-    // funcion del boton de facebook
+    // funcion del boton de facebookk
     const handleFacebookLogin = async () => {
         setLoading(true);
         try {
