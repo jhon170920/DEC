@@ -9,18 +9,18 @@ import * as SecureStore from 'expo-secure-store';
 
 // LOGIN GOOGLE PLAY SERVICES (ANDROID PROMEDIO)
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-// LLOGIN SI NO TIENE GOOGLE PLAY SERVICES (MOTOROLA MODERNO, IOS, ROOM PERSONALIZADO)
+// LLOGIN SI NO TIENE GOOGLE PLAY SERVICES (HUAWEI MODERNO, ROOM PERSONALIZADO)
 import { makeRedirectUri } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-// funciona si no tiene google play services
+// Login con navegador
 WebBrowser.maybeCompleteAuthSession();
-
+// Login con PlayServices
 GoogleSignin.configure({
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, // SE USA EL ID DEL CLIENTE DE WEB PARA EL BACKEND
-    offlineAccess: true, // Si necesitas que el backend pida tokens nuevos
+    offlineAccess: true, // Si necesita que el backend pida tokens nuevos
 });
-
+// PARA QUE FUNCIONE: INSTALAR LIBRERIAS NATIVAS, expo-auth-session Y '@react-native-google-signin/google-signin'. Modificar un poco el AppJson y volver a hacer un Build con expo. 3h masomenos. Hacerlo el build con el de Facebook de una vez
 export default function BtnloginGoogle() {
     // ----RESPONSIVE LAYOUT
     const { iconS } = useResponsiveLayout();
@@ -28,21 +28,18 @@ export default function BtnloginGoogle() {
     const { setUserToken } = useContext(AuthContext);
     // para el disabled del login y seguridad
     const [loading, setLoading] = useState(false);
-
+    // Login con navegador
     const [request, response, promptAsync] = Google.useAuthRequest({
         androidClientId: process.env.EXPO_PUBLIC_GOOGLE_APP_CLIENT_ID,
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-        responseType: 'code', 
-    
-        // CAMBIO 2: Asegúrate de que el Proxy esté activo
+        responseType: 'code',
         useProxy: true,
-        
         scopes: ['profile', 'email'],
         redirectUri: makeRedirectUri({
-        useProxy: true,
+            useProxy: true,
         }),
     });
-
+    // Login con navegador
     useEffect(() => {
         if (response?.type === 'success') {
           const { id_token } = response.params;
@@ -55,6 +52,7 @@ export default function BtnloginGoogle() {
         setLoading(true);
         try {
             // mandamos el googleToken para el backend y validarlo
+            // IMPORTANTE CAMBIAR LA IP DE LA URL PARA QUE FUNCIONE
             const response = await axios.post('http://10.4.1.148:8089/api/users/auth/google',
                 {},
                 { headers: { 'Authorization': `Bearer ${googleToken}` }, timeout: 10000 }
@@ -83,10 +81,21 @@ export default function BtnloginGoogle() {
     const handleGoogleLogin = async () => {
         setLoading(true)
         try {
-            await promptAsync();
+            // vemos si tiene servicios de google
+            await GoogleSignin.hasPlayServices();
+            const userInfo = await GoogleSignin.signIn();
+            // extraemos el token
+            const idToken = userInfo.data?.idToken || userInfo.idToken;
+            // verificamos si hay token 
+            if (idToken) {
+                // y se lo mandamos al backend
+                await sendTokenToServer(idToken);
+            }
+
         } catch (error) {
             // SI NO TIENE PLAY SERVICES
             if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+                await promptAsync();
                 console.log("Play Services no disponibles, activando navegador...");
             }
             // Validaciones silenciosas (donde no necesitas alarmar al usuario)

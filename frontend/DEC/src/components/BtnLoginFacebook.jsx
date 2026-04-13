@@ -6,7 +6,7 @@ import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import axios from 'axios';
 import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
 import * as SecureStore from 'expo-secure-store';
-
+// PARA QUE FUNCIONE: SE DEBE INSTALAR LIBRERIAS NATIVAS, react-native-fbsdk-next. Además de modificar un poco el AppJson y volver a hacer un Build con expo. 3h masomenos. Hacer el build con el de Google de una vez
 export default function BtnLoginFacebook() {
     // diseño responsivo
     const { iconS } = useResponsiveLayout();
@@ -17,7 +17,7 @@ export default function BtnLoginFacebook() {
 
     // Enviar al backend y validar el token de google
     const sendTokenToServer = async (fbToken) => {
-        setLoading(true);
+        setLoading(true);a
         try {
             // mandamos el tken al backend y lo validamos
             const response = await axios.post('http://10.4.1.148:8089/api/users/auth/facebook', 
@@ -36,7 +36,7 @@ export default function BtnLoginFacebook() {
             setLoading(false);
         }
     }
-    // funcion del boton de facebook
+    // funcion del boton de facebookk
     const handleFacebookLogin = async () => {
         setLoading(true);
         try {
@@ -82,7 +82,7 @@ export default function BtnLoginFacebook() {
     }, [])
 
  
-
+    // BOTON
     return (
         <TouchableOpacity style={styles.btn}
             onPress={handleFacebookLogin}
