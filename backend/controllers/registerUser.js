@@ -43,9 +43,9 @@ export const registerUser = async (req, res) => {
             name,
             email,
             password: hashedPassword,
-            provider: 'local',
+            provider: ['local'],
             verificationCode: code,
-            verificationCodeExpires: new Date (Date.now() + 1800000) // Media hora de validez
+            verificationCodeExpires: new Date (Date.now() + 1800000) // 30 minutos
         })
         await user.save(); // Guardar el nuevo usuario en la base de datos
         // Configurar correo
@@ -73,9 +73,9 @@ export const verifyCode = async (req, res) => {
         if (!/^[0-9]{6}$/.test(code)) return res.status(400).json({message: "Escribe un código válido"})
         // encontrar al usuario que cimpla con el codigo y el tiempo
         const user = await Users.findOne({
-          email,
-          verificationCode: code,
-          verificationCodeExpires: {$gt: new Date()} // Que no haya expirado
+            email,
+            verificationCode: code,
+            verificationCodeExpires: {$gt: new Date()} // Que no haya expirado
         });
         // validamos
         if (!user) return res.status(400).json({ message: 'Código inválido o expirado' });
@@ -85,7 +85,7 @@ export const verifyCode = async (req, res) => {
         user.verificationCodeExpires = undefined;
         await user.save();
         res.status(200).json({ message: 'Cuenta verificada con éxito' });
-      } catch (error) {
+    } catch (error) {
         res.status(500).json({ error: error.message });
-      }
+    }
 }

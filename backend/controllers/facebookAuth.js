@@ -1,6 +1,8 @@
 import Users from "../models/users.js"; // Importar el modelo de usuario (no olvidar al importar el archivo su extensión .js)
 import jwt from "jsonwebtoken";
-
+import crypto from 'crypto';
+import dotenv from 'dotenv';
+dotenv.config();
 // login con facebook
 export const facebookAuth = async (req, res) => {
     try {
@@ -17,33 +19,50 @@ export const facebookAuth = async (req, res) => {
         const data = await response.json();
         // extraemos los datos que requerimos en los campos de <<fbUrl>>
         const { id, name, email, picture } = data;
-
-        const pictureUrl = picture?.data?.url || ''
-        // validamos si hay email en la cuenta de facebook
-        const existEmail = email ? email.toLowerCase() : `${id}@facebook`;
+        // Accedemos a la URL de la foto que nos da Facebook
+        const pictureUrlFb = picture?.data?.url || ''
+        // Si la cuenta de Facebook tiene email, lo guardamos. Si no, ponemos un correo aleatorio
+        const existEmail = email ? email.toLowerCase() : null;
         // buscamos al usuario en la base de datos por su id o por su correo
-        let user = await Users.findOne({$or: [{ facebookId: id }, { email: existEmail.toLowerCase() }]});
-        // si no existe el usuario, lo registramos automaticamente
+        let user;
+        if (existEmail){
+            // si hay correo buscamos por ID o por email
+            user = await Users.findOne({
+                $or: [{ facebookId: id }, { email: existEmail.toLowerCase() }]
+            });
+        } else{
+            // si NO hay correo lo buscamos por unicamente por id
+            user = await Users.findOne({ facebookId: id})
+        }
+        // Verificar si existe
         if (!user) {
-            // si no existe, lo registramos en la base de datos
+            // si NO existe el usuario, lo registramos
             user = new Users({
                 name,
                 email: existEmail,
-                pictureUrl: user.pictureUrl ? user.pictureUrl : pictureUrl,
+                // Ponemos la foto de facebook SOLO cuando se registra
+                pictureUrl: pictureUrlFb,
                 isVerified: true,
                 facebookId: id,
-                provider: 'facebook',
+                provider: ['facebook'],
                 role: 'user',
             });
             await user.save();
+        // si existe y se intenta loguear/registrarse con Facebook por primera vez
         }  else if (!user.facebookId) {
             // Usuario se loguea con el formulario.
             // Mismo usuario se loguea con Facebook con el mismo correo del formulario.
             // Vinculamos ambas cuentas y evitamos usuarios duplicados.
-            user.email = existEmail.toLowerCase();
             user.facebookId = id;
             user.isVerified = true;
-            if (picture && user.pictureUrl) user.pictureUrl = pictureUrl;
+            if (!user.provider.includes('facebook')) {
+                user.provider.push('facebook');
+            }
+            // Si el usuario NO tiene una foto en su cuenta al momento de loguearse por primera vez con facebook, le ponemos la de Facebook.
+            // Si tiene una foto, no le ponemos ninguna foto y le dejamos la que tiene
+            if (!user.pictureUrl && pictureUrlFb) {
+                user.pictureUrl = pictureUrlFb
+            };
             await user.save()
         }
         // Creamos el token de este login
@@ -72,3 +91,36 @@ export const facebookAuth = async (req, res) => {
         res.status(500).json({ message: 'Error al iniciar sesion con Facebook', error: error.message });
     }
 }
+
+// solicitud para eliminar (obligatorio para facebook)
+export const facebookDeletionCallback = async (req, res) => {
+    try {
+        const {signed_request} = req.body;
+        if (!signed_request) return res.status(400).send('No signed request');
+
+        const [encoded_sig, payload] = signed_request.split('.');
+        const secret = process.env.FACEBOOK_APP_SECRET;
+
+        // 1. Validar la firma para asegurar que viene de Facebook
+        const sig = Buffer.from(encoded_sig.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('hex');
+        const expected_sig = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+
+        if (sig !== expected_sig) return res.status(400).send('Invalid signature');
+
+        // 2. Decodificar los datos del usuario
+        const data = JSON.parse(Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString());
+
+        // borrar los datos en tu MongoDB
+        await Users.findOneAndDelete({ facebookId: data.user_id });
+
+        // 4. Responder a Meta con el formato que ellos exigen
+        const responseData = {
+            url: `https://tu-dominio.com/deletion-status?id=${data.user_id}`, // URL donde el usuario ve el estado
+            confirmation_code: data.user_id // Un ID de rastreo
+        };
+
+        res.status(200).json(responseData);
+    } catch (error) {
+        res.status(500).send('Error processing deletion');
+    }
+};
