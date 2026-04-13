@@ -46,3 +46,4 @@ android/
 # credentials
 google-services.json
 GoogleService-Info.plist
+dec-admin-SDK.json
