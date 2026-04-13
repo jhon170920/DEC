@@ -19,6 +19,8 @@ export const googleAuth = async (req, res) => {
         });
         // Extraer información del usuario (sub es como el id de google)
         const { sub, name, email, picture } = ticket.getPayload()
+
+        const pictureUrl = picture || ''
         // Buscamos si el usuario ya existe, ya sea por email o por id de google
         let user = await Users.findOne({ $or: [{ googleId: sub }, { email: email.toLowerCase() }] });
         // Verificar si existe 
@@ -27,20 +29,29 @@ export const googleAuth = async (req, res) => {
             user = new Users({
                 name,
                 email: email.toLowerCase(), // resetemos el mail por si algo y lo guardamos
-                pictureUrl: picture || '',
+                // Ponemos la foto de Google
+                pictureUrl: pictureUrl,
                 isVerified: true,
                 googleId: sub, // guardamos el id de google como googleId en mongo
-                provider: 'google',
+                provider: ['google'],
                 role: 'user'
             })
             await user.save()
+        // si existe y se intenta loguear/registrarse con Google por primera vez
         } else if (!user.googleId) {
             // Usuario se loguea con el formulario.
             // Mismo usuario se loguea con Google con el mismo correo del formulario.
             // Vinculamos las cuentas y evitamos usuarios duplicados.
             user.googleId = sub;
             user.isVerified = true;
-            if (picture) user.pictureUrl = picture;
+            if (!user.provider.includes('google')) {
+                user.provider.push('google');
+            }
+            // Si el usuario NO tiene una foto en su cuenta al momento de loguearse por primera vez con facebook, le ponemos la de Facebook.
+            // Si tiene una foto, no le ponemos ninguna foto y le dejamos la que tiene
+            if (!user.pictureUrl && pictureUrl) {
+                user.pictureUrl = pictureUrl;
+            }
             await user.save()
         }
         // creamos el token de esta sesión
