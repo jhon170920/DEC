@@ -32,14 +32,11 @@ export default function BtnloginGoogle() {
     const [request, response, promptAsync] = Google.useAuthRequest({
         androidClientId: process.env.EXPO_PUBLIC_GOOGLE_APP_CLIENT_ID,
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-        responseType: 'code', 
-    
-        // CAMBIO 2: Asegúrate de que el Proxy esté activo
+        responseType: 'code',
         useProxy: true,
-        
         scopes: ['profile', 'email'],
         redirectUri: makeRedirectUri({
-        useProxy: true,
+            useProxy: true,
         }),
     });
 
@@ -83,10 +80,21 @@ export default function BtnloginGoogle() {
     const handleGoogleLogin = async () => {
         setLoading(true)
         try {
-            await promptAsync();
+            // vemos si tiene servicios de google
+            await GoogleSignin.hasPlayServices();
+            const userInfo = await GoogleSignin.signIn();
+            // extraemos el token
+            const idToken = userInfo.data?.idToken || userInfo.idToken;
+            // verificamos si hay token 
+            if (idToken) {
+                // y se lo mandamos al backend
+                await sendTokenToServer(idToken);
+            }
+
         } catch (error) {
             // SI NO TIENE PLAY SERVICES
             if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+                await promptAsync();
                 console.log("Play Services no disponibles, activando navegador...");
             }
             // Validaciones silenciosas (donde no necesitas alarmar al usuario)
