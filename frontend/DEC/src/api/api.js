@@ -8,7 +8,7 @@ const BASE_URL = 'http://10.4.1.234:8089/api/';
 
 const api = axios.create({
     baseURL: BASE_URL,
-    timeout: 15000, // Si el internet en el campo es lento, espera 10s antes de fallar
+    timeout: 20000, // Si el internet en el campo es lento, espera 20s antes de fallar
 });
 
 // 2. INTERCEPTOR: Este código se ejecuta ANTES de cada petición
