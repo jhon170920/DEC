@@ -7,7 +7,7 @@ dotenv.config();
 
 const expressions = {
     name: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,15}(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,15})?$/, // nombre, solo palabras con acentos y eso, nada de numeros ni cosas raras
-    email: /^[a-zA-Z0-9._%+-]+@gmail\.(com|co)$/, // solo gmail, .com o .co. Dejar que solo sea .com, no?
+    email: /^[a-zA-Z0-9._%+-]+@(gmail|hotmail)\.(com|co)$/, // solo gmail, .com o .co. Dejar que solo sea .com, no?
     pass: /^[a-zA-Z0-9]{8,14}$/ // contraseña, validación simple, no sé si ponerle validacion de mayusculas minusculas, números y carácteres especiales
 }
 // login de usuario con formilario
@@ -47,8 +47,8 @@ export const loginUser = async (req, res) => {
         res.status(200).json({
             message: `Bienvenido, ${user.name.toUpperCase()}`,
             token,
-            user: { id: user._id, name: user.name, email: user.email }
-
+            user: { id: user._id, name: user.name, email: user.email, role: user.role }
+            
         });
     } catch (error) {
         res.status(500).json({ message: 'Error al iniciar sesion', error: error.message });
