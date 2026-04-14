@@ -2,6 +2,7 @@
   "expo": {
     "name": "DEC",
     "slug": "DEC",
+    "scheme": "decapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,10 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.jhon170920.DEC"
+      "bundleIdentifier": "com.decapp.app",
+      "supportsTablet": true
     },
     "android": {
+      "package": "com.decapp.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -35,6 +37,16 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "@react-native-google-signin/google-signin",
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "4404660439775314",
+          "clientToken": "4ec5de9ca7106de36b11673e27cc04f9",
+          "displayName": "DEC",
+          "scheme": "fb4404660439775314"
+        }
+      ],
       [
         "expo-camera",
         {
@@ -49,7 +61,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "e78a1f07-ee92-453f-8429-dc76ee395248"
+        "projectId": "03e2f248-6cd0-4b8c-a177-41660d5ee325"
       }
     }
   }
