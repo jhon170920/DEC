@@ -20,6 +20,7 @@ GoogleSignin.configure({
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, // SE USA EL ID DEL CLIENTE DE WEB PARA EL BACKEND
     offlineAccess: true, // Si necesita que el backend pida tokens nuevos
 });
+
 // PARA QUE FUNCIONE: INSTALAR LIBRERIAS NATIVAS, expo-auth-session Y '@react-native-google-signin/google-signin'. Modificar un poco el AppJson y volver a hacer un Build con expo. 3h masomenos. Hacerlo el build con el de Facebook de una vez
 export default function BtnloginGoogle() {
     // ----RESPONSIVE LAYOUT
@@ -111,32 +112,44 @@ export default function BtnloginGoogle() {
             setLoading(false)
         }
     }
-
+    // Función para recuperar sesion de Google
+    const refreshGoogleToken = async () => {
+        try {
+            const userInfo = await GoogleSignin.signInSilently();
+            // Si hay regresamos el token de la sesion de Google
+            return userInfo?.data?.idToken;
+        } catch (error) {
+            if (error.code === statusCodes.SIGN_IN_REQUIRED) {
+                await GoogleSignin.signOut(); // Limpia el estado del SDK
+                await SecureStore.deleteItemAsync('userToken'); // Limpiar el token que está en el dispositivo
+                setUserToken(null);// Limpiar el estado global de la app
+            }
+        }
+    };
 
     // ver si ya tiene sesion con google para que no vuelva a iniciar sesion
     useEffect(() => {
         const checkCurrentSessionGoogle = async () => {
             try {
-                // buscamos token local
+                // Buscamos token local
                 const localToken = await SecureStore.getItemAsync('userToken');
                 if (localToken) {
-                    // Si existe el token de nuestra DB, lo cargamos al estado global
+                    // Si existe el token en el dispositivo, lo cargamos al estado global de la app
                     await setUserToken(localToken);
-                    return; // Ya está logueado en nuestra App, no molestamos a Google.
+                    return; // Si ya está logueado en nuestra App, no molestamos a Google.
                 }
-                // Revisar si el usuario ya inició sesión previamente en este dispositivo
-                const hasGoogleSession = await GoogleSignin.isSignedIn();
-                if (hasGoogleSession) {
-                    const userInfo = await GoogleSignin.signInSilently();
-                    const idToken = userInfo?.data?.idToken;
-                    // Mandamos el token al servidor para obtener el JWT de nuestra DB
-                    if (idToken) {
-                        await sendTokenToServer(idToken);
-                    }
-                    console.log("sesion de google detectada");
+                // Si no hay. Revisar si el usuario tiene sesión iniciada con Google previamente en este dispositivo
+                const idToken = await refreshGoogleToken();
+                // Mandamos el token al servidor para obtener el JWT de nuestra DB
+                if (idToken) {
+                    await sendTokenToServer(idToken);
                 }
             } catch (error) {
-                console.log("No hay sesión previa activa con Google");
+                console.error("Error en el chequeo de sesión:", error);
+                // Limpieza por si algo, por si no hay token de local ni de google
+                await GoogleSignin.signOut();
+                await SecureStore.deleteItemAsync('userToken'); 
+                setUserToken(null);
             }
         };
         checkCurrentSessionGoogle();
