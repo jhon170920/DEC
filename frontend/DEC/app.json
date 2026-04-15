@@ -28,8 +28,8 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
       ],
-      "package": "com.jhon170920.DEC",
-      "googleServicesFile": "./google-services.json"
+      "package": "com.jhon170920.DEC"
+      // "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/image/logo.png"

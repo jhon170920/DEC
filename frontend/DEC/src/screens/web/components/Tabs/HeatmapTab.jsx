@@ -1,5 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, ActivityIndicator, Alert } from 'react-native';
+import { 
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, 
+  Platform, ActivityIndicator, Alert 
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import api from '../../../../api/api';
 
@@ -12,7 +15,7 @@ if (Platform.OS === 'web') {
   require('leaflet/dist/leaflet.css');
   require('leaflet.heat');
   
-  // Solucionar problema de iconos
+  // Solucionar iconos de Leaflet
   delete L.Icon.Default.prototype._getIconUrl;
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -26,9 +29,9 @@ if (Platform.OS === 'web') {
   useMap = ReactLeaflet.useMap;
 }
 
-// Componente de capa de calor con marcadores y tooltips
-const HeatLayerWithMarkers = ({ points, detections, selectedDisease, selectedMonth }) => {
-  if (Platform.OS !== 'web') return null;
+// Componente de capa de calor (solo web)
+const HeatLayerWithMarkers = ({ points, detections, selectedDisease, selectedMonth, heatRadius }) => {
+  if (Platform.OS !== 'web' || !L || !useMap) return null;
   
   const map = useMap();
 
@@ -38,22 +41,19 @@ const HeatLayerWithMarkers = ({ points, detections, selectedDisease, selectedMon
     const timeoutId = setTimeout(() => {
       map.invalidateSize();
 
-      // 1. Crear la capa de calor
+      // Capa de calor
       const heatLayer = L.heatLayer(points, {
-        radius: 25,
+        radius: heatRadius,
         blur: 15,
         maxZoom: 17,
         gradient: { 0.4: '#3b82f6', 0.65: '#10b981', 1: '#ef4444' }
       }).addTo(map);
 
-      // 2. Agrupar detecciones por ubicación cercana (para evitar tooltips superpuestos)
-      const groupedDetections = groupDetectionsByLocation(detections);
-      
-      // 3. Agregar marcadores con tooltips para cada grupo
+      // Agrupar detecciones para tooltips
+      const grouped = groupDetectionsByLocation(detections);
       const markers = [];
       
-      groupedDetections.forEach(group => {
-        // Crear un marcador circular pequeño (más sutil que el marcador normal)
+      grouped.forEach(group => {
         const circleMarker = L.circleMarker([group.lat, group.lng], {
           radius: 8,
           fillColor: getIntensityColor(group.avgIntensity),
@@ -63,9 +63,8 @@ const HeatLayerWithMarkers = ({ points, detections, selectedDisease, selectedMon
           fillOpacity: 0.7
         }).addTo(map);
         
-        // Tooltip personalizado
         const tooltipContent = `
-          <div style="font-family: system-ui, -apple-system, sans-serif; padding: 8px 12px; min-width: 200px;">
+          <div style="font-family: system-ui; padding: 8px 12px; min-width: 200px;">
             <div style="font-weight: bold; font-size: 14px; color: #1f2937; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 8px;">
               📍 Zona de Incidencia
             </div>
@@ -98,63 +97,44 @@ const HeatLayerWithMarkers = ({ points, detections, selectedDisease, selectedMon
         markers.push(circleMarker);
       });
 
-      // Limpieza
       return () => {
         if (map) {
           map.removeLayer(heatLayer);
-          markers.forEach(marker => map.removeLayer(marker));
+          markers.forEach(m => map.removeLayer(m));
         }
       };
     }, 200);
 
     return () => clearTimeout(timeoutId);
-  }, [map, points, detections, selectedDisease, selectedMonth]);
+  }, [map, points, detections, selectedDisease, selectedMonth, heatRadius]);
 
   return null;
 };
 
-// Función para agrupar detecciones por ubicación (radio de ~50 metros)
+// Funciones auxiliares (sin cambios)
 const groupDetectionsByLocation = (detections, radiusKm = 0.05) => {
   const groups = [];
-  
   detections.forEach(detection => {
-    const lat = detection.lat;
-    const lng = detection.lng;
-    const intensity = detection.intensity;
-    
-    // Buscar si existe un grupo cercano
-    let foundGroup = null;
-    for (const group of groups) {
-      const distance = calculateDistance(lat, lng, group.lat, group.lng);
-      if (distance <= radiusKm) {
-        foundGroup = group;
-        break;
-      }
+    const { lat, lng, intensity } = detection;
+    let found = null;
+    for (const g of groups) {
+      const dist = calculateDistance(lat, lng, g.lat, g.lng);
+      if (dist <= radiusKm) { found = g; break; }
     }
-    
-    if (foundGroup) {
-      // Agregar al grupo existente
-      foundGroup.count++;
-      foundGroup.avgIntensity = (foundGroup.avgIntensity * (foundGroup.count - 1) + intensity) / foundGroup.count;
-      foundGroup.lat = (foundGroup.lat + lat) / 2;
-      foundGroup.lng = (foundGroup.lng + lng) / 2;
+    if (found) {
+      found.count++;
+      found.avgIntensity = (found.avgIntensity * (found.count - 1) + intensity) / found.count;
+      found.lat = (found.lat + lat) / 2;
+      found.lng = (found.lng + lng) / 2;
     } else {
-      // Crear nuevo grupo
-      groups.push({
-        lat,
-        lng,
-        count: 1,
-        avgIntensity: intensity
-      });
+      groups.push({ lat, lng, count: 1, avgIntensity: intensity });
     }
   });
-  
   return groups;
 };
 
-// Calcular distancia entre dos puntos (fórmula de Haversine)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371; // Radio de la Tierra en km
+  const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -164,14 +144,12 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
-// Obtener color según intensidad
 const getIntensityColor = (intensity) => {
-  if (intensity >= 0.7) return '#ef4444'; // Rojo - Alta
-  if (intensity >= 0.4) return '#f59e0b'; // Naranja - Media
-  return '#3b82f6'; // Azul - Baja
+  if (intensity >= 0.7) return '#ef4444';
+  if (intensity >= 0.4) return '#f59e0b';
+  return '#3b82f6';
 };
 
-// Obtener texto de severidad
 const getSeverityText = (intensity) => {
   if (intensity >= 0.7) return 'Alta (Crítica) 🚨';
   if (intensity >= 0.4) return 'Media ⚠️';
@@ -181,298 +159,217 @@ const getSeverityText = (intensity) => {
 const HeatmapTab = () => {
   const [selectedDisease, setSelectedDisease] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [allDetections, setAllDetections] = useState([]);
   const [pathologies, setPathologies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [mapKey, setMapKey] = useState(0);
+  const [heatRadius, setHeatRadius] = useState(25);
 
-  const fetchPathologies = useCallback(async () => {
+  const fetchData = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await api.get('admin/get-pathologies');
-      return res.data.pathologies || [];
-    } catch (err) {
-      console.error('Error cargando patologías:', err);
-      return [];
-    }
-  }, []);
-
-  const fetchDetections = useCallback(async () => {
-    try {
-      const res = await api.get('admin/get-detections');
-      return res.data.detections || [];
-    } catch (err) {
-      console.error('Error cargando detecciones:', err);
-      throw err;
-    }
-  }, []);
-
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [pathologiesData, detectionsData] = await Promise.all([
-          fetchPathologies(),
-          fetchDetections()
-        ]);
-        
-        setPathologies(pathologiesData);
-        setAllDetections(detectionsData);
-        
-        if (pathologiesData.length > 0) {
-          setSelectedDisease(pathologiesData[0].name);
-        }
-        
-        const now = new Date();
-        const currentMonth = now.toLocaleString('es-ES', { month: 'long' });
-        setSelectedMonth(currentMonth);
-        
-      } catch (err) {
-        setError('No se pudieron cargar los datos del mapa');
-        Alert.alert('Error', 'Error al cargar los datos');
-      } finally {
-        setLoading(false);
+      const [resPath, resDet] = await Promise.all([
+        api.get('admin/get-pathologies'),
+        api.get('admin/get-detections')
+      ]);
+      setPathologies(resPath.data.pathologies || []);
+      setAllDetections(resDet.data.detections || []);
+      if (resPath.data.pathologies.length > 0) {
+        setSelectedDisease(resPath.data.pathologies[0].name);
       }
-    };
-    
-    loadData();
-  }, [fetchPathologies, fetchDetections]);
+      // Fechas por defecto: último mes
+      const now = new Date();
+      const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+      setStartDate(oneMonthAgo.toISOString().slice(0,10));
+      setEndDate(now.toISOString().slice(0,10));
+    } catch (err) {
+      setError('Error cargando datos');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
     setMapKey(prev => prev + 1);
-  }, [selectedDisease, selectedMonth]);
+  }, [selectedDisease, selectedMonth, startDate, endDate, heatRadius]);
 
-  // Generar puntos para el mapa de calor y datos para tooltips
   const { heatmapPoints, detectionMarkers } = useMemo(() => {
     if (!allDetections.length) return { heatmapPoints: [], detectionMarkers: [] };
-
     const selectedPathology = pathologies.find(p => p.name === selectedDisease);
     const pathologyId = selectedPathology?._id;
-
     let filtered = [...allDetections];
-
     if (pathologyId) {
-      filtered = filtered.filter(d => 
-        d.pathologyId?._id === pathologyId || d.pathologyId === pathologyId
-      );
+      filtered = filtered.filter(d => d.pathologyId?._id === pathologyId || d.pathologyId === pathologyId);
     }
-
     if (selectedMonth) {
       filtered = filtered.filter(d => {
-        const date = new Date(d.createdAt);
-        const monthName = date.toLocaleString('es-ES', { month: 'long' });
+        const monthName = new Date(d.createdAt).toLocaleString('es-ES', { month: 'long' });
         return monthName.toLowerCase() === selectedMonth.toLowerCase();
       });
     }
-
-    // Puntos para el mapa de calor
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0,0,0,0);
+      filtered = filtered.filter(d => new Date(d.createdAt) >= start);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23,59,59,999);
+      filtered = filtered.filter(d => new Date(d.createdAt) <= end);
+    }
     const points = filtered.map(d => {
       const coords = d.location?.coordinates;
-      if (coords && coords.length === 2) {
-        const lng = coords[0];
-        const lat = coords[1];
-        const intensity = d.confidence || 0.5;
-        return [lat, lng, intensity];
-      }
+      if (coords?.length === 2) return [coords[1], coords[0], d.confidence || 0.5];
       return null;
     }).filter(p => p !== null);
-
-    // Datos para marcadores (sin agrupar, para tooltips)
     const markers = filtered.map(d => {
       const coords = d.location?.coordinates;
-      if (coords && coords.length === 2) {
-        return {
-          lat: coords[1],
-          lng: coords[0],
-          intensity: d.confidence || 0.5,
-          pathology: d.pathologyId?.name,
-          date: d.createdAt
-        };
-      }
+      if (coords?.length === 2) return { lat: coords[1], lng: coords[0], intensity: d.confidence || 0.5 };
       return null;
     }).filter(m => m !== null);
-
-    if (points.length === 0) {
-      return { 
-        heatmapPoints: [[2.195, -75.628, 0.1]], 
-        detectionMarkers: [] 
-      };
-    }
-
+    if (points.length === 0) return { heatmapPoints: [[2.195, -75.628, 0.1]], detectionMarkers: [] };
     return { heatmapPoints: points, detectionMarkers: markers };
-  }, [allDetections, selectedDisease, selectedMonth, pathologies]);
+  }, [allDetections, selectedDisease, selectedMonth, startDate, endDate, pathologies]);
 
-  // Obtener meses únicos
   const availableMonths = useMemo(() => {
-    if (!allDetections.length) return [];
-    
     const monthsSet = new Set();
     allDetections.forEach(d => {
-      const date = new Date(d.createdAt);
-      const monthName = date.toLocaleString('es-ES', { month: 'long' });
+      const monthName = new Date(d.createdAt).toLocaleString('es-ES', { month: 'long' });
       monthsSet.add(monthName);
     });
-    
-    const monthOrder = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
-                        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-    
-    return Array.from(monthsSet).sort((a, b) => {
-      return monthOrder.indexOf(a.toLowerCase()) - monthOrder.indexOf(b.toLowerCase());
-    });
+    const order = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    return Array.from(monthsSet).sort((a,b) => order.indexOf(a.toLowerCase()) - order.indexOf(b.toLowerCase()));
   }, [allDetections]);
 
-  // Obtener enfermedades únicas
   const availableDiseases = useMemo(() => {
-    if (!allDetections.length) return [];
-    
-    const diseasesSet = new Set();
-    allDetections.forEach(d => {
-      const name = d.pathologyId?.name;
-      if (name) diseasesSet.add(name);
-    });
-    
-    return Array.from(diseasesSet);
+    const set = new Set();
+    allDetections.forEach(d => { if (d.pathologyId?.name) set.add(d.pathologyId.name); });
+    return Array.from(set);
   }, [allDetections]);
 
-  const centerPosition = [2.195, -75.628];
-
-  // Agregar estilos CSS para tooltips
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      const style = document.createElement('style');
-      style.textContent = `
-        .custom-tooltip {
-          background: white !important;
-          border: 1px solid #e5e7eb !important;
-          border-radius: 12px !important;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-          font-family: system-ui, -apple-system, sans-serif !important;
-        }
-        .custom-tooltip::before {
-          border-top-color: white !important;
-        }
-        .leaflet-tooltip-top:before {
-          border-top-color: white !important;
-        }
-      `;
-      document.head.appendChild(style);
-      return () => {
-        document.head.removeChild(style);
-      };
+  const exportMapAsImage = async () => {
+    if (Platform.OS !== 'web') return Alert.alert('Solo disponible en web');
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const mapElement = document.querySelector('.leaflet-container');
+      if (!mapElement) throw new Error('Mapa no encontrado');
+      const canvas = await html2canvas(mapElement, { scale: 2, backgroundColor: '#ffffff' });
+      const link = document.createElement('a');
+      link.download = `mapa_${selectedDisease}_${selectedMonth || 'general'}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'No se pudo exportar el mapa');
     }
-  }, []);
+  };
 
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#16a34a" />
-        <Text style={styles.loadingText}>Cargando datos del mapa...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.centerContainer}>
-        <Feather name="alert-circle" size={40} color="#ef4444" />
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={() => window.location.reload()}>
-          <Text style={styles.retryText}>Reintentar</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  const diseaseList = availableDiseases.length > 0 ? availableDiseases : [];
-
-  if (diseaseList.length === 0) {
-    return (
-      <View style={styles.centerContainer}>
-        <Feather name="map-pin" size={48} color="#9ca3af" />
-        <Text style={styles.emptyText}>No hay datos de detecciones para mostrar</Text>
-        <Text style={styles.emptySubText}>Las detecciones aparecerán aquí cuando los usuarios reporten incidencias</Text>
-      </View>
-    );
-  }
+  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#16a34a" /><Text>Cargando mapa...</Text></View>;
+  if (error) return <View style={styles.center}><Text style={{color:'red'}}>{error}</Text></View>;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Mapa de Calor (Epidemiología)</Text>
-          <Text style={styles.sub}>
-            Distribución geográfica de afecciones en Garzón
-            {allDetections.length > 0 && ` (${allDetections.length} detecciones totales)`}
-          </Text>
+        <Text style={styles.title}>Mapa de Calor (Epidemiología)</Text>
+        <Text style={styles.sub}>Distribución geográfica de afecciones en Garzón</Text>
+      </View>
+
+      <ScrollView style={styles.filterSection} contentContainerStyle={{ paddingBottom: 20 }}>
+        {/* Filtro enfermedad */}
+        <View style={styles.filterRow}>
+          <Text style={styles.filterLabel}>Afección:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
+            {availableDiseases.map(d => (
+              <TouchableOpacity key={d} onPress={() => setSelectedDisease(d)} style={[styles.pill, selectedDisease === d && styles.pillActive]}>
+                <Text style={[styles.pillText, selectedDisease === d && styles.pillTextActive]}>{d}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
-        <View style={styles.filterSection}>
-          <View style={styles.filterBox}>
-            <Text style={styles.filterLabel}>Afección:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillScroll}>
-              {diseaseList.map(d => (
-                <TouchableOpacity 
-                  key={d} 
-                  onPress={() => setSelectedDisease(d)}
-                  style={[styles.pill, selectedDisease === d && styles.pillActive]}
-                >
-                  <Text style={[styles.pillText, selectedDisease === d && styles.pillTextActive]}>{d}</Text>
+        {/* Filtro mes */}
+        {availableMonths.length > 0 && (
+          <View style={styles.filterRow}>
+            <Text style={styles.filterLabel}>Mes:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
+              <TouchableOpacity onPress={() => setSelectedMonth('')} style={[styles.pill, selectedMonth === '' && styles.pillActive]}>
+                <Text style={[styles.pillText, selectedMonth === '' && styles.pillTextActive]}>Todos</Text>
+              </TouchableOpacity>
+              {availableMonths.map(m => (
+                <TouchableOpacity key={m} onPress={() => setSelectedMonth(m)} style={[styles.pill, selectedMonth === m && styles.pillActive]}>
+                  <Text style={[styles.pillText, selectedMonth === m && styles.pillTextActive]}>{m}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
+        )}
 
-          {availableMonths.length > 0 && (
-            <View style={styles.filterBox}>
-              <Text style={styles.filterLabel}>Mes:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillScroll}>
-                {availableMonths.map(m => (
-                  <TouchableOpacity 
-                    key={m} 
-                    onPress={() => setSelectedMonth(m)}
-                    style={[styles.pill, selectedMonth === m && styles.pillActive]}
-                  >
-                    <Text style={[styles.pillText, selectedMonth === m && styles.pillTextActive]}>
-                      {m.charAt(0).toUpperCase() + m.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+        {/* Filtro fechas */}
+        <View style={styles.dateFilterRow}>
+          <View style={styles.dateInputGroup}>
+            <Text style={styles.filterLabel}>Fecha inicio</Text>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={styles.dateInput} />
+          </View>
+          <View style={styles.dateInputGroup}>
+            <Text style={styles.filterLabel}>Fecha fin</Text>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={styles.dateInput} />
+          </View>
         </View>
-      </View>
 
+        {/* Slider nativo para web */}
+        <View style={styles.sliderContainer}>
+          <Text style={styles.filterLabel}>Radio del mapa de calor: {heatRadius}px</Text>
+          <input
+            type="range"
+            min="10"
+            max="60"
+            step="1"
+            value={heatRadius}
+            onChange={(e) => setHeatRadius(parseInt(e.target.value))}
+            style={{ width: '100%', marginTop: 8 }}
+          />
+        </View>
+
+        {/* Botón exportar */}
+        <TouchableOpacity style={styles.exportBtn} onPress={exportMapAsImage}>
+          <Feather name="camera" size={18} color="#fff" />
+          <Text style={styles.exportBtnText}>Exportar mapa como imagen</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Mapa */}
       <View style={styles.mapContainer}>
         {Platform.OS === 'web' && MapContainer ? (
-          <MapContainer 
+          <MapContainer
             key={mapKey}
-            center={centerPosition} 
-            zoom={13} 
+            center={[2.195, -75.628]}
+            zoom={13}
             style={{ height: '100%', width: '100%' }}
-            scrollWheelZoom={true}
-            zoomControl={true}
+            scrollWheelZoom
+            zoomControl
           >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <HeatLayerWithMarkers 
-              points={heatmapPoints} 
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
+            <HeatLayerWithMarkers
+              points={heatmapPoints}
               detections={detectionMarkers}
               selectedDisease={selectedDisease}
-              selectedMonth={selectedMonth}
+              selectedMonth={selectedMonth || 'todos'}
+              heatRadius={heatRadius}
             />
           </MapContainer>
         ) : (
           <View style={styles.fallback}>
             <Feather name="map" size={48} color="#9ca3af" />
-            <Text style={styles.fallbackText}>El mapa de calor está optimizado para la plataforma Web</Text>
-            <Text style={styles.fallbackSub}>Accede desde un navegador para ver la visualización completa</Text>
+            <Text style={styles.fallbackText}>Mapa disponible solo en web</Text>
           </View>
         )}
 
+        {/* Leyenda */}
         <View style={styles.legend}>
           <Text style={styles.legendTitle}>Severidad del Brote</Text>
           <View style={styles.gradientBar}>
@@ -485,18 +382,8 @@ const HeatmapTab = () => {
             <Text style={styles.legendText}>Media</Text>
             <Text style={styles.legendText}>Alta</Text>
           </View>
-          <View style={styles.statusInfo}>
-            <Feather name="info" size={12} color="#6b7280" />
-            <Text style={styles.statusText}>
-              💡 Pasa el mouse sobre los puntos para ver detalles
-            </Text>
-          </View>
-          <View style={styles.statusInfo}>
-            <Feather name="target" size={12} color="#6b7280" />
-            <Text style={styles.statusText}>
-              {detectionMarkers.length} puntos de incidencia activos
-            </Text>
-          </View>
+          <Text style={styles.legendNote}>💡 Pasa el mouse sobre los puntos</Text>
+          <Text style={styles.legendNote}>📍 {detectionMarkers.length} puntos activos</Text>
         </View>
       </View>
     </View>
@@ -505,58 +392,34 @@ const HeatmapTab = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9fafb' },
-  header: { padding: 20, paddingBottom: 10 },
+  header: { padding: 20, paddingBottom: 0 },
   title: { fontSize: 24, fontWeight: '800', color: '#111827' },
-  sub: { color: '#6b7280', marginTop: 4, fontSize: 13 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  loadingText: { marginTop: 12, color: '#6b7280' },
-  errorText: { marginTop: 12, color: '#ef4444', textAlign: 'center' },
-  emptyText: { marginTop: 16, color: '#6b7280', fontSize: 16, fontWeight: '600', textAlign: 'center' },
-  emptySubText: { marginTop: 8, color: '#9ca3af', fontSize: 13, textAlign: 'center' },
-  retryBtn: { marginTop: 20, backgroundColor: '#16a34a', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
-  retryText: { color: '#fff', fontWeight: '700' },
-
-  filterSection: { marginTop: 15, gap: 12 },
-  filterBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 8, borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb' },
-  filterLabel: { fontSize: 12, fontWeight: '700', color: '#374151', width: 70, marginLeft: 10 },
-  pillScroll: { gap: 8, paddingHorizontal: 4 },
-  pill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#f3f4f6' },
+  sub: { color: '#6b7280', marginTop: 4 },
+  filterSection: { padding: 20, maxHeight: 280 },
+  filterRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 16, gap: 10 },
+  filterLabel: { fontSize: 14, fontWeight: '700', color: '#374151', width: 70 },
+  pillScroll: { flex: 1, flexDirection: 'row' },
+  pill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#f3f4f6', marginRight: 8 },
   pillActive: { backgroundColor: '#16a34a' },
   pillText: { fontSize: 12, fontWeight: '600', color: '#6b7280' },
   pillTextActive: { color: '#fff' },
-
-  mapContainer: { flex: 1, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#e5e7eb', position: 'relative', margin: 20, marginTop: 0, minHeight: 500 },
+  dateFilterRow: { flexDirection: 'row', gap: 16, marginBottom: 16, flexWrap: 'wrap', alignItems: 'flex-end' },
+  dateInputGroup: { flex: 1, minWidth: 160, minWidth: Platform.OS === 'web' ? 200 : '100%'},
+  dateInput: { padding: 10, borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, fontSize: 14, backgroundColor: '#fff', width: '100%',boxSizing: 'border-box', },
+  sliderContainer: { marginBottom: 16 },
+  exportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#16a34a', padding: 12, borderRadius: 10 },
+  exportBtnText: { color: '#fff', fontWeight: '700' },
+  mapContainer: { flex: 1, borderRadius: 20, overflow: 'hidden', margin: 20, marginTop: 0, position: 'relative', minHeight: 500 },
   fallback: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f3f4f6' },
-  fallbackText: { marginTop: 16, color: '#6b7280', fontSize: 16, fontWeight: '600', textAlign: 'center' },
-  fallbackSub: { marginTop: 8, color: '#9ca3af', fontSize: 13, textAlign: 'center' },
-
-  legend: {
-    position: 'absolute',
-    bottom: 35,
-    right: 35,
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 15,
-    width: 260,
-    zIndex: 1000,
-    boxShadow: Platform.OS === 'web' ? '0 4px 15px rgba(0,0,0,0.1)' : 'none',
-    borderWidth: 1,
-    borderColor: '#e5e7eb'
-  },
+  fallbackText: { marginTop: 16, color: '#6b7280', fontSize: 16 },
+  legend: { position: 'absolute', bottom: 20, right: 20, backgroundColor: 'white', padding: 15, borderRadius: 15, width: 240, zIndex: 1000, borderWidth: 1, borderColor: '#e5e7eb', ...Platform.select({ web: { boxShadow: '0 4px 15px rgba(0,0,0,0.1)' } }) },
   legendTitle: { fontSize: 12, fontWeight: '800', color: '#1f2937', marginBottom: 10, textAlign: 'center' },
-  gradientBar: { 
-    height: 8, 
-    borderRadius: 4, 
-    flexDirection: 'row',
-    overflow: 'hidden'
-  },
-  gradientSegment: {
-    height: '100%'
-  },
+  gradientBar: { flexDirection: 'row', height: 8, borderRadius: 4, overflow: 'hidden' },
+  gradientSegment: { height: '100%' },
   legendLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6, paddingHorizontal: 4 },
   legendText: { fontSize: 10, color: '#9ca3af', fontWeight: '600' },
-  statusInfo: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 8 },
-  statusText: { fontSize: 10, color: '#6b7280', fontStyle: 'italic' }
+  legendNote: { fontSize: 10, color: '#6b7280', marginTop: 8, textAlign: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' }
 });
 
 export default HeatmapTab;

@@ -16,9 +16,8 @@ import statsRoutes from './routes/statsRoutes.js';
 
 
 const app = express();
-
-app.use(express.json()); // Middleware para parsear JSON en las solicitudes entrantes
-app.use(express.urlencoded({ extended: true })); // Middleware para parsear datos de formularios (application/x-www-form-urlencoded)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors());
 // ruta principal de usuarios
 app.use("/api/users", userRoutes);

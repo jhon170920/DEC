@@ -12,3 +12,5 @@ export const getAllPathologies = async (req, res) => {
         res.status(500).json({ message: "Error al recuperar catálogo técnico" });
     }
 };
+
+// También necesitas modificar editPathology para aceptar el array recommendations

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Image, Platform, Linking, ActivityIndicator, Alert
+  Image, Platform, Linking, ActivityIndicator, Alert, Modal
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import api from '../../../../api/api';
@@ -18,6 +18,12 @@ const DetectionsTab = () => {
   // Estados para filtros de fecha
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // Estados para exportación de dataset
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exportProgress, setExportProgress] = useState({ status: '', total: 0, processed: 0, message: '' });
+  const [jobId, setJobId] = useState(null);
+  let intervalId = null;
 
   // Cargar detecciones reales desde el backend
   const fetchDetections = useCallback(async () => {
@@ -113,7 +119,85 @@ const DetectionsTab = () => {
       Alert.alert('Error', 'No se pudo cambiar el estado de aprobación');
     }
   };
+  // Exportar dataset aprobado
+const handleExportDataset = async () => {
+  try {
+    setExportModalVisible(true);
+    setExportProgress({ status: 'starting', total: 0, processed: 0, message: 'Iniciando exportación...' });
+    
+    // Construir query params con las fechas actuales
+    let url = 'admin/export/start';
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (params.toString()) url += `?${params.toString()}`;
+    
+    const res = await api.get(url);
+    const { jobId: newJobId } = res.data;
+    setJobId(newJobId);
+    if (intervalId) clearInterval(intervalId);
+    intervalId = setInterval(() => checkExportStatus(newJobId), 1000);
+  } catch (error) {
+    console.error(error);
+    Alert.alert('Error', 'No se pudo iniciar la exportación');
+    setExportModalVisible(false);
+  }
+};
+  // Consultar el estado del trabajo de exportación
+  const checkExportStatus = async (jobId) => {
+    try {
+      const res = await api.get(`admin/export/status/${jobId}`);
+      const { status, total, processed, message } = res.data;
+      setExportProgress({ status, total, processed, message });
+      if (status === 'completed') {
+        clearInterval(intervalId);
+        // Descargar el archivo
+        downloadExportFile(jobId);
+      } else if (status === 'error') {
+        clearInterval(intervalId);
+        Alert.alert('Error', message);
+        setExportModalVisible(false);
+      }
+    } catch (error) {
+      console.error(error);
+      clearInterval(intervalId);
+      Alert.alert('Error', 'Error consultando el estado');
+      setExportModalVisible(false);
+    }
+  };
+  // Descargar el archivo exportado
+  const downloadExportFile = async (jobId) => {
+    try {
+      const response = await api.get(`admin/export/download/${jobId}`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `dataset_${jobId}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      Alert.alert('Éxito', 'Dataset descargado correctamente');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo descargar el archivo');
+    } finally {
+      setExportModalVisible(false);
+      setJobId(null);
+    }
+  };
+  // Limpiar el intervalo al desmontar el componente
+  useEffect(() => {
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
 
+  // Calcular porcentaje de progreso
+  const percent = exportProgress.total > 0 
+    ? (exportProgress.processed / exportProgress.total) * 100 
+    : 0;
   // Limpiar filtros de fecha
   const clearDateFilters = () => {
     setStartDate('');
@@ -186,10 +270,61 @@ const DetectionsTab = () => {
             <Text style={styles.datasetNumber}>{approvedCount}</Text>
             <Text style={styles.datasetSub}>Imágenes Aprobadas</Text>
           </View>
-          <TouchableOpacity style={styles.downloadBtn}>
+          <TouchableOpacity style={styles.downloadBtn} onPress={handleExportDataset}>
             <Feather name="download-cloud" size={18} color="#fff" />
             <Text style={styles.downloadText}>Exportar Dataset</Text>
           </TouchableOpacity>
+          <Modal
+  visible={exportModalVisible}
+  transparent
+  animationType="fade"
+  onRequestClose={() => {}}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalCard}>
+      <Feather name="package" size={40} color="#16a34a" />
+      <Text style={styles.modalTitle}>Exportando dataset</Text>
+      <Text style={styles.modalMessage}>{exportProgress.message}</Text>
+      
+      {exportProgress.status === 'processing' && (
+        <>
+          <View style={styles.progressBarBg}>
+            <View 
+              style={[
+                styles.progressBarFill, 
+                { width: `${percent}%` }
+              ]} 
+            />
+          </View>
+          <Text style={styles.progressText}>
+            {exportProgress.processed} de {exportProgress.total} imágenes
+          </Text>
+          <Text style={styles.percentText}>{Math.round(percent)}% completado</Text>
+        </>
+      )}
+      
+      {exportProgress.status === 'completed' && (
+        <View style={styles.completedContainer}>
+          <Feather name="check-circle" size={32} color="#16a34a" />
+          <Text style={styles.completedText}>¡Completado! Descargando...</Text>
+        </View>
+      )}
+      
+      {exportProgress.status === 'error' && (
+        <>
+          <Feather name="alert-circle" size={32} color="#ef4444" />
+          <Text style={styles.errorText}>{exportProgress.message}</Text>
+          <TouchableOpacity 
+            style={styles.closeModalBtn} 
+            onPress={() => setExportModalVisible(false)}
+          >
+            <Text style={styles.closeModalText}>Cerrar</Text>
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
+  </View>
+</Modal>
         </View>
       </View>
 
@@ -420,6 +555,79 @@ const styles = StyleSheet.create({
   errorText: { marginTop: 12, color: '#ef4444', textAlign: 'center' },
   retryBtn: { marginTop: 20, backgroundColor: '#16a34a', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
   retryText: { color: '#fff', fontWeight: '700' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 30,
+    width: '90%',
+    maxWidth: 400,
+    alignItems: 'center'
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    marginTop: 16,
+    marginBottom: 8,
+    color: '#1f2937'
+  },
+  modalMessage: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 20
+  },
+  progressBarBg: {
+    width: '100%',
+    height: 10,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 5,
+    overflow: 'hidden',
+    marginVertical: 16
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#16a34a',
+    borderRadius: 5
+  },
+  progressText: {
+    fontSize: 13,
+    color: '#374151',
+    fontWeight: '500'
+  },
+  completedText: {
+    fontSize: 14,
+    color: '#16a34a',
+    fontWeight: '600',
+    marginTop: 16
+  },
+  percentText: {
+  fontSize: 16,
+  fontWeight: '700',
+  color: '#16a34a',
+  marginTop: 8,
+  textAlign: 'center'
+},
+completedContainer: {
+  alignItems: 'center',
+  marginTop: 10
+},
+closeModalBtn: {
+  marginTop: 20,
+  backgroundColor: '#f3f4f6',
+  paddingHorizontal: 20,
+  paddingVertical: 10,
+  borderRadius: 8
+},
+closeModalText: {
+  color: '#374151',
+  fontWeight: '600'
+},
 });
 
 export default DetectionsTab;
