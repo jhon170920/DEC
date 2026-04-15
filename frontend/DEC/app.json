@@ -5,7 +5,7 @@
     "scheme": "decapp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/image/logo.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -26,14 +26,13 @@
       },
       "permissions": [
         "CAMERA",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
+        "RECORD_AUDIO",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/image/logo.png"
     },
     "plugins": [
       "@react-native-google-signin/google-signin",
@@ -50,6 +49,13 @@
         "expo-camera",
         {
           "cameraPermission": "Permítenos usar la cámara para detectar patologías en tus plantas de café."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/image/logo.png",
+          "color": "#16a34a"
         }
       ],
       "expo-secure-store",

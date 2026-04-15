@@ -6,6 +6,7 @@ import { facebookAuth } from '../controllers/facebookAuth.js';
 
 import { contactUs } from '../controllers/contactUs.js';
 import { verifyToken } from '../middlewares/auth.js';
+import { savePushToken } from '../controllers/notificationController.js';
 
 const router = express.Router();
 
@@ -33,7 +34,9 @@ router.put('/delete', verifyToken, deleteUser);
 // ruta de contactanos
 router.post('/send-message', contactUs);
 
-// falta ruta de actualizar contraseña
+//Ruta push NOTIFICACIONES
+
+router.post('/save-push-token', verifyToken, savePushToken);
 
     
 export default router;

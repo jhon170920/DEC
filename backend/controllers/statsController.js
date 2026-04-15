@@ -117,23 +117,17 @@ export const getMapData = async (req, res) => {
 };
 
 // 3. KPIs rápidos (Afectados por el filtro de tiempo)
-export const getGeneralKPIs = async (req, res) => {
+export const getKPIs = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
-        const dateFilter = buildDateFilter(startDate, endDate);
-
-        const [totalUsers, activeUsers, detectionsInPeriod] = await Promise.all([
-            User.countDocuments(),
-            User.countDocuments({ lastSync: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }),
-            Detection.countDocuments(dateFilter) // Solo cuenta las detecciones del rango elegido
-        ]);
-
-        res.status(200).json({
-            totalUsers,
-            activeUsers,
-            detectionsInPeriod,
-        });
+      const totalUsers = await User.countDocuments();
+      const totalDetections = await Detection.countDocuments();
+      const totalPathologies = await Pathology.countDocuments();
+      const avgConfidenceAgg = await Detection.aggregate([
+        { $group: { _id: null, avgConfidence: { $avg: "$confidence" } } }
+      ]);
+      const avgConfidence = avgConfidenceAgg[0]?.avgConfidence || 0;
+      res.json({ totalUsers, totalDetections, totalPathologies, avgConfidence });
     } catch (error) {
-        res.status(500).json({ message: "Error en KPIs", error: error.message });
+      res.status(500).json({ error: error.message });
     }
-};
+  };
