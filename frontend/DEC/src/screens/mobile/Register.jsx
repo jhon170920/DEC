@@ -71,7 +71,11 @@ export default function Register() {
             Alert.alert("Error", "Por favor completa todos los campos");
             return;
         }
-        
+        const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{2,50}$/;
+        if (!nameRegex.test(name.trim())) {
+            Alert.alert("Error", "Ingresa un nombre válido (solo letras, mínimo 2 caracteres)");
+            return;
+        }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             Alert.alert("Error", "Correo electrónico no válido");

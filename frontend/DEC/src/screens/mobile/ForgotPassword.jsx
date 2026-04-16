@@ -7,13 +7,17 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Image,
+    KeyboardAvoidingView,
+    ScrollView,
+    TouchableWithoutFeedback,
+    Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { styles } from '../../styles/Forgotstyles';
-import { requestRecoveryCode } from '../../api/api'; // 👈 Importar la función
+import { requestRecoveryCode } from '../../api/api';
 
 export default function ForgotPasswordScreen() {
     const navigation = useNavigation();
@@ -42,7 +46,6 @@ export default function ForgotPasswordScreen() {
             setMessage({ type: 'success', text: response.message || '¡Código enviado! Revisa tu bandeja de entrada.' });
             setEmail('');
             
-            // Guardar el email y navegar a ResetPassword
             setTimeout(() => {
                 navigation.navigate("ResetPassword", { email: email.trim() });
             }, 1500);
@@ -58,76 +61,100 @@ export default function ForgotPasswordScreen() {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            {/* Sección superior */}
-            <View style={styles.topSection}>
-                <View style={styles.logoCircle}>
-                    <Image
-                        source={require('../../../assets/image/logo.png')}
-                        style={{ width: 80, height: 80 }}
-                        resizeMode="contain"
-                    />
-                </View>
-                <Text style={styles.headline}>
-                    ¿Olvidaste tu contraseña?{'\n'}
-                    <Text style={styles.headlineAccent}>Recupérala</Text>
-                </Text>
-            </View>
-
-            {/* Tarjeta */}
-            <View style={styles.card}>
-                <Text style={styles.cardTitle}>Ingrese el correo de su cuenta</Text>
-
-                {message && (
-                    <Text style={message.type === 'success' ? styles.messageSuccess : styles.messageError}>
-                        {message.text}
-                    </Text>
-                )}
-
-                {/* Input */}
-                <LinearGradient
-                    colors={isFocused ? ['#22c55e', '#16a34a'] : ['#d1d5db', '#d1d5db']}
-                    style={styles.inputGradientBorder}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                >
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Ingrese su correo"
-                        placeholderTextColor="#9ca3af"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        value={email}
-                        onChangeText={(text) => {
-                            setEmail(text);
-                            if (message) setMessage(null);
-                        }}
-                        onFocus={() => setIsFocused(true)}
-                        onBlur={() => setIsFocused(false)}
-                    />
-                </LinearGradient>
-
-                {/* Botón */}
-                <TouchableOpacity
-                    style={[styles.button, loading && { opacity: 0.7 }]}
-                    onPress={handleRecover}
-                    disabled={isDisabled}
-                    activeOpacity={0.8}
-                >
-                    <LinearGradient
-                        colors={['#22c55e', '#16a34a', '#15803d']}
-                        style={styles.buttonGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
+            >
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <ScrollView 
+                        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
                     >
-                        {loading ? (
-                            <ActivityIndicator size="small" color="#ffffff" />
-                        ) : (
-                            <Text style={styles.buttonText}>Recuperar Contraseña</Text>
-                        )}
-                    </LinearGradient>
-                </TouchableOpacity>
-            </View>
+                        {/* Botón de retroceder */}
+                        <TouchableOpacity 
+                            style={styles.backButton}
+                            onPress={() => navigation.goBack()}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="arrow-back" size={24} color="#065f46" />
+                        </TouchableOpacity>
+
+                        {/* Sección superior */}
+                        <View style={styles.topSection}>
+                            <View style={styles.logoCircle}>
+                                <Image
+                                    source={require('../../../assets/image/logo.png')}
+                                    style={{ width: 80, height: 80 }}
+                                    resizeMode="contain"
+                                />
+                            </View>
+                            <Text style={styles.headline}>
+                                ¿Olvidaste tu contraseña?{'\n'}
+                                <Text style={styles.headlineAccent}>Recupérala</Text>
+                            </Text>
+                        </View>
+
+                        {/* Tarjeta */}
+                        <View style={styles.card}>
+                            <Text style={styles.cardTitle}>Ingrese el correo de su cuenta</Text>
+
+                            {message && (
+                                <Text style={message.type === 'success' ? styles.messageSuccess : styles.messageError}>
+                                    {message.text}
+                                </Text>
+                            )}
+
+                            {/* Input */}
+                            <LinearGradient
+                                colors={isFocused ? ['#22c55e', '#16a34a'] : ['#d1d5db', '#d1d5db']}
+                                style={styles.inputGradientBorder}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Ingrese su correo"
+                                    placeholderTextColor="#9ca3af"
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    value={email}
+                                    onChangeText={(text) => {
+                                        setEmail(text);
+                                        if (message) setMessage(null);
+                                    }}
+                                    onFocus={() => setIsFocused(true)}
+                                    onBlur={() => setIsFocused(false)}
+                                    returnKeyType="done"
+                                    onSubmitEditing={handleRecover}
+                                />
+                            </LinearGradient>
+
+                            {/* Botón */}
+                            <TouchableOpacity
+                                style={[styles.button, loading && { opacity: 0.7 }]}
+                                onPress={handleRecover}
+                                disabled={isDisabled}
+                                activeOpacity={0.8}
+                            >
+                                <LinearGradient
+                                    colors={['#22c55e', '#16a34a', '#15803d']}
+                                    style={styles.buttonGradient}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                >
+                                    {loading ? (
+                                        <ActivityIndicator size="small" color="#ffffff" />
+                                    ) : (
+                                        <Text style={styles.buttonText}>Recuperar Contraseña</Text>
+                                    )}
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </View>
+                    </ScrollView>
+                </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
