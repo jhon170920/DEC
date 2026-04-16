@@ -17,7 +17,7 @@ export default function BtnLoginFacebook() {
 
     // Enviar al backend y validar el token de google
     const sendTokenToServer = async (fbToken) => {
-        setLoading(true);a
+        setLoading(true);
         try {
             // mandamos el tken al backend y lo validamos
             const response = await axios.post('http://10.4.1.148:8089/api/users/auth/facebook', 
