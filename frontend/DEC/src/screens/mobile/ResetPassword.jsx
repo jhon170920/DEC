@@ -10,6 +10,10 @@ import {
     Image,
     Alert,
     ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    TouchableWithoutFeedback,
+    Keyboard,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -63,7 +67,6 @@ export default function ResetPassword() {
     const handleActualizar = async () => {
         const codeCompleto = codigo.join("");
         
-        // Validaciones
         if (codeCompleto.length !== 6) {
             Alert.alert("Error", "Ingresa el código de 6 dígitos");
             return;
@@ -117,113 +120,130 @@ export default function ResetPassword() {
                 end={{ x: 1, y: 1 }}
             />
             
-            <ScrollView
-                contentContainerStyle={[styles.scroll, { paddingHorizontal: hPad }]}
-                showsVerticalScrollIndicator={false}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
-                {/* LOGO */}
-                <View style={[styles.logoWrap, {
-                    width: logoRingS,
-                    height: logoRingS,
-                    borderRadius: logoRingS / 2,
-                    marginBottom: sp(0.03),
-                }]}>
-                    <Image
-                        source={require("../../../assets/image/logo.png")}
-                        style={{ width: logoImgS, height: logoImgS, resizeMode: "contain" }}
-                    />
-                </View>
-                
-                {/* TÍTULO */}
-                <Text style={[styles.title, { fontSize: headlineS }]}>
-                    Restablecer contraseña
-                </Text>
-                <Text style={[styles.subtitle, { fontSize: sublineS, marginBottom: sp(0.04) }]}>
-                    Ingresa el código enviado a {email || "tu correo"}
-                </Text>
-                
-                {/* CARD */}
-                <View style={styles.card}>
-                    
-                    {/* Código 6 dígitos */}
-                    <Text style={[styles.label, { fontSize: sublineS }]}>Código de verificación</Text>
-                    <View style={styles.codeRow}>
-                        {codigo.map((digit, index) => (
-                            <TextInput
-                                key={index}
-                                ref={ref => inputs.current[index] = ref}
-                                style={[styles.codeInput, digit && styles.codeInputFilled]}
-                                value={digit}
-                                onChangeText={text => handleCodigo(text.slice(-1), index)}
-                                onKeyPress={({ nativeEvent }) => handleBackspace(nativeEvent.key, index)}
-                                keyboardType="number-pad"
-                                maxLength={1}
-                                textAlign="center"
-                                editable={!loading}
-                            />
-                        ))}
-                    </View>
-                    
-                    {/* Nueva contraseña */}
-                    <Text style={[styles.label, { fontSize: sublineS }]}>Nueva Contraseña</Text>
-                    <View style={[styles.inputWrap, { height: fieldH }]}>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Nueva Contraseña"
-                            placeholderTextColor={Colors.textMuted}
-                            value={passNueva}
-                            onChangeText={setPassNueva}
-                            secureTextEntry={!showPass}
-                            editable={!loading}
-                        />
-                        <TouchableOpacity onPress={() => setShowPass(v => !v)} disabled={loading}>
-                            <Feather name={showPass ? "eye" : "eye-off"} size={iconS} color={Colors.textMuted} />
-                        </TouchableOpacity>
-                    </View>
-                    
-                    {/* Confirmar contraseña */}
-                    <Text style={[styles.label, { fontSize: sublineS }]}>Confirmar Nueva Contraseña</Text>
-                    <View style={[styles.inputWrap, { height: fieldH }]}>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Confirme Contraseña"
-                            placeholderTextColor={Colors.textMuted}
-                            value={passConfirmar}
-                            onChangeText={setPassConfirmar}
-                            secureTextEntry={!showConfirm}
-                            editable={!loading}
-                        />
-                        <TouchableOpacity onPress={() => setShowConfirm(v => !v)} disabled={loading}>
-                            <Feather name={showConfirm ? "eye" : "eye-off"} size={iconS} color={Colors.textMuted} />
-                        </TouchableOpacity>
-                    </View>
-                    
-                    {/* Botón actualizar */}
-                    <TouchableOpacity 
-                        style={[styles.btnActualizar, loading && { opacity: 0.7 }]} 
-                        activeOpacity={0.85} 
-                        onPress={handleActualizar}
-                        disabled={loading}
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <ScrollView
+                        contentContainerStyle={[
+                            styles.scroll, 
+                            { 
+                                paddingHorizontal: hPad,
+                                flexGrow: 1,
+                                justifyContent: 'center',
+                            }
+                        ]}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
                     >
-                        <LinearGradient
-                            colors={["#22c55e", "#16a34a", "#15803d"]}
-                            style={[styles.btnGradient, { height: btnH }]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <>
-                                    <Feather name="key" size={iconS} color="#fff" />
-                                    <Text style={styles.btnText}>Actualizar Contraseña</Text>
-                                </>
-                            )}
-                        </LinearGradient>
-                    </TouchableOpacity>
-                    
-                </View>
-            </ScrollView>
+                        {/* LOGO */}
+                        <View style={[styles.logoWrap, {
+                            width: logoRingS,
+                            height: logoRingS,
+                            borderRadius: logoRingS / 2,
+                            marginBottom: sp(0.03),
+                            alignSelf: 'center',
+                        }]}>
+                            <Image
+                                source={require("../../../assets/image/logo.png")}
+                                style={{ width: logoImgS, height: logoImgS, resizeMode: "contain" }}
+                            />
+                        </View>
+                        
+                        {/* TÍTULO */}
+                        <Text style={[styles.title, { fontSize: headlineS, textAlign: 'center' }]}>
+                            Restablecer contraseña
+                        </Text>
+                        <Text style={[styles.subtitle, { fontSize: sublineS, marginBottom: sp(0.04), textAlign: 'center' }]}>
+                            Ingresa el código enviado a {email || "tu correo"}
+                        </Text>
+                        
+                        {/* CARD */}
+                        <View style={styles.card}>
+                            
+                            {/* Código 6 dígitos */}
+                            <Text style={[styles.label, { fontSize: sublineS }]}>Código de verificación</Text>
+                            <View style={styles.codeRow}>
+                                {codigo.map((digit, index) => (
+                                    <TextInput
+                                        key={index}
+                                        ref={ref => inputs.current[index] = ref}
+                                        style={[styles.codeInput, digit && styles.codeInputFilled]}
+                                        value={digit}
+                                        onChangeText={text => handleCodigo(text.slice(-1), index)}
+                                        onKeyPress={({ nativeEvent }) => handleBackspace(nativeEvent.key, index)}
+                                        keyboardType="number-pad"
+                                        maxLength={1}
+                                        textAlign="center"
+                                        editable={!loading}
+                                    />
+                                ))}
+                            </View>
+                            
+                            {/* Nueva contraseña */}
+                            <Text style={[styles.label, { fontSize: sublineS }]}>Nueva Contraseña</Text>
+                            <View style={[styles.inputWrap, { height: fieldH }]}>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Nueva Contraseña"
+                                    placeholderTextColor={Colors.textMuted}
+                                    value={passNueva}
+                                    onChangeText={setPassNueva}
+                                    secureTextEntry={!showPass}
+                                    editable={!loading}
+                                />
+                                <TouchableOpacity onPress={() => setShowPass(v => !v)} disabled={loading}>
+                                    <Feather name={showPass ? "eye" : "eye-off"} size={iconS} color={Colors.textMuted} />
+                                </TouchableOpacity>
+                            </View>
+                            
+                            {/* Confirmar contraseña */}
+                            <Text style={[styles.label, { fontSize: sublineS }]}>Confirmar Nueva Contraseña</Text>
+                            <View style={[styles.inputWrap, { height: fieldH }]}>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Confirme Contraseña"
+                                    placeholderTextColor={Colors.textMuted}
+                                    value={passConfirmar}
+                                    onChangeText={setPassConfirmar}
+                                    secureTextEntry={!showConfirm}
+                                    editable={!loading}
+                                />
+                                <TouchableOpacity onPress={() => setShowConfirm(v => !v)} disabled={loading}>
+                                    <Feather name={showConfirm ? "eye" : "eye-off"} size={iconS} color={Colors.textMuted} />
+                                </TouchableOpacity>
+                            </View>
+                            
+                            {/* Botón actualizar */}
+                            <TouchableOpacity 
+                                style={[styles.btnActualizar, loading && { opacity: 0.7 }]} 
+                                activeOpacity={0.85} 
+                                onPress={handleActualizar}
+                                disabled={loading}
+                            >
+                                <LinearGradient
+                                    colors={["#22c55e", "#16a34a", "#15803d"]}
+                                    style={[styles.btnGradient, { height: btnH }]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                >
+                                    {loading ? (
+                                        <ActivityIndicator color="#fff" />
+                                    ) : (
+                                        <>
+                                            <Feather name="key" size={iconS} color="#fff" />
+                                            <Text style={styles.btnText}>Actualizar Contraseña</Text>
+                                        </>
+                                    )}
+                                </LinearGradient>
+                            </TouchableOpacity>
+                            
+                        </View>
+                    </ScrollView>
+                </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
         </View>
     );
 }

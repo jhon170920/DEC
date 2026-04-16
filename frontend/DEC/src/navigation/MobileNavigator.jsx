@@ -45,8 +45,6 @@ export default function AppNavigator() {
           <Stack.Screen name="Camera" component={CameraScreen} />
           <Stack.Screen name="History" component={HistoryScreen} />
           <Stack.Screen name="Contact" component={Contact} />
-          <Stack.Screen name='VerifyCode' component={VerifyCodeScreen} />
-          
           {/* <Stack.Screen name="Manual" component={ManualScreen} /> */}
           <Stack.Screen name="Result" component={Result} /> 
           <Stack.Screen name="Profile" component={Profile} />
@@ -56,6 +54,7 @@ export default function AppNavigator() {
         <>
           <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="Register" component={Register} />
+          <Stack.Screen name='VerifyCode' component={VerifyCodeScreen} />
           <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
           <Stack.Screen name='ResetPassword' component={ResetPassword} />
           {/* <Stack.Screen name="ResetPassword" component={ResetPassword} /> */}

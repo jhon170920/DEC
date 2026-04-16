@@ -7,8 +7,8 @@ import nodemailer from "nodemailer";
 dotenv.config();
 
 const expressions = {
-    name: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,15}(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,15})?$/, // nombre, solo palabras con acentos y eso, nada de numeros ni cosas raras
-    email: /^[a-zA-Z0-9._%+-]+@gmail\.(com|co)$/, // solo gmail, .com o .co. Dejar que solo sea .com, no?
+    name: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{2,50}$/, // nombre, solo palabras con acentos y eso, nada de numeros ni cosas raras
+    email: /^[a-zA-Z0-9._%+-]+@(gmail|hotmail|yahoo|proton|outlook|icloud|test)\.(com|co|me|es|org|edu.co)$/, // correos actuales
     pass: /^[a-zA-Z0-9]{8,14}$/ // contraseña, validación simple, no sé si ponerle validacion de mayusculas minusculas, números y carácteres especiales
 }
 
