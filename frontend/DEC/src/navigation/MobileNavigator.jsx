@@ -18,7 +18,7 @@ import Result from '../screens/mobile/Result';
 import HistoryScreen from '../screens/mobile/HistoryScreen';
 import Contact from '../screens/mobile/Contact';
 import Profile from '../screens/mobile/Profile';
-import { StackActions } from '@react-navigation/native';
+import EditProfile from '../screens/mobile/EditProfile';
 
 // import ManualScreen from '../screens/ManualScreen';
 
@@ -48,6 +48,7 @@ export default function AppNavigator() {
           {/* <Stack.Screen name="Manual" component={ManualScreen} /> */}
           <Stack.Screen name="Result" component={Result} /> 
           <Stack.Screen name="Profile" component={Profile} />
+          <Stack.Screen name='EditProfile' component={EditProfile}/>
         </>
       ) : (
         // --- STACK DE AUTENTICACIÓN ---

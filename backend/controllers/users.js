@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs"; // Importar bcrypt para hashear la contraseña
+import { uploadToCloudinary } from '../services/cloudinary.js';
 import Users from "../models/users.js"; // Importar el modelo de usuario (no olvidar al importar el archivo su extensión .js)
 import jwt from "jsonwebtoken";
 import dotenv from 'dotenv';
@@ -55,7 +56,6 @@ export const loginUser = async (req, res) => {
     }
 }
 // editar cuenta
-// aquí va editar la cuenta, pero por qué editaría si solo podría cambiar el nombre ajajja o si acaso el correo 🥸
 export const editUser = async (req, res) => {
     try {
         const { name } = req.body; //traer datos desde el formulario
@@ -100,3 +100,71 @@ export const deleteUser = async (req, res) => {
         res.status(500).json({ message: 'Error al eliminar cuenta', error: error.message });
     }
 }
+export const getMe = async (req, res) => {
+    try {
+      const user = await Users.findById(req.user.id).select('-password -verificationCode -codeRecuperation -codeExpiration -verificationCodeExpires');
+      res.json({ user });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  };
+  
+  // Actualizar perfil (nombre, teléfono, pictureUrl)
+  export const updateProfile = async (req, res) => {
+    try {
+      const { name, phone, pictureUrl } = req.body;
+      const updateData = {};
+      if (name) updateData.name = name;
+      if (phone) updateData.phone = phone;
+      if (pictureUrl) updateData.pictureUrl = pictureUrl;
+  
+      const user = await Users.findByIdAndUpdate(req.user.id, updateData, { new: true }).select('-password');
+      res.json({ message: 'Perfil actualizado', user });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  };
+  
+  // Cambiar contraseña
+  export const changePassword = async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+      }
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres' });
+      }
+  
+      const user = await Users.findById(req.user.id).select('+password');
+      if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+  
+      // Si tiene contraseña local
+      if (user.password) {
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) return res.status(401).json({ message: 'Contraseña actual incorrecta' });
+      } else {
+        return res.status(400).json({ message: 'No tienes contraseña local. Usa tu proveedor social.' });
+      }
+  
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+      await user.save();
+  
+      res.json({ message: 'Contraseña actualizada correctamente' });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  };
+  
+  // Subir foto de perfil
+  export const uploadProfilePicture = async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: 'No se recibió ninguna imagen' });
+      const imageUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
+      const user = await Users.findByIdAndUpdate(req.user.id, { pictureUrl: imageUrl }, { new: true });
+      res.json({ pictureUrl: user.pictureUrl });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  };
