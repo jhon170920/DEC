@@ -30,7 +30,7 @@ export default function LoginAdmin() {
 
       // 2. Validamos que el usuario tenga el ROL de administrador
       // Tu middleware onlyAdmin en el backend depende de esto
-      if (user.role !== 'admin' && email !== 'admin@dec.com') { 
+      if (user.role !== 'admin') { 
         // Nota: He puesto un ejemplo de correo por si aún no has seteado el primer admin en la DB
         throw new Error("No tienes permisos de administrador.");
       }

@@ -93,10 +93,12 @@ export default function Register() {
         try {
             // 2. Llamada a la API centralizada
             await registerUser(name, email.toLowerCase().trim(), password);
-
-            // 3. Éxito
-            Alert.alert("¡Éxito!", "Cuenta creada correctamente. Ahora puedes iniciar sesión.");
-            navigation.navigate('Login');
+             // En lugar de alertar y navegar a Login, vamos a verificación
+             Alert.alert(
+            "¡Registro exitoso!",
+            "Se ha enviado un código de verificación a tu correo."
+            );
+            navigation.navigate('VerifyCode', { email: email.toLowerCase().trim() });
 
         } catch (error) {
             console.error("Register Error:", error);

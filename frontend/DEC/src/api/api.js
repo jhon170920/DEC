@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 // 1. REGLA DE ORO: Usa tu IP privada (Ej: 192.168.1.XX) 
 // 'localhost' solo funciona dentro del emulador, no en tu celular físico.
-const BASE_URL = 'http://192.168.101.210:8089/api/'; 
+const BASE_URL = 'http://10.4.1.234:8089/api/'; 
 
 const api = axios.create({
     baseURL: BASE_URL,
@@ -55,9 +55,37 @@ export const registerUser = async (name, email, password) => {
     throw error.response ? error.response.data : new Error('Error de conexión');
   }
 };
+// VERIFICAR CODIGO PARA CULMINAR REGISTRO
+export const verifyCode = async (email, code) => {
+  try {
+    const response = await api.post('users/verify-code', { email, code });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Error de conexión');
+  }
+};
+
+// RECUPERACIÓN DE CONTRASEÑA
+export const requestRecoveryCode = async (email) => {
+  try {
+      const response = await api.post('recover/req-code', { email });
+      return response.data;
+  } catch (error) {
+      throw error.response ? error.response.data : new Error('Error de conexión');
+  }
+};
+
+export const changePasswordWithCode = async (email, code, newPass) => {
+  try {
+      const response = await api.post('recover/change-pass', { email, code, newPass });
+      return response.data;
+  } catch (error) {
+      throw error.response ? error.response.data : new Error('Error de conexión');
+  }
+};
 
 export const statsService = {
-  // Para el Pie Chart y estadísticas de línea
+  // estadísticas de línea
   getIncidence: (start, end, groupBy) => 
       api.get(`/stats/incidence?startDate=${start}&endDate=${end}&groupBy=${groupBy}`),
   

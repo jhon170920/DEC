@@ -12,9 +12,9 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import { Colors } from "../constants/colors";
-import { EditProfileStyles as styles } from "../styles/EditarPerfilstyles";
-import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
+import { Colors } from "../../constants/colors";
+import { EditProfileStyles as styles } from "../../styles/EditarPerfilstyles";
+import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 
 export default function EditProfile() {
   const navigation = useNavigation();
