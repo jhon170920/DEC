@@ -12,9 +12,9 @@ Image,
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import { Colors } from "../constants/colors";
-import { ResetPasswordStyles as styles } from "../styles/ResetPasswordstyles";
-import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
+import { Colors } from "../../constants/colors";
+import { ResetPasswordStyles as styles } from "../../styles/ResetPasswordstyles";
+import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 
 export default function ResetPassword() {
 const navigation = useNavigation();

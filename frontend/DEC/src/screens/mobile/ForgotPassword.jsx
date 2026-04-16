@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
-import { styles } from '../styles/Forgotstyles';
+import { styles } from '../../styles/Forgotstyles';
 
 const API_URL = ''; // colocar la url correspondiente
 
