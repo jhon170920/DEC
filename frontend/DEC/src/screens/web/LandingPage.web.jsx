@@ -183,7 +183,7 @@ export default function LandingPage({ navigation }) {
                   </View>
                   <View style={styles.floatingChip}>
                     <Feather name="award" size={16} color={C.accent} />
-                    <Text style={styles.floatingText}>+98% precisión en campo</Text>
+                    <Text style={styles.floatingText}>+92% precisión en campo</Text>
                   </View>
                 </View>
               </View>

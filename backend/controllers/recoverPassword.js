@@ -138,7 +138,7 @@ export const changePassword = async (req, res) => {
 
         const emailOption = {
             from: process.env.EMAIL_USER,
-            to: Users.email,
+            to: user.email,
             subject: 'Contraseña Actualizada - DEC',
             html:
             `
