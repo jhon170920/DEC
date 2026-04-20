@@ -26,7 +26,7 @@ export default function BtnloginGoogle() {
     // ----RESPONSIVE LAYOUT
     const { iconS } = useResponsiveLayout();
     // traemos la funcion que actualiza el estado del token
-    const { setUserToken } = useContext(AuthContext);
+    const { sendTokenToServer } = useContext(AuthContext);
     // para el disabled del login y seguridad
     const [loading, setLoading] = useState(false);
     // Login con navegador
@@ -44,40 +44,10 @@ export default function BtnloginGoogle() {
     useEffect(() => {
         if (response?.type === 'success') {
           const { id_token } = response.params;
-          sendTokenToServer(id_token);
+          sendTokenToServer(id_token, 'google');
         }
     }, [response]);
 
-    // Enviar al backend y validar el token de google
-    const sendTokenToServer = async (googleToken) => {
-        setLoading(true);
-        try {
-            // mandamos el googleToken para el backend y validarlo
-            // IMPORTANTE CAMBIAR LA IP DE LA URL PARA QUE FUNCIONE
-            const response = await api.post('users/auth/google',
-                {},
-                { headers: { 'Authorization': `Bearer ${googleToken}` }, timeout: 10000 }
-            );
-            // traemos nuestro propio token de la session del usuario
-            const sessionToken = response.data.token
-            if (sessionToken) {
-                // guardamos el token tanto en el secure store como en nuestro estado del token
-                await SecureStore.setItemAsync('userToken', response.data.token);
-                await setUserToken(sessionToken)
-            }
-        } catch (error) {
-            if (!error.response) {
-                // Error de red (el servidor está caído o no hay internet)
-                Alert.alert("Error de conexión", "No se pudo conectar con el servidor DEC. Verifica tu internet.");
-            } else if (error.response.status === 401) {
-                Alert.alert("Sesión inválida", "La autenticación con Google falló o expiró.");
-            } else {
-                Alert.alert("Error", "Ocurrió un problema al iniciar sesión. Inténtalo de nuevo.");
-            }
-        } finally {
-            setLoading(false);
-        }
-    }
     // funcion del boton de google
     const handleGoogleLogin = async () => {
         setLoading(true)
@@ -87,12 +57,10 @@ export default function BtnloginGoogle() {
             const userInfo = await GoogleSignin.signIn();
             // extraemos el token
             const idToken = userInfo.data?.idToken || userInfo.idToken;
-            // verificamos si hay token 
+            // verificamos si hay token y se lo mandamos al backend
             if (idToken) {
-                // y se lo mandamos al backend
-                await sendTokenToServer(idToken);
+                await sendTokenToServer(idToken, 'google');
             }
-
         } catch (error) {
             // SI NO TIENE PLAY SERVICES
             if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
@@ -103,62 +71,18 @@ export default function BtnloginGoogle() {
             if (error.code === statusCodes.SIGN_IN_CANCELLED) {
                 return; // El usuario simplemente cerró la ventana
             }
-
             if (error.code === statusCodes.IN_PROGRESS) {
                 return; // Ya se está intentando loguear
             }
-
         } finally {
             setLoading(false)
         }
     }
-    // Función para recuperar sesion de Google
-    const refreshGoogleToken = async () => {
-        try {
-            const userInfo = await GoogleSignin.signInSilently();
-            // Si hay regresamos el token de la sesion de Google
-            return userInfo?.data?.idToken;
-        } catch (error) {
-            if (error.code === statusCodes.SIGN_IN_REQUIRED) {
-                await GoogleSignin.signOut(); // Limpia el estado del SDK
-                await SecureStore.deleteItemAsync('userToken'); // Limpiar el token que está en el dispositivo
-                setUserToken(null);// Limpiar el estado global de la app
-            }
-        }
-    };
 
-    // ver si ya tiene sesion con google para que no vuelva a iniciar sesion
-    useEffect(() => {
-        const checkCurrentSessionGoogle = async () => {
-            try {
-                // Buscamos token local
-                const localToken = await SecureStore.getItemAsync('userToken');
-                if (localToken) {
-                    // Si existe el token en el dispositivo, lo cargamos al estado global de la app
-                    await setUserToken(localToken);
-                    return; // Si ya está logueado en nuestra App, no molestamos a Google.
-                }
-                // Si no hay. Revisar si el usuario tiene sesión iniciada con Google previamente en este dispositivo
-                const idToken = await refreshGoogleToken();
-                // Mandamos el token al servidor para obtener el JWT de nuestra DB
-                if (idToken) {
-                    await sendTokenToServer(idToken);
-                }
-            } catch (error) {
-                console.error("Error en el chequeo de sesión:", error);
-                // Limpieza por si algo, por si no hay token de local ni de google
-                await GoogleSignin.signOut();
-                await SecureStore.deleteItemAsync('userToken'); 
-                setUserToken(null);
-            }
-        };
-        checkCurrentSessionGoogle();
-    }, []);
     return (
         <TouchableOpacity style={styles.btn}
             onPress={handleGoogleLogin}
             disabled={loading}
-
         >
             <Image
                 source={require("../../assets/image/google.png")}
