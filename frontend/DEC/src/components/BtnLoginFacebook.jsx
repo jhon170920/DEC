@@ -12,32 +12,10 @@ export default function BtnLoginFacebook() {
     // diseño responsivo
     const { iconS } = useResponsiveLayout();
     // traemos la funcion que actualiza el estado del token
-    const { setUserToken } = useContext(AuthContext);
+    const { sendTokenToServer } = useContext(AuthContext);
     // para el disabled del login y seguridad
     const [loading, setLoading] = useState(false);
 
-    // Enviar al backend y validar el token de google
-    const sendTokenToServer = async (fbToken) => {
-        setLoading(true);
-        try {
-            // mandamos el tken al backend y lo validamos
-            const response = await api.post('users/auth/facebook', 
-            {}, 
-            { headers: { 'Authorization': `Bearer ${fbToken}` }, timeout: 10000});
-            // obtenemos el token de la respuesta del backend
-            const sessionToken = response.data.token;
-            if (sessionToken) {
-                await SecureStore.setItemAsync('userToken', sessionToken); // Actualizamos el token en el almacenamiento
-                setUserToken(sessionToken); // Actualizamos el contexto global de DEC
-            }
-        } catch (error) {
-            console.log("Error", error.response?.data?.message);
-            Alert.alert("Error: No se pudo conectar con el servidor DEC (FB)", error.response?.data?.message);
-        } finally {
-            setLoading(false);
-        }
-    }
-    // funcion del boton de facebookk
     const handleFacebookLogin = async () => {
         setLoading(true);
         try {
@@ -54,35 +32,13 @@ export default function BtnLoginFacebook() {
             const data = await AccessToken.getCurrentAccessToken();
             if (!data) throw new Error("No se pudo obtener el token de acceso");
 
-            sendTokenToServer(data.accessToken.toString());
+            sendTokenToServer(data.accessToken.toString(), 'facebook');
         } catch (error) {
             Alert.alert("Error de Conexión", "Asegúrate de estar usando tu Development Build: " + error?.message);
         } finally{
             setLoading(false)
         }
     };
-    // ver si ya tiene sesion con facebook para que no vuelva a iniciar sesion
-    useEffect(() => {
-        const checkCurrentSessionFb = async () => {
-            try {
-                const localToken = await SecureStore.getItemAsync('userToken');
-                if (localToken) {
-                    setUserToken(localToken);
-                    return;
-                }
-                const data = await AccessToken.getCurrentAccessToken();
-                if(data){
-                    console.log("sesion de facebook detectada");
-                    await sendTokenToServer(data.accessToken.toString());
-                }
-            } catch (error) {
-                console.log("No hay sesión previa activa con Fb");
-            }
-        }
-        checkCurrentSessionFb();
-    }, [])
-
- 
     // BOTON
     return (
         <TouchableOpacity style={styles.btn}
