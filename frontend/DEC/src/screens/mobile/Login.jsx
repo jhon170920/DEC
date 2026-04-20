@@ -21,57 +21,17 @@ import { AuthContext } from '../../context/AuthContext';
 import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 import { Colors } from '../../constants/colors';
 import { LoginStyles as styles } from '../../styles/Loginstyles';
+//BOTONES DE LOGIN/REGISTRO SOCIAL
+import BtnLoginFacebook from '../../components/BtnLoginFacebook.jsx';
 import BtnLoginGoogle from '../../components/BtnLoginGoogle.jsx';
+//COMPONENTE REUTILIZABLE
 import FloatingInput from '../../components/FloatingInput.jsx';
-
-// ─── CAMPO CON FLOATING LABEL ──────────────────────────────
-const Field = ({ label, value, onChangeText, secureTextEntry, keyboardType, rightSlot, fieldHeight }) => {
-  const [focused, setFocused] = useState(false);
-  const labelAnim  = useRef(new Animated.Value(value ? 1 : 0)).current;
-  const borderAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(labelAnim,  { toValue: focused || value ? 1 : 0, duration: 180, useNativeDriver: false }).start();
-    Animated.timing(borderAnim, { toValue: focused ? 1 : 0,          duration: 180, useNativeDriver: false }).start();
-  }, [focused, value]);
-
-  const labelTop    = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [fieldHeight * 0.28, fieldHeight * 0.10] });
-  const labelSize   = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [14, 10] });
-  const labelColor  = labelAnim.interpolate({ inputRange: [0, 1], outputRange: [Colors.textMuted, Colors.primaryLight] });
-  const borderColor = borderAnim.interpolate({ inputRange: [0, 1], outputRange: [Colors.border, Colors.borderFocus] });
-
-  return (
-    <Animated.View style={[styles.field, { borderColor, height: fieldHeight }]}>
-      <Animated.Text
-        style={[styles.floatingLabel, { top: labelTop, fontSize: labelSize, color: labelColor }]}
-        pointerEvents="none"
-      >
-        {focused || value ? label.toUpperCase() : label}
-      </Animated.Text>
-      <View style={styles.fieldRow}>
-        <TextInput
-          style={styles.fieldInput}
-          value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={secureTextEntry}
-          keyboardType={keyboardType || 'default'}
-          autoCapitalize="none"
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          selectionColor={Colors.primary}
-        />
-        {rightSlot}
-      </View>
-    </Animated.View>
-  );
-};
 
 // ─── PANTALLA PRINCIPAL ────────────────────────────────────
 export default function Login() {
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
 
   const navigation = useNavigation();
@@ -256,18 +216,11 @@ export default function Login() {
                         <View style={styles.divLine} />
                     </View>
 
-          {/* ── SOCIAL ── */}
-          <View style={[styles.socialRow, { marginBottom: sp(0.024) }]}>
-            {[
-              { img: require("../../../assets/image/google.png"),   label: 'Google'   },
-              { img: require("../../../assets/image/facebook.png"), label: 'Facebook' },
-            ].map(({ img, label }) => (
-              <TouchableOpacity key={label} style={[styles.socialBtn, { height: socialH }]}>
-                <Image source={img} style={{ width: iconS, height: iconS, resizeMode: 'contain' }} />
-                <Text style={styles.socialLabel}>{label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+                    {/* ── SOCIAL ── */}
+                    <View style={[styles.socialRow, { marginBottom: sp(0.024) }]}>
+                      <BtnLoginGoogle/>
+                      <BtnLoginFacebook/>
+                    </View>
 
                     {/* ── FOOTER ── */}
                     <TouchableOpacity style={styles.registerRow} onPress={() => navigation.navigate('Register')}>
