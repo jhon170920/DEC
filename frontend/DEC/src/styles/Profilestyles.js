@@ -129,4 +129,61 @@ export const ProfileStyles = StyleSheet.create({
   btnDangerText: {
     fontWeight: "600", color: "#ef4444",
   },
+  //MODAL ESTILOS
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+},
+modalBox: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    width: '80%',
+    alignItems: 'center',
+},
+modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 8,
+},
+modalSubtitle: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 20,
+    textAlign: 'center',
+},
+modalInput: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+    fontSize: 16,
+},
+modalBtn: {
+    width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+},
+modalBtnGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+},
+modalBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+},
+modalCancelBtn: {
+    paddingVertical: 10,
+},
+modalCancelText: {
+    color: '#64748b',
+    fontSize: 14,
+},
 });

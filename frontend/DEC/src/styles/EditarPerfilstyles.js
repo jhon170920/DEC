@@ -38,6 +38,12 @@ export const EditProfileStyles = StyleSheet.create({
     borderWidth: 1.5, borderColor: Colors.border,
     alignItems: "center", justifyContent: "center",
   },
+  avatarImage: {
+  width: 100,
+  height: 100,
+  borderRadius: 50,
+  resizeMode: 'cover',
+},
   avatarCameraBtn: {
     position: "absolute", bottom: 2, right: 2,
     width: 32, height: 32, borderRadius: 16,
