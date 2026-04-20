@@ -4,7 +4,6 @@ import { AuthContext } from '../context/AuthContext.js';
 import { Colors } from '../constants/colors.js'
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
-import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
 // LOGIN GOOGLE PLAY SERVICES (ANDROID PROMEDIO)
@@ -13,6 +12,7 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import { makeRedirectUri } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import api from "../api/api.js";
 // Login con navegador
 WebBrowser.maybeCompleteAuthSession();
 // Login con PlayServices
@@ -54,7 +54,7 @@ export default function BtnloginGoogle() {
         try {
             // mandamos el googleToken para el backend y validarlo
             // IMPORTANTE CAMBIAR LA IP DE LA URL PARA QUE FUNCIONE
-            const response = await axios.post('http://10.4.1.148:8089/api/users/auth/google',
+            const response = await api.post('users/auth/google',
                 {},
                 { headers: { 'Authorization': `Bearer ${googleToken}` }, timeout: 10000 }
             );
