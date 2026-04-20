@@ -3,9 +3,10 @@ import { TouchableOpacity, Text, Image, StyleSheet, Alert } from "react-native";
 import { AuthContext } from '../context/AuthContext.js';
 import { Colors } from '../constants/colors.js'
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
-import axios from 'axios';
 import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
 import * as SecureStore from 'expo-secure-store';
+import api from "../api/api.js";
+
 // PARA QUE FUNCIONE: SE DEBE INSTALAR LIBRERIAS NATIVAS, react-native-fbsdk-next. Además de modificar un poco el AppJson y volver a hacer un Build con expo. 3h masomenos. Hacer el build con el de Google de una vez
 export default function BtnLoginFacebook() {
     // diseño responsivo
@@ -20,7 +21,7 @@ export default function BtnLoginFacebook() {
         setLoading(true);
         try {
             // mandamos el tken al backend y lo validamos
-            const response = await axios.post('http://10.4.1.148:8089/api/users/auth/facebook', 
+            const response = await api.post('users/auth/facebook', 
             {}, 
             { headers: { 'Authorization': `Bearer ${fbToken}` }, timeout: 10000});
             // obtenemos el token de la respuesta del backend
