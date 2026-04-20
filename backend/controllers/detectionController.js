@@ -129,3 +129,12 @@ export const deleteUserHistory = async (req, res) => {
         res.status(500).json({ message: "Error al eliminar el historial", error: error.message });
     }
 };
+export const getUserDetectionCount = async (req, res) => {
+  try {
+    const count = await Detections.countDocuments({ userId: req.user.id });
+    res.json({ count });
+  } catch (error) {
+    console.error('Error en getUserDetectionCount:', error);
+    res.status(500).json({ message: error.message });
+  }
+};

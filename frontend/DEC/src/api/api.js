@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 // 1. REGLA DE ORO: Usa tu IP privada (Ej: 192.168.1.XX) 
 // 'localhost' solo funciona dentro del emulador, no en tu celular físico.
-const BASE_URL = 'http://10.4.1.234:8089/api/'; 
+const BASE_URL = 'http://192.168.101.210:8089/api/'; 
 
 const api = axios.create({
     baseURL: BASE_URL,
@@ -84,6 +84,19 @@ export const changePasswordWithCode = async (email, code, newPass) => {
   }
 };
 
+export const logoutUser = async () => {
+    // Solo limpia el almacenamiento local, no hay llamada al backend
+    return Promise.resolve();
+};
+
+export const deleteUserAccount = async (password) => {
+    try {
+        const response = await api.put('users/delete', { password });
+        return response.data;
+    } catch (error) {
+        throw error.response ? error.response.data : new Error('Error de conexión');
+    }
+};
 export const statsService = {
   // estadísticas de línea
   getIncidence: (start, end, groupBy) => 

@@ -101,70 +101,57 @@ export const deleteUser = async (req, res) => {
     }
 }
 export const getMe = async (req, res) => {
-    try {
-      const user = await Users.findById(req.user.id).select('-password -verificationCode -codeRecuperation -codeExpiration -verificationCodeExpires');
-      res.json({ user });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  };
-  
-  // Actualizar perfil (nombre, teléfono, pictureUrl)
-  export const updateProfile = async (req, res) => {
-    try {
-      const { name, phone, pictureUrl } = req.body;
-      const updateData = {};
-      if (name) updateData.name = name;
-      if (phone) updateData.phone = phone;
-      if (pictureUrl) updateData.pictureUrl = pictureUrl;
-  
-      const user = await Users.findByIdAndUpdate(req.user.id, updateData, { new: true }).select('-password');
-      res.json({ message: 'Perfil actualizado', user });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  };
-  
-  // Cambiar contraseña
-  export const changePassword = async (req, res) => {
-    try {
-      const { currentPassword, newPassword } = req.body;
-      if (!currentPassword || !newPassword) {
-        return res.status(400).json({ message: 'Todos los campos son obligatorios' });
-      }
-      if (newPassword.length < 8) {
-        return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres' });
-      }
-  
-      const user = await Users.findById(req.user.id).select('+password');
-      if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
-  
-      // Si tiene contraseña local
-      if (user.password) {
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
-        if (!isMatch) return res.status(401).json({ message: 'Contraseña actual incorrecta' });
-      } else {
-        return res.status(400).json({ message: 'No tienes contraseña local. Usa tu proveedor social.' });
-      }
-  
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      user.password = hashedPassword;
-      await user.save();
-  
-      res.json({ message: 'Contraseña actualizada correctamente' });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  };
-  
-  // Subir foto de perfil
-  export const uploadProfilePicture = async (req, res) => {
-    try {
-      if (!req.file) return res.status(400).json({ message: 'No se recibió ninguna imagen' });
-      const imageUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
-      const user = await Users.findByIdAndUpdate(req.user.id, { pictureUrl: imageUrl }, { new: true });
-      res.json({ pictureUrl: user.pictureUrl });
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  };
+  try {
+    const user = await Users.findById(req.user.id).select('-password -verificationCode -verificationCodeExpires -codeRecuperation -codeExpiration');
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+    res.json({ user });
+  } catch (error) {
+    console.error('Error en getMe:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, phone } = req.body;
+    const updates = {};
+    if (name) updates.name = name;
+    if (phone) updates.phone = phone;
+    
+    const user = await Users.findByIdAndUpdate(req.user.id, updates, { new: true })
+      .select('-password -verificationCode -verificationCodeExpires -codeRecuperation -codeExpiration');
+    res.json({ user, message: 'Perfil actualizado' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user = await Users.findById(req.user.id).select('+password');
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+    
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) return res.status(400).json({ message: 'Contraseña actual incorrecta' });
+    
+    if (newPassword.length < 6) return res.status(400).json({ message: 'La nueva contraseña debe tener al menos 6 caracteres' });
+    
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    res.json({ message: 'Contraseña actualizada correctamente' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const uploadProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No se recibió ninguna imagen' });
+    const imageUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
+    const user = await Users.findByIdAndUpdate(req.user.id, { pictureUrl: imageUrl }, { new: true });
+    res.json({ pictureUrl: user.pictureUrl, message: 'Foto actualizada' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

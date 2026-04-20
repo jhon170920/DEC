@@ -1,143 +1,30 @@
-import React, { useState, useRef, useContext, useEffect } from "react";
+import React, { useState, useRef, useContext, useCallback, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Image,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   StatusBar,
   ScrollView,
   Animated,
   useWindowDimensions,
+  Modal,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { AuthContext } from "../../context/AuthContext";
 import { Colors } from "../../constants/colors";
 import { MainStyles as styles } from "../../styles/MainStyles";
 import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 import { debugCheckDatabase } from "../../services/dbService";
-
-
-// ─── DROPDOWN ──────────────────────────────────────────────
-const UserDropdown = ({ visible, onClose, onProfile, onLogout }) => {
-  const scaleAnim   = useRef(new Animated.Value(0)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const mountedRef  = useRef(false);
-  const [rendered, setRendered] = useState(false);
-
-  // Montar/desmontar con animación
-  React.useEffect(() => {
-    if (visible) {
-      setRendered(true);
-      Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 220,
-          friction: 16,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 160,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(scaleAnim, {
-          toValue: 0,
-          duration: 130,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 0,
-          duration: 110,
-          useNativeDriver: true,
-        }),
-      ]).start(() => setRendered(false));
-    }
-  }, [visible]);
-
-  if (!rendered) return null;
-
-  return (
-    <>
-      {/* Backdrop para cerrar al tocar fuera */}
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={StyleSheet.absoluteFillObject} />
-      </TouchableWithoutFeedback>
-
-      <Animated.View
-        style={[
-          styles.dropdown,
-          {
-            opacity: opacityAnim,
-            transform: [
-              {
-                scale: scaleAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.88, 1],
-                }),
-              },
-              {
-                translateY: scaleAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [-10, 0],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        {/* Flecha decorativa */}
-        <View style={styles.dropArrow} />
-
-        {/* Ítem — Mi Perfil */}
-        <TouchableOpacity
-          style={styles.dropItem}
-          onPress={() => { onClose(); onProfile(); }}
-          activeOpacity={0.7}
-        >
-          <View style={styles.dropIconWrap}>
-            <Ionicons name="person-outline" size={17} color={Colors.primary} />
-          </View>
-          <View style={styles.dropTexts}>
-            <Text style={styles.dropTitle}>Mi Perfil</Text>
-            <Text style={styles.dropSub}>Ver y editar cuenta</Text>
-          </View>
-          <Feather name="chevron-right" size={15} color={Colors.textMuted} />
-        </TouchableOpacity>
-
-        {/* Divisor */}
-        <View style={styles.dropDivider} />
-
-        {/* Ítem — Cerrar sesión */}
-        <TouchableOpacity
-          style={[styles.dropItem, styles.dropItemDanger]}
-          onPress={() => { onClose(); onLogout(); }}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.dropIconWrap, styles.dropIconDanger]}>
-            <Feather name="log-out" size={17} color={Colors.danger} />
-          </View>
-          <View style={styles.dropTexts}>
-            <Text style={[styles.dropTitle, { color: Colors.danger }]}>
-              Cerrar sesión
-            </Text>
-            <Text style={styles.dropSub}>Salir de la cuenta</Text>
-          </View>
-        </TouchableOpacity>
-      </Animated.View>
-    </>
-  );
-};
+import api from "../../api/api";
 
 // ─── PANTALLA PRINCIPAL ────────────────────────────────────
 export default function MainApp() {
-  
   const {
     sp,
     hPad,
@@ -149,29 +36,112 @@ export default function MainApp() {
     btnH,
     ghostH,
     socialH,
-    iconS
+    iconS,
   } = useResponsiveLayout();
-// VERIFICAR DATOS DE BASE DE DATOS
-
-  useEffect(() => {
-  debugCheckDatabase(); // Se ejecutará cada vez que recargues la app
-}, []);
 
   const { width } = useWindowDimensions();
   const navigation = useNavigation();
-  const { logout } = useContext(AuthContext);
-  const [dropOpen, setDropOpen] = useState(false);
+  const { userToken, isGuest } = useContext(AuthContext);
+  const [userData, setUserData] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
-  const handleLogout = async () => {
+  // Verificar base de datos (solo para móvil)
+  useEffect(() => {
+    debugCheckDatabase();
+  }, []);
+
+  // Obtener datos del usuario si hay token
+  const fetchUserData = async () => {
+    if (!userToken) {
+      setUserData(null);
+      setLoadingUser(false);
+      return;
+    }
     try {
-      await logout();
+      const res = await api.get("users/me");
+      setUserData(res.data.user);
     } catch (error) {
-      console.error("Error al cerrar sesión:", error);
+      console.error("Error fetching user data:", error);
+      setUserData(null);
+    } finally {
+      setLoadingUser(false);
     }
   };
 
-  const handleProfile = () => {
-    navigation.navigate("Profile"); // ajusta el nombre de tu ruta
+  // Refrescar datos cuando la pantalla recibe foco (útil después de editar perfil)
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserData();
+    }, [userToken])
+  );
+
+  const handleAvatarPress = () => {
+    if (userToken) {
+      navigation.navigate("Profile");
+    } else {
+      setShowLoginModal(true);
+    }
+  };
+
+  const handleGoToLogin = () => {
+    setShowLoginModal(false);
+    navigation.navigate("Login");
+  };
+
+  // Obtener iniciales del nombre
+  const getUserInitials = () => {
+    if (userData?.name) {
+      return userData.name.charAt(0).toUpperCase();
+    }
+    return "?";
+  };
+
+  // Renderizar avatar (foto, iniciales o ícono)
+  const renderAvatar = () => {
+    if (loadingUser) {
+      return <ActivityIndicator size="small" color={Colors.primary} />;
+    }
+    if (userToken && userData?.pictureUrl) {
+      return (
+        <Image
+          source={{ uri: userData.pictureUrl }}
+          style={{ width: 36, height: 36, borderRadius: 18 }}
+        />
+      );
+    } else if (userToken && userData?.name) {
+      return (
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: Colors.primaryLight,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: "bold", color: Colors.primary }}>
+            {getUserInitials()}
+          </Text>
+        </View>
+      );
+    } else {
+      return (
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: "#e2e8f0",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Ionicons name="person-outline" size={20} color={Colors.textMuted} />
+        </View>
+      );
+    }
   };
 
   return (
@@ -188,54 +158,42 @@ export default function MainApp() {
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
-        onScrollBeginDrag={() => setDropOpen(false)}
       >
         {/* ── HEADER ── */}
         <View style={styles.header}>
           {/* Logo */}
-          <View style={[styles.logoRow, {marginBottom: sp(0.00028)}]}>
-            <View style={[styles.logoMark,
-              { borderRadius: logoRingS /2},
-            ]}>
+          <View style={[styles.logoRow, { marginBottom: sp(0.00028) }]}>
+            <View style={[styles.logoMark, { borderRadius: logoRingS / 2 }]}>
               <LinearGradient
                 colors={[Colors.bg, Colors.primaryLight, Colors.surface]}
                 style={StyleSheet.absoluteFill}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0, y: 0 }}
               />
-              <Image 
-              source={require("../../../assets/image/logo.png")}
-              style={{width: logoImgS, height: logoImgS}}
-              resizeMode="contain"
+              <Image
+                source={require("../../../assets/image/logo.png")}
+                style={{ width: logoImgS, height: logoImgS }}
+                resizeMode="contain"
               />
             </View>
-            
           </View>
 
-          {/* Avatar con dropdown */}
+          {/* Avatar (sin dropdown) */}
           <View style={styles.avatarWrapper}>
             <TouchableOpacity
-              onPress={() => setDropOpen((v) => !v)}
+              onPress={handleAvatarPress}
               activeOpacity={0.75}
               style={styles.avatarTouchable}
             >
-              <View style={[styles.avatarInner, dropOpen && styles.avatarActive]}>
-                <Ionicons name="person-outline" size={20} color={Colors.primary} />
+              <View
+                style={[
+                  styles.avatarInner,
+                  { backgroundColor: "transparent", borderWidth: 0 },
+                ]}
+              >
+                {renderAvatar()}
               </View>
-              <Feather
-                name={dropOpen ? "chevron-up" : "chevron-down"}
-                size={12}
-                color={Colors.textMuted}
-                style={{ marginTop: 2 }}
-              />
             </TouchableOpacity>
-
-            <UserDropdown
-              visible={dropOpen}
-              onClose={() => setDropOpen(false)}
-              onProfile={handleProfile}
-              onLogout={handleLogout}
-            />
           </View>
         </View>
 
@@ -257,7 +215,9 @@ export default function MainApp() {
             <Text style={styles.badgeText}>Detección activa</Text>
           </View>
           <Image
-            source={{ uri: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6" }}
+            source={{
+              uri: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6",
+            }}
             style={[styles.image, { width: width - 56 }]}
           />
           <LinearGradient
@@ -269,7 +229,11 @@ export default function MainApp() {
         </View>
 
         {/* ── BOTÓN SCAN ── */}
-        <TouchableOpacity style={styles.scanBtn} activeOpacity={0.85} onPress={() =>navigation.navigate("Camera")}>
+        <TouchableOpacity
+          style={styles.scanBtn}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate("Camera")}
+        >
           <LinearGradient
             colors={["#22c55e", "#16a34a", "#15803d"]}
             style={styles.scanGradient}
@@ -290,46 +254,92 @@ export default function MainApp() {
         </View>
 
         <View style={styles.menuList}>
-            
+          <TouchableOpacity
+            style={styles.menuCard}
+            activeOpacity={0.75}
+            onPress={() => navigation.navigate("History")}
+          >
+            <View style={styles.menuIconWrap}>
+              <Feather name="search" size={24} color={Colors.primary} />
+            </View>
+            <View style={styles.menuTexts}>
+              <Text style={styles.menuTitle}>Mis Análisis</Text>
+              <Text style={styles.menuSub}>Escaneos recientes de plantas</Text>
+            </View>
+            <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
 
-            <View style={styles.menuList}>
+          <TouchableOpacity
+            style={styles.menuCard}
+            activeOpacity={0.75}
+            onPress={() => navigation.navigate("Manual")}
+          >
+            <View style={styles.menuIconWrap}>
+              <Feather name="book-open" size={24} color={Colors.primary} />
+            </View>
+            <View style={styles.menuTexts}>
+              <Text style={styles.menuTitle}>Ayuda</Text>
+              <Text style={styles.menuSub}>Manual de uso</Text>
+            </View>
+            <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
 
-  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("History")}>
-    <View style={styles.menuIconWrap}>
-      <Feather name="search" size={24} color={Colors.primary} />
-    </View>
-    <View style={styles.menuTexts}>
-      <Text style={styles.menuTitle}>Mis Análisis</Text>
-      <Text style={styles.menuSub}>Escaneos recientes de plantas</Text>
-    </View>
-    <Feather name="chevron-right" size={16} color={Colors.textMuted} />
-  </TouchableOpacity>
-
-  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("Manual")}>
-    <View style={styles.menuIconWrap}>
-      <Feather name="book-open" size={24} color={Colors.primary} />
-    </View>
-    <View style={styles.menuTexts}>
-      <Text style={styles.menuTitle}>Ayuda</Text>
-      <Text style={styles.menuSub}>Manual de uso</Text>
-    </View>
-    <Feather name="chevron-right" size={16} color={Colors.textMuted} />
-  </TouchableOpacity>
-
-  <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => navigation.navigate("Contact")}>
-    <View style={styles.menuIconWrap}>
-      <Feather name="message-circle" size={24} color={Colors.primary} />
-    </View>
-    <View style={styles.menuTexts}>
-      <Text style={styles.menuTitle}>Contáctanos</Text>
-      <Text style={styles.menuSub}>Medios de atención</Text>
-    </View>
-    <Feather name="chevron-right" size={16} color={Colors.textMuted} />
-  </TouchableOpacity>
-
-</View>
-</View>
+          <TouchableOpacity
+            style={styles.menuCard}
+            activeOpacity={0.75}
+            onPress={() => navigation.navigate("Contact")}
+          >
+            <View style={styles.menuIconWrap}>
+              <Feather name="message-circle" size={24} color={Colors.primary} />
+            </View>
+            <View style={styles.menuTexts}>
+              <Text style={styles.menuTitle}>Contáctanos</Text>
+              <Text style={styles.menuSub}>Medios de atención</Text>
+            </View>
+            <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
+        </View>
       </ScrollView>
+
+      {/* Modal para usuarios no logueados */}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={showLoginModal}
+        onRequestClose={() => setShowLoginModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Ionicons name="log-in-outline" size={48} color={Colors.primary} />
+            <Text style={styles.modalTitle}>Inicia sesión</Text>
+            <Text style={styles.modalSubtitle}>
+              Para acceder a tu perfil y guardar tus análisis, inicia sesión o
+              regístrate.
+            </Text>
+            <TouchableOpacity
+              style={styles.modalBtn}
+              activeOpacity={0.85}
+              onPress={handleGoToLogin}
+            >
+              <LinearGradient
+                colors={["#22c55e", "#16a34a", "#15803d"]}
+                style={styles.modalBtnGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.modalBtnText}>Iniciar sesión</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalCancelBtn}
+              activeOpacity={0.75}
+              onPress={() => setShowLoginModal(false)}
+            >
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

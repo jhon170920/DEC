@@ -173,4 +173,57 @@ export const MainStyles = StyleSheet.create({
   menuTexts: { flex: 1 },
   menuTitle: { fontSize: 14.5, fontWeight: "700", color: Colors.text, letterSpacing: -0.1, marginBottom: 2 },
   menuSub:   { fontSize: 12, color: Colors.textMuted, fontWeight: "400" },
+  modalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(0,0,0,0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+modalBox: {
+  width: '80%',
+  backgroundColor: '#fff',
+  borderRadius: 20,
+  padding: 24,
+  alignItems: 'center',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.25,
+  shadowRadius: 4,
+  elevation: 5,
+},
+modalTitle: {
+  fontSize: 20,
+  fontWeight: 'bold',
+  marginTop: 12,
+  marginBottom: 8,
+  color: Colors.text,
+},
+modalSubtitle: {
+  fontSize: 14,
+  color: Colors.textMuted,
+  textAlign: 'center',
+  marginBottom: 24,
+},
+modalBtn: {
+  width: '100%',
+  borderRadius: 12,
+  overflow: 'hidden',
+  marginBottom: 12,
+},
+modalBtnGradient: {
+  paddingVertical: 12,
+  alignItems: 'center',
+},
+modalBtnText: {
+  color: '#fff',
+  fontWeight: 'bold',
+  fontSize: 16,
+},
+modalCancelBtn: {
+  paddingVertical: 8,
+},
+modalCancelText: {
+  color: Colors.textMuted,
+  fontSize: 14,
+},
 });
