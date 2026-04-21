@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity, Alert,
-  StatusBar, StyleSheet
+  StatusBar, StyleSheet, Modal, FlatList
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Colors } from '../../constants/colors';
-import { saveTreatmentLog, updateTreatmentLog, getTreatmentLogById } from '../../services/dbService';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { Colors } from '../../constants/colors';
+import {
+  saveTreatmentLog,
+  updateTreatmentLog,
+  getTreatmentLogById,
+  getAllDetectionsForSelector
+} from '../../services/dbService';
 
 export default function TreatmentFormScreen() {
   const navigation = useNavigation();
@@ -19,27 +24,59 @@ export default function TreatmentFormScreen() {
   const [generalNotes, setGeneralNotes] = useState('');
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [detections, setDetections] = useState([]);
+  const [showDetectionModal, setShowDetectionModal] = useState(false);
+  const [selectedDetection, setSelectedDetection] = useState(null);
+
+  // Estado temporal para agregar/editar producto
   const [showProductModal, setShowProductModal] = useState(false);
   const [tempProduct, setTempProduct] = useState({ product_name: '', dose: '', application_date: '', notes: '' });
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentProductIndex, setCurrentProductIndex] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerTarget, setDatePickerTarget] = useState(null); // 'temp' o 'edit'
 
+  // Cargar lista de detecciones para el selector
+  useEffect(() => {
+    const loadDetections = async () => {
+      const data = await getAllDetectionsForSelector();
+      setDetections(data);
+    };
+    loadDetections();
+  }, []);
+
+  // Si estamos editando, cargar los datos del seguimiento
   useEffect(() => {
     if (logId) {
+      const loadLog = async () => {
+        const log = await getTreatmentLogById(logId);
+        if (log) {
+          setDiseaseName(log.disease_name);
+          setGeneralNotes(log.general_notes || '');
+          setProducts(log.products || []);
+          if (log.detection_id) {
+            const found = detections.find(d => d.id === log.detection_id);
+            if (found) setSelectedDetection(found);
+          }
+        }
+      };
       loadLog();
     }
-  }, [logId]);
+  }, [logId, detections]);
 
-  const loadLog = async () => {
-    const log = await getTreatmentLogById(logId);
-    if (log) {
-      setDiseaseName(log.disease_name);
-      setGeneralNotes(log.general_notes || '');
-      setProducts(log.products || []);
-    }
+  // ------ Productos ------
+  const openAddProduct = () => {
+    setTempProduct({ product_name: '', dose: '', application_date: '', notes: '' });
+    setCurrentProductIndex(null);
+    setShowProductModal(true);
   };
 
-  const addProduct = () => {
+  const openEditProduct = (index) => {
+    setTempProduct(products[index]);
+    setCurrentProductIndex(index);
+    setShowProductModal(true);
+  };
+
+  const saveProduct = () => {
     if (!tempProduct.product_name.trim()) {
       Alert.alert('Error', 'El nombre del producto es obligatorio');
       return;
@@ -48,18 +85,12 @@ export default function TreatmentFormScreen() {
       const updated = [...products];
       updated[currentProductIndex] = { ...tempProduct };
       setProducts(updated);
-      setCurrentProductIndex(null);
     } else {
       setProducts([...products, { ...tempProduct }]);
     }
-    setTempProduct({ product_name: '', dose: '', application_date: '', notes: '' });
     setShowProductModal(false);
-  };
-
-  const editProduct = (index) => {
-    setTempProduct(products[index]);
-    setCurrentProductIndex(index);
-    setShowProductModal(true);
+    setTempProduct({ product_name: '', dose: '', application_date: '', notes: '' });
+    setCurrentProductIndex(null);
   };
 
   const removeProduct = (index) => {
@@ -68,6 +99,30 @@ export default function TreatmentFormScreen() {
     setProducts(updated);
   };
 
+  // ------ Detección asociada ------
+  const handleSelectDetection = (detection) => {
+    setSelectedDetection(detection);
+    setDiseaseName(detection.disease_name);
+    setShowDetectionModal(false);
+  };
+
+  // ------ Fecha para producto ------
+  const showDatePickerForProduct = () => {
+    setDatePickerTarget('temp');
+    setShowDatePicker(true);
+  };
+
+  const handleDateConfirm = (date) => {
+    setShowDatePicker(false);
+    if (date) {
+      const formattedDate = date.toISOString();
+      if (datePickerTarget === 'temp') {
+        setTempProduct({ ...tempProduct, application_date: formattedDate });
+      }
+    }
+  };
+
+  // ------ Guardar seguimiento ------
   const handleSave = async () => {
     if (!diseaseName.trim()) {
       Alert.alert('Error', 'Ingresa el nombre de la enfermedad o afección');
@@ -78,7 +133,7 @@ export default function TreatmentFormScreen() {
       const logData = {
         disease_name: diseaseName.trim(),
         general_notes: generalNotes.trim(),
-        detection_id: null,
+        detection_id: selectedDetection ? selectedDetection.id : null,
         products: products.map(p => ({
           product_name: p.product_name,
           dose: p.dose,
@@ -95,36 +150,19 @@ export default function TreatmentFormScreen() {
       }
       navigation.goBack();
     } catch (error) {
+      console.error(error);
       Alert.alert('Error', 'No se pudo guardar el seguimiento');
     } finally {
       setLoading(false);
     }
   };
 
-  const renderProduct = (item, index) => (
-    <View style={styles.productCard} key={index}>
-      <View style={styles.productHeader}>
-        <Text style={styles.productName}>{item.product_name}</Text>
-        <View style={styles.productActions}>
-          <TouchableOpacity onPress={() => editProduct(index)}>
-            <Feather name="edit-2" size={18} color={Colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => removeProduct(index)} style={{ marginLeft: 12 }}>
-            <Feather name="trash-2" size={18} color="#dc2626" />
-          </TouchableOpacity>
-        </View>
-      </View>
-      {item.dose ? <Text style={styles.productDetail}>💊 Dosis: {item.dose}</Text> : null}
-      {item.application_date ? <Text style={styles.productDetail}>📅 Aplicación: {new Date(item.application_date).toLocaleDateString()}</Text> : null}
-      {item.notes ? <Text style={styles.productDetail}>📝 {item.notes}</Text> : null}
-    </View>
-  );
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
       <LinearGradient colors={['#e8f5ec', '#f4faf5']} style={StyleSheet.absoluteFill} />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Feather name="arrow-left" size={24} color={Colors.primary} />
@@ -134,6 +172,20 @@ export default function TreatmentFormScreen() {
         </View>
 
         <View style={styles.card}>
+          {/* Botón para asociar detección */}
+          <TouchableOpacity style={styles.selectDetectionBtn} onPress={() => setShowDetectionModal(true)}>
+            <Feather name="search" size={18} color={Colors.primary} />
+            <Text style={styles.selectDetectionText}>Asociar a una detección del historial</Text>
+          </TouchableOpacity>
+          {selectedDetection && (
+            <View style={styles.selectedInfo}>
+              <Feather name="check-circle" size={14} color={Colors.primary} />
+              <Text style={styles.selectedText}>
+                Asociado a: {new Date(selectedDetection.created_at).toLocaleDateString()}
+              </Text>
+            </View>
+          )}
+
           <Text style={styles.label}>Enfermedad / Afección *</Text>
           <TextInput
             style={styles.input}
@@ -156,9 +208,28 @@ export default function TreatmentFormScreen() {
           {products.length === 0 ? (
             <Text style={styles.emptyList}>No hay productos agregados</Text>
           ) : (
-            products.map((item, index) => renderProduct(item, index))
+            products.map((item, index) => (
+              <View key={index} style={styles.productCard}>
+                <View style={styles.productHeader}>
+                  <Text style={styles.productName}>{item.product_name}</Text>
+                  <View style={styles.productActions}>
+                    <TouchableOpacity onPress={() => openEditProduct(index)}>
+                      <Feather name="edit-2" size={18} color={Colors.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => removeProduct(index)} style={{ marginLeft: 12 }}>
+                      <Feather name="trash-2" size={18} color="#dc2626" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                {item.dose ? <Text style={styles.productDetail}>💊 Dosis: {item.dose}</Text> : null}
+                {item.application_date ? (
+                  <Text style={styles.productDetail}>📅 Aplicación: {new Date(item.application_date).toLocaleDateString()}</Text>
+                ) : null}
+                {item.notes ? <Text style={styles.productDetail}>📝 {item.notes}</Text> : null}
+              </View>
+            ))
           )}
-          <TouchableOpacity style={styles.addProductBtn} onPress={() => setShowProductModal(true)}>
+          <TouchableOpacity style={styles.addProductBtn} onPress={openAddProduct}>
             <Feather name="plus" size={20} color={Colors.primary} />
             <Text style={styles.addProductText}>Agregar producto</Text>
           </TouchableOpacity>
@@ -171,7 +242,31 @@ export default function TreatmentFormScreen() {
         </View>
       </ScrollView>
 
-      {showProductModal && (
+      {/* Modal para seleccionar detección */}
+      <Modal visible={showDetectionModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Seleccionar detección</Text>
+            <FlatList
+              data={detections}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={styles.detectionItem} onPress={() => handleSelectDetection(item)}>
+                  <Text style={styles.detectionDisease}>{item.disease_name}</Text>
+                  <Text style={styles.detectionDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<Text style={styles.emptyText}>No hay detecciones registradas</Text>}
+            />
+            <TouchableOpacity style={styles.modalClose} onPress={() => setShowDetectionModal(false)}>
+              <Text style={styles.modalCloseText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal para agregar/editar producto */}
+      <Modal visible={showProductModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>{currentProductIndex !== null ? 'Editar producto' : 'Nuevo producto'}</Text>
@@ -187,7 +282,7 @@ export default function TreatmentFormScreen() {
               value={tempProduct.dose}
               onChangeText={(text) => setTempProduct({ ...tempProduct, dose: text })}
             />
-            <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+            <TouchableOpacity onPress={showDatePickerForProduct}>
               <TextInput
                 style={styles.modalInput}
                 placeholder="Fecha de aplicación"
@@ -206,21 +301,21 @@ export default function TreatmentFormScreen() {
               <TouchableOpacity style={styles.modalCancel} onPress={() => setShowProductModal(false)}>
                 <Text>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalConfirm} onPress={addProduct}>
+              <TouchableOpacity style={styles.modalConfirm} onPress={saveProduct}>
                 <Text style={{ color: '#fff' }}>Aceptar</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
-      )}
+      </Modal>
+
       <DateTimePickerModal
         isVisible={showDatePicker}
-        mode="date"
-        onConfirm={(date) => {
-          setShowDatePicker(false);
-          setTempProduct({ ...tempProduct, application_date: date.toISOString() });
-        }}
+        mode="datetime"
+        onConfirm={handleDateConfirm}
         onCancel={() => setShowDatePicker(false)}
+        minimumDate={new Date()}
+        locale="es_ES"
       />
     </View>
   );
@@ -228,30 +323,208 @@ export default function TreatmentFormScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
-  scroll: { paddingBottom: 30 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15 },
+  scrollContent: { paddingBottom: 30 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
   backBtn: { padding: 5 },
   title: { fontSize: 20, fontWeight: 'bold', color: Colors.text },
-  card: { backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 20, padding: 20, elevation: 3 },
-  label: { fontSize: 16, fontWeight: '600', color: '#2C3E50', marginBottom: 5, marginTop: 10 },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 16, marginBottom: 10 },
-  textArea: { height: 80, textAlignVertical: 'top' },
-  productCard: { backgroundColor: '#f8fafc', borderRadius: 8, padding: 10, marginBottom: 8 },
-  productHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  productName: { fontSize: 16, fontWeight: 'bold', color: Colors.primary },
-  productActions: { flexDirection: 'row' },
-  productDetail: { fontSize: 13, color: '#475569', marginTop: 4 },
-  emptyList: { fontSize: 14, color: Colors.textMuted, textAlign: 'center', marginVertical: 10 },
-  addProductBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 5, marginBottom: 15 },
-  addProductText: { color: Colors.primary, marginLeft: 8, fontWeight: '600' },
-  saveBtn: { marginTop: 20, borderRadius: 12, overflow: 'hidden' },
-  saveGradient: { paddingVertical: 12, alignItems: 'center' },
-  saveText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalBox: { width: '85%', backgroundColor: '#fff', borderRadius: 20, padding: 20 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
-  modalInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16 },
-  modalButtons: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  modalCancel: { flex: 1, padding: 10, alignItems: 'center', backgroundColor: '#e2e8f0', borderRadius: 8, marginRight: 8 },
-  modalConfirm: { flex: 1, padding: 10, alignItems: 'center', backgroundColor: Colors.primary, borderRadius: 8, marginLeft: 8 }
+  card: {
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    borderRadius: 20,
+    padding: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  selectDetectionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 10,
+  },
+  selectDetectionText: {
+    color: Colors.primary,
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  selectedInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 5,
+  },
+  selectedText: {
+    fontSize: 12,
+    color: '#475569',
+    marginLeft: 6,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginBottom: 5,
+    marginTop: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  productCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+  },
+  productHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.primary,
+  },
+  productActions: {
+    flexDirection: 'row',
+  },
+  productDetail: {
+    fontSize: 13,
+    color: '#475569',
+    marginTop: 4,
+  },
+  emptyList: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginVertical: 10,
+  },
+  addProductBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+    marginBottom: 15,
+  },
+  addProductText: {
+    color: Colors.primary,
+    marginLeft: 8,
+    fontWeight: '600',
+  },
+  saveBtn: {
+    marginTop: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  saveGradient: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  saveText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '85%',
+    maxHeight: '70%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  detectionItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  detectionDisease: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.primary,
+  },
+  detectionDate: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: Colors.textMuted,
+    marginVertical: 20,
+  },
+  modalClose: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    fontWeight: '500',
+  },
+  modalBox: {
+    width: '85%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    fontSize: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  modalCancel: {
+    flex: 1,
+    padding: 10,
+    alignItems: 'center',
+    backgroundColor: '#e2e8f0',
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  modalConfirm: {
+    flex: 1,
+    padding: 10,
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
 });

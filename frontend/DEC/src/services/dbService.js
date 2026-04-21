@@ -315,5 +315,13 @@ export const debugCheckDatabase = () => {
     console.error("Error en debug:", error);
   }
 };
+export const getAllDetectionsForSelector = () =>{
+  try {
+    return db.getAllAsync('SELECT id, disease_name, created_at FROM remote_detections ORDER BY create_at DESC');
+  } catch (error) {
+    console.error("Error obteniendo detecciones", error);
+    return[];
+  }
+}
 
 

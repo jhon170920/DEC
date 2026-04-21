@@ -70,5 +70,6 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
         elevation: 1,
     },
+    
     label: { fontSize: 11, fontWeight: '700', color: Colors.textMid, letterSpacing: 0.2 },
 });
