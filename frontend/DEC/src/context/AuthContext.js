@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect } from 'react';
 import { Platform, Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { syncPathologiesLocal } from '../services/dbService';
-import api from '../api/api';
+import api, { deleteUserAccountSocial } from '../api/api';
 import { syncDetections, syncServerToLocal } from '../services/syncService';
 import { registerForPushNotificationsAsync } from '../services/notificationService';
 
@@ -181,6 +181,38 @@ export const AuthProvider = ({ children }) => {
       console.error("Error durante logout:", error);
     }
   };
+  // Elmininar permisos si se  si se creó con fb/google
+  const RevokeAccessSocial = async () => {
+    try {
+      if(Platform.OS !== 'web'){
+        // Solo intentamos revocar Google si hay sesión activa
+        const hasGoogle = await GoogleSignin.hasPreviousSignIn();
+        if (hasGoogle) {
+            await GoogleSignin.revokeAccess(); // Elimina el permiso de la App en su cuenta de Google
+            console.log("Cuenta con Google eliminada") 
+        }
+        // Función de facebook (Revocación mediante Graph API)
+        const revokeFB = () => new Promise((resolve, reject) => {
+          const request = new GraphRequest('/me/permissions', { method: 'DELETE' }, (err, res) => {
+            if (err) {
+              console.error('Error Graph API:', err);
+              reject(err);
+            } else {
+              console.log('Acceso a los datos de Facebook eliminado con éxito.');
+              resolve(result);
+            }
+          });
+          new GraphRequestManager().addRequest(request).start();
+        });
+        // Solo intentamos revocar FB si hay sesión activa
+        const fbData = await AccessToken.getCurrentAccessToken();
+        if (fbData) await revokeFB();
+        console.log("Permisos removidos de Facebook/Google")
+      }
+    } catch (error) {
+      console.error("Error durante eliminar cuentas sociales", error);
+    }
+  }
 
   const enterAsGuest = () => {
     setIsGuest(true);
@@ -188,7 +220,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ userToken, setUserToken, isLoading, isGuest, login, logout, enterAsGuest, sendTokenToServer }}>
+    <AuthContext.Provider value={{ userToken, setUserToken, isLoading, isGuest, login, logout, RevokeAccessSocial, enterAsGuest, sendTokenToServer }}>
       {children}
     </AuthContext.Provider>
   );

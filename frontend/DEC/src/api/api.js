@@ -88,15 +88,26 @@ export const logoutUser = async () => {
     // Solo limpia el almacenamiento local, no hay llamada al backend
     return Promise.resolve();
 };
-
+// Eliminar cuenta si creó la cuenta con el formilario
 export const deleteUserAccount = async (password) => {
     try {
-        const response = await api.put('users/delete', { password });
-        return response.data;
+      const response = await api.delete('users/delete', {
+        data: { password }
+      });
+      return response.data;
     } catch (error) {
-        throw error.response ? error.response.data : new Error('Error de conexión');
+      throw error.response ? error.response.data : new Error('Error de conexión');
     }
 };
+// Eliminar cuenta si creó la cuenta con Google o Facebook
+export const deleteUserAccountSocial = async () => {
+  try {
+    const response = await api.delete('users/delete-social');
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Error de conexión');
+  }
+}
 export const statsService = {
   // estadísticas de línea
   getIncidence: (start, end, groupBy) => 
