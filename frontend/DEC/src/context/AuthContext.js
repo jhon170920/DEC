@@ -199,7 +199,7 @@ export const AuthProvider = ({ children }) => {
               reject(err);
             } else {
               console.log('Acceso a los datos de Facebook eliminado con éxito.');
-              resolve(result);
+              resolve(res);
             }
           });
           new GraphRequestManager().addRequest(request).start();
