@@ -19,6 +19,7 @@ import HistoryScreen from '../screens/mobile/HistoryScreen';
 import Contact from '../screens/mobile/Contact';
 import Profile from '../screens/mobile/Profile';
 import EditProfile from '../screens/mobile/EditProfile';
+import DetectionDetail from '../screens/mobile/DetectionDetailScreen';
 
 // import ManualScreen from '../screens/ManualScreen';
 
@@ -49,6 +50,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Result" component={Result} /> 
           <Stack.Screen name="Profile" component={Profile} />
           <Stack.Screen name='EditProfile' component={EditProfile}/>
+          <Stack.Screen name='DetectionDetail' component={DetectionDetail}/>
         </>
       ) : (
         // --- STACK DE AUTENTICACIÓN ---
