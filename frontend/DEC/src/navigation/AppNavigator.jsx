@@ -1,12 +1,23 @@
 import React, { useContext } from 'react';
 import { Platform, View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-
-// Contexto compartido (Este es seguro porque solo tiene lógica)
 import { AuthContext } from '../context/AuthContext';
+import { navigationRef } from './RootNavigation';
 
 export default function AppNavigator() {
-  const { isLoading } = useContext(AuthContext);
+  const auth = useContext(AuthContext);
+
+  // Validación por si el contexto no está disponible
+  if (!auth) {
+    console.warn('AuthContext no está disponible. Asegúrate de que AuthProvider envuelva AppNavigator.');
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#e6f3ef' }}>
+        <ActivityIndicator size="large" color="#16a34a" />
+      </View>
+    );
+  }
+
+  const { isLoading } = auth;
 
   if (isLoading) {
     return (
@@ -16,8 +27,6 @@ export default function AppNavigator() {
     );
   }
 
-  // --- CARGA DINÁMICA POR PLATAFORMA ---
-  // Esto evita que la Web intente importar librerías de Android/iOS
   const RenderNavigator = () => {
     if (Platform.OS === 'web') {
       const WebNavigator = require('./WebNavigator.web').default;
@@ -29,7 +38,7 @@ export default function AppNavigator() {
   };
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <RenderNavigator />
     </NavigationContainer>
   );

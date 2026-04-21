@@ -27,10 +27,10 @@ export const initDatabase = () => {
     );
   `);
 
-  // NUEVA TABLA: detecciones descargadas desde MongoDB (servidor → local)
+  // Tabla de detecciones descargadas desde MongoDB (servidor → local)
   db.execSync(`
     CREATE TABLE IF NOT EXISTS remote_detections (
-      id TEXT PRIMARY KEY,               -- _id de MongoDB
+      id TEXT PRIMARY KEY,
       disease_name TEXT,
       confidence REAL,
       image_url TEXT,
@@ -40,9 +40,39 @@ export const initDatabase = () => {
       created_at TEXT
     );
   `);
+
+  // Tabla de notas de tratamiento (seguimiento del usuario)
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS treatment_notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      detection_id TEXT NOT NULL,
+      disease_name TEXT,
+      product_name TEXT,
+      dose TEXT,
+      application_date TEXT,
+      notes TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (detection_id) REFERENCES remote_detections(id) ON DELETE CASCADE
+    );
+  `);
+
+  // Tabla de alarmas programadas localmente
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS alarms (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      detection_id TEXT NOT NULL,
+      title TEXT,
+      message TEXT,
+      trigger_date TEXT,    -- Fecha ISO
+      active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (detection_id) REFERENCES remote_detections(id) ON DELETE CASCADE
+    );
+  `);
 };
 
-// --- Guardar detección local (pendiente de subir) ---
+// --- Detecciones pendientes (local → servidor) ---
 export const saveDetectionLocal = (disease, confidence, imageUri, lat, lng) => {
   const date = new Date().toISOString();
   return db.runSync(
@@ -51,7 +81,26 @@ export const saveDetectionLocal = (disease, confidence, imageUri, lat, lng) => {
   );
 };
 
-// --- Guardar/actualizar detecciones bajadas del servidor ---
+export const getUnsyncedDetections = () => db.getAllSync('SELECT * FROM detections WHERE synced = 0');
+export const markAsSynced = (id) => db.runSync('UPDATE detections SET synced = 1 WHERE id = ?', [id]);
+
+// --- Catálogo offline ---
+export const syncPathologiesLocal = (pathologyList) => {
+  try {
+    db.withTransactionSync(() => {
+      pathologyList.forEach(p => {
+        db.runSync('INSERT OR REPLACE INTO pathologies (name, description, treatment) VALUES (?, ?, ?)',
+          [p.name, p.description, p.treatment]);
+      });
+    });
+    console.log("✅ Catálogo SQLite actualizado");
+  } catch (error) {
+    console.error("Error sincronizando catálogo local:", error);
+  }
+};
+export const getPathologyByName = (name) => db.getFirstSync('SELECT * FROM pathologies WHERE name = ?', [name]);
+
+// --- Detecciones descargadas (servidor → local) ---
 export const saveRemoteDetections = (detections) => {
   try {
     db.withTransactionSync(() => {
@@ -75,96 +124,96 @@ export const saveRemoteDetections = (detections) => {
     console.error("Error guardando detecciones remotas:", error);
   }
 };
+export const getAllRemoteDetections = () => db.getAllSync('SELECT * FROM remote_detections ORDER BY created_at DESC');
+export const getRemoteDetectionsPaginated = (limit, offset) =>
+  db.getAllSync('SELECT * FROM remote_detections ORDER BY created_at DESC LIMIT ? OFFSET ?', [limit, offset]);
+export const getRemoteDetectionsCount = () => db.getFirstSync('SELECT COUNT(*) as total FROM remote_detections')?.total || 0;
+export const clearRemoteDetections = () => db.runSync('DELETE FROM remote_detections');
 
-// --- Obtener todas las detecciones remotas (ordenadas) ---
-export const getAllRemoteDetections = () => {
+// --- Notas de tratamiento ---
+export const saveTreatmentNote = (note) => {
   try {
-    return db.getAllSync('SELECT * FROM remote_detections ORDER BY created_at DESC');
+    const { detection_id, disease_name, product_name, dose, application_date, notes } = note;
+    const existing = db.getFirstSync('SELECT id FROM treatment_notes WHERE detection_id = ?', [detection_id]);
+    if (existing) {
+      db.runSync(
+        `UPDATE treatment_notes SET 
+          disease_name = ?, product_name = ?, dose = ?, application_date = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE detection_id = ?`,
+        [disease_name, product_name, dose, application_date, notes, detection_id]
+      );
+    } else {
+      db.runSync(
+        `INSERT INTO treatment_notes 
+         (detection_id, disease_name, product_name, dose, application_date, notes)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [detection_id, disease_name, product_name, dose, application_date, notes]
+      );
+    }
   } catch (error) {
-    console.error("Error obteniendo detecciones remotas:", error);
-    return [];
+    console.error("Error guardando nota de tratamiento:", error);
   }
 };
+export const getTreatmentNoteByDetectionId = (detection_id) =>
+  db.getFirstSync('SELECT * FROM treatment_notes WHERE detection_id = ?', [detection_id]);
+export const deleteTreatmentNote = (detection_id) =>
+  db.runSync('DELETE FROM treatment_notes WHERE detection_id = ?', [detection_id]);
+export const getAllTreatmentNotes = () => db.getAllSync('SELECT * FROM treatment_notes ORDER BY application_date DESC');
 
-// --- Paginación local ---
-export const getRemoteDetectionsPaginated = (limit, offset) => {
+// --- Alarmas locales ---
+export const saveAlarm = (alarm) => {
   try {
-    return db.getAllSync(
-      'SELECT * FROM remote_detections ORDER BY created_at DESC LIMIT ? OFFSET ?',
-      [limit, offset]
+    const { detection_id, title, message, trigger_date } = alarm;
+    const result = db.runSync(
+      `INSERT INTO alarms (detection_id, title, message, trigger_date, active)
+       VALUES (?, ?, ?, ?, 1)`,
+      [detection_id, title, message, trigger_date]
     );
+    return result.lastInsertRowId;
   } catch (error) {
-    console.error("Error en paginación local:", error);
-    return [];
+    console.error("Error guardando alarma:", error);
   }
 };
-
-// --- Contar total de detecciones remotas ---
-export const getRemoteDetectionsCount = () => {
+// Obtener alarmas activas para una detección específica
+export const getAlarmsByDetection = (detection_id) =>
+  db.getAllSync('SELECT * FROM alarms WHERE detection_id = ? AND active = 1 ORDER BY trigger_date ASC', [detection_id]);
+// Obtener todas las alarmas activas (para reprogramar al iniciar la app)
+export const getAllActiveAlarms = () =>
+  db.getAllSync('SELECT * FROM alarms WHERE active = 1 ORDER BY trigger_date ASC');
+// Desactivar alarma (sin eliminar, para mantener historial)
+export const deactivateAlarm = (alarmId) =>
+  db.runSync('UPDATE alarms SET active = 0 WHERE id = ?', [alarmId]);
+// Eliminar alarma completamente
+export const deleteAlarm = (alarmId) => {
   try {
-    const result = db.getFirstSync('SELECT COUNT(*) as total FROM remote_detections');
-    return result?.total || 0;
+    db.runSync('DELETE FROM alarms WHERE id = ?', [alarmId]);
+    console.log(`🗑️ Alarma ${alarmId} eliminada de SQLite`);
   } catch (error) {
-    console.error("Error contando detecciones:", error);
-    return 0;
+    console.error("Error eliminando alarma:", error);
   }
 };
-
-// --- Limpiar tabla remota (útil para resincronizar) ---
-export const clearRemoteDetections = () => {
+// Obtener una detección remota por su ID (para detalle)
+export const getRemoteDetectionById = (id) => {
   try {
-    db.runSync('DELETE FROM remote_detections');
-    console.log("🗑️ Detecciones remotas eliminadas");
+    return db.getFirstSync('SELECT * FROM remote_detections WHERE id = ?', [id]);
   } catch (error) {
-    console.error("Error limpiando tabla remota:", error);
-  }
-};
-
-// --- Funciones para catálogo y sincronización local → servidor (ya existentes) ---
-export const syncPathologiesLocal = (pathologyList) => {
-  try {
-    db.withTransactionSync(() => {
-      pathologyList.forEach(p => {
-        db.runSync(
-          'INSERT OR REPLACE INTO pathologies (name, description, treatment) VALUES (?, ?, ?)',
-          [p.name, p.description, p.treatment]
-        );
-      });
-    });
-    console.log("✅ Catálogo SQLite actualizado");
-  } catch (error) {
-    console.error("Error sincronizando catálogo local:", error);
-  }
-};
-
-export const getPathologyByName = (name) => {
-  try {
-    return db.getFirstSync('SELECT * FROM pathologies WHERE name = ?', [name]);
-  } catch (error) {
-    console.error("Error al consultar patología local:", error);
+    console.error("Error obteniendo detección por ID:", error);
     return null;
   }
 };
-
-export const getUnsyncedDetections = () => {
-  return db.getAllSync('SELECT * FROM detections WHERE synced = 0');
-};
-
-export const markAsSynced = (id) => {
-  db.runSync('UPDATE detections SET synced = 1 WHERE id = ?', [id]);
-};
-
+// --- Utilidades ---
 export const debugCheckDatabase = () => {
   try {
     const allDetections = db.getAllSync('SELECT * FROM detections');
     const allPathologies = db.getAllSync('SELECT * FROM pathologies');
     const allRemote = db.getAllSync('SELECT * FROM remote_detections');
-    console.log("--- HISTORIAL PENDIENTE ---");
-    console.log(JSON.stringify(allDetections, null, 2));
-    console.log("--- CATÁLOGO ---");
-    console.log(JSON.stringify(allPathologies, null, 2));
-    console.log("--- DETECCIONES DESCARGADAS ---");
-    console.log(JSON.stringify(allRemote, null, 2));
+    const allNotes = db.getAllSync('SELECT * FROM treatment_notes');
+    const allAlarms = db.getAllSync('SELECT * FROM alarms');
+    console.log("--- HISTORIAL PENDIENTE ---", JSON.stringify(allDetections, null, 2));
+    console.log("--- CATÁLOGO ---", JSON.stringify(allPathologies, null, 2));
+    console.log("--- DETECCIONES DESCARGADAS ---", JSON.stringify(allRemote, null, 2));
+    console.log("--- NOTAS DE TRATAMIENTO ---", JSON.stringify(allNotes, null, 2));
+    console.log("--- ALARMAS ---", JSON.stringify(allAlarms, null, 2));
   } catch (error) {
     console.error("Error en debug:", error);
   }
