@@ -272,14 +272,14 @@ export default function MainApp() {
           <TouchableOpacity
             style={styles.menuCard}
             activeOpacity={0.75}
-            onPress={() => navigation.navigate("Manual")}
+            onPress={() => navigation.navigate("TreatmentLog")}
           >
             <View style={styles.menuIconWrap}>
-              <Feather name="book-open" size={24} color={Colors.primary} />
+              <Feather name="book" size={24} color={Colors.primary} />
             </View>
             <View style={styles.menuTexts}>
-              <Text style={styles.menuTitle}>Ayuda</Text>
-              <Text style={styles.menuSub}>Manual de uso</Text>
+              <Text style={styles.menuTitle}>Bitácora de cultivo</Text>
+              <Text style={styles.menuSub}>Registra tus tratamientos y productos</Text>
             </View>
             <Feather name="chevron-right" size={16} color={Colors.textMuted} />
           </TouchableOpacity>

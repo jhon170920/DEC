@@ -71,7 +71,7 @@ export default function DetectionDetail() {
   // Datos de la detección
   const diseaseName = detectionData.disease_name || 'Planta Sana';
   const confidence = detectionData.confidence ?? 0;
-  const imageUrl = detectionData.image_url;
+  const imageUrl = detectionData.image_url || detectionData.imageUrl || '';
   const date = detectionData.created_at;
   const lat = detectionData.lat || 0;
   const lng = detectionData.lng || 0;

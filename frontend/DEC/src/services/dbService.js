@@ -70,6 +70,30 @@ export const initDatabase = () => {
       FOREIGN KEY (detection_id) REFERENCES remote_detections(id) ON DELETE CASCADE
     );
   `);
+  db.execSync(`
+  CREATE TABLE IF NOT EXISTS treatment_products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    treatment_log_id INTEGER NOT NULL,
+    product_name TEXT NOT NULL,
+    dose TEXT,
+    application_date TEXT,
+    notes TEXT,
+    FOREIGN KEY (treatment_log_id) REFERENCES treatment_logs(id) ON DELETE CASCADE
+  );
+`);
+
+// Tabla de seguimientos (logs de tratamiento)
+db.execSync(`
+  CREATE TABLE IF NOT EXISTS treatment_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    disease_name TEXT NOT NULL,
+    general_notes TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    detection_id TEXT, -- opcional, referencia a remote_detections.id
+    FOREIGN KEY (detection_id) REFERENCES remote_detections(id) ON DELETE SET NULL
+  );
+`);
 };
 
 // --- Detecciones pendientes (local → servidor) ---
@@ -201,6 +225,79 @@ export const getRemoteDetectionById = (id) => {
     return null;
   }
 };
+// Tratamientos (seguimientos)
+export const saveTreatmentLog = async (log) => {
+  const { disease_name, general_notes, detection_id, products } = log;
+  const now = new Date().toISOString();
+  try {
+    const result = db.runSync(
+      `INSERT INTO treatment_logs (disease_name, general_notes, detection_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [disease_name, general_notes, detection_id || null, now, now]
+    );
+    const logId = result.lastInsertRowId;
+    // Guardar productos asociados
+    if (products && products.length) {
+      for (const prod of products) {
+        db.runSync(
+          `INSERT INTO treatment_products (treatment_log_id, product_name, dose, application_date, notes)
+           VALUES (?, ?, ?, ?, ?)`,
+          [logId, prod.product_name, prod.dose, prod.application_date, prod.notes]
+        );
+      }
+    }
+    return logId;
+  } catch (error) {
+    console.error("Error guardando seguimiento:", error);
+    throw error;
+  }
+};
+
+export const updateTreatmentLog = async (id, log) => {
+  const { disease_name, general_notes, detection_id, products } = log;
+  const now = new Date().toISOString();
+  try {
+    db.runSync(
+      `UPDATE treatment_logs SET disease_name = ?, general_notes = ?, detection_id = ?, updated_at = ?
+       WHERE id = ?`,
+      [disease_name, general_notes, detection_id || null, now, id]
+    );
+    // Eliminar productos antiguos y volver a insertar
+    db.runSync('DELETE FROM treatment_products WHERE treatment_log_id = ?', [id]);
+    if (products && products.length) {
+      for (const prod of products) {
+        db.runSync(
+          `INSERT INTO treatment_products (treatment_log_id, product_name, dose, application_date, notes)
+           VALUES (?, ?, ?, ?, ?)`,
+          [id, prod.product_name, prod.dose, prod.application_date, prod.notes]
+        );
+      }
+    }
+    return true;
+  } catch (error) {
+    console.error("Error actualizando seguimiento:", error);
+    throw error;
+  }
+};
+
+export const getAllTreatmentLogs = () => {
+  return db.getAllSync('SELECT * FROM treatment_logs ORDER BY created_at DESC');
+};
+
+export const getTreatmentLogById = (id) => {
+  const log = db.getFirstSync('SELECT * FROM treatment_logs WHERE id = ?', [id]);
+  if (log) {
+    const products = db.getAllSync('SELECT * FROM treatment_products WHERE treatment_log_id = ?', [id]);
+    log.products = products;
+  }
+  return log;
+};
+
+export const deleteTreatmentLog = (id) => {
+  db.runSync('DELETE FROM treatment_products WHERE treatment_log_id = ?', [id]);
+  db.runSync('DELETE FROM treatment_logs WHERE id = ?', [id]);
+};
+
 // --- Utilidades ---
 export const debugCheckDatabase = () => {
   try {
