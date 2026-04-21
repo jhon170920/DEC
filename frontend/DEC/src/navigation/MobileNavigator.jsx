@@ -20,6 +20,9 @@ import Contact from '../screens/mobile/Contact';
 import Profile from '../screens/mobile/Profile';
 import EditProfile from '../screens/mobile/EditProfile';
 import DetectionDetail from '../screens/mobile/DetectionDetailScreen';
+import TreatmentNoteScreen from '../screens/mobile/TreatmentNoteScreen';
+import TreatmentLogScreen from '../screens/mobile/TreatmentLogScreen';
+import TreatmentFormScreen from '../screens/mobile/TreatmentFormScreen';
 
 // import ManualScreen from '../screens/ManualScreen';
 
@@ -51,6 +54,9 @@ export default function AppNavigator() {
           <Stack.Screen name="Profile" component={Profile} />
           <Stack.Screen name='EditProfile' component={EditProfile}/>
           <Stack.Screen name='DetectionDetail' component={DetectionDetail}/>
+          <Stack.Screen name='TreatmentNote' component={TreatmentNoteScreen}/>
+          <Stack.Screen name='TreatmentLog' component={TreatmentLogScreen}/>
+          <Stack.Screen name='TreatmentForm' component={TreatmentFormScreen}/>
         </>
       ) : (
         // --- STACK DE AUTENTICACIÓN ---

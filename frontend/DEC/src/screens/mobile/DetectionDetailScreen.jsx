@@ -1,35 +1,92 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Linking
+  View, Text, Image, StyleSheet, ScrollView, TouchableOpacity,
+  StatusBar, Linking, Alert, ActivityIndicator
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import * as Notifications from 'expo-notifications';
 import { Colors } from '../../constants/colors';
+import {
+  getTreatmentNoteByDetectionId,
+  saveAlarm,
+  getAlarmsByDetection,
+  deleteAlarm as deleteAlarmFromDB,
+  getRemoteDetectionById
+} from '../../services/dbService';
 
 export default function DetectionDetail() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { detection } = route.params;
+  const { detection, detectionId } = route.params;
 
-  // Extraer datos (compatible con SQLite o MongoDB)
-  const diseaseName = detection.disease_name || detection.pathologyId?.name || 'Planta Sana';
-  const confidence = detection.confidence ?? 0;
-  const imageUrl = detection.image_url || detection.imageUrl;
-  const date = detection.created_at || detection.createdAt;
-  const location = detection.location?.coordinates || [detection.lng, detection.lat];
-  const lat = location[1] || detection.lat || 0;
-  const lng = location[0] || detection.lng || 0;
-  const treatment = detection.pathologyId?.treatment || 'No hay tratamiento registrado';
-  const description = detection.pathologyId?.description || 'Sin descripción disponible';
+  const [detectionData, setDetectionData] = useState(detection || null);
+  const [loading, setLoading] = useState(!detection);
+  const [noteData, setNoteData] = useState(null);
+  const [alarms, setAlarms] = useState([]);
+  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
+  const isMounted = useRef(true);
+
+  // Cargar detección desde SQLite si solo tenemos el ID
+  useEffect(() => {
+    const fetchDetection = async () => {
+      if (!detectionData && detectionId) {
+        const data = await getRemoteDetectionById(detectionId);
+        if (isMounted.current) {
+          setDetectionData(data);
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+    fetchDetection();
+  }, []);
+
+  useEffect(() => {
+    if (detectionData) {
+      loadNoteAndAlarms();
+    }
+  }, [detectionData]);
+
+  const loadNoteAndAlarms = async () => {
+    const note = await getTreatmentNoteByDetectionId(detectionData._id);
+    if (isMounted.current) setNoteData(note);
+    const alarmList = await getAlarmsByDetection(detectionData._id);
+    if (isMounted.current) setAlarms(alarmList);
+  };
+
+  if (loading || !detectionData) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  // Datos de la detección
+  const diseaseName = detectionData.disease_name || 'Planta Sana';
+  const confidence = detectionData.confidence ?? 0;
+  const imageUrl = detectionData.image_url || detectionData.imageUrl || '';
+  const date = detectionData.created_at;
+  const lat = detectionData.lat || 0;
+  const lng = detectionData.lng || 0;
   const isDiseased = diseaseName !== 'Planta Sana';
   const mainColor = isDiseased ? '#E67E22' : '#27AE60';
+
+  // (Resto del código igual: formatDate, openMaps, scheduleReminder, handleDeleteAlarm, etc.)
+  // Asegúrate de usar detectionData._id en lugar de detection._id
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const d = new Date(dateString);
-    return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString('es-CO', {
+      day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
   };
 
   const openMaps = () => {
@@ -37,11 +94,82 @@ export default function DetectionDetail() {
     Linking.openURL(url);
   };
 
+  const scheduleReminder = async (date) => {
+    if (!date) {
+      Alert.alert('Error', 'No se seleccionó una fecha válida');
+      return;
+    }
+    const now = new Date();
+    if (date <= now) {
+      Alert.alert('Error', 'La fecha debe ser posterior al momento actual');
+      return;
+    }
+    try {
+      const triggerDate = date.toISOString();
+      const alarmId = await saveAlarm({
+        detection_id: detectionData._id,
+        title: '📢 Recordatorio de seguimiento',
+        message: `Revisa la evolución de "${diseaseName}"`,
+        trigger_date: triggerDate,
+      });
+      await Notifications.scheduleNotificationAsync({
+        identifier: alarmId.toString(),
+        content: {
+          title: '📢 Seguimiento de enfermedad',
+          body: `Revisa la evolución de "${diseaseName}"`,
+          data: { detectionId: detectionData._id, screen: 'DetectionDetail' },
+        },
+        trigger: { type: 'date', date: date },
+      });
+      Alert.alert('Éxito', 'Recordatorio programado correctamente');
+      loadNoteAndAlarms();
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'No se pudo programar el recordatorio');
+    }
+  };
+
+  const handleDeleteAlarm = async (alarmId, notificationId) => {
+    Alert.alert(
+      'Eliminar recordatorio',
+      '¿Estás seguro de que quieres eliminar este recordatorio?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await Notifications.cancelScheduledNotificationAsync(notificationId);
+              await deleteAlarmFromDB(alarmId);
+              loadNoteAndAlarms();
+              Alert.alert('Éxito', 'Recordatorio eliminado');
+            } catch (error) {
+              console.error(error);
+              Alert.alert('Error', 'No se pudo eliminar el recordatorio');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const showDatePicker = () => setDatePickerVisible(true);
+  const hideDatePicker = () => setDatePickerVisible(false);
+  const handleConfirmDate = (date) => {
+    hideDatePicker();
+    if (date) {
+      setSelectedDate(date);
+      scheduleReminder(date);
+    }
+  };
+
+  // El resto del JSX permanece igual, solo cambia detectionData._id donde corresponda
+  // (enlaces a TreatmentNote, etc.)
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
       <LinearGradient colors={['#e8f5ec', '#f4faf5']} style={StyleSheet.absoluteFill} />
-      
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Botón de retroceso */}
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -56,7 +184,7 @@ export default function DetectionDetail() {
           </View>
         </View>
 
-        {/* Información */}
+        {/* Tarjeta de información */}
         <View style={styles.infoCard}>
           <Text style={[styles.diseaseName, { color: mainColor }]}>{diseaseName}</Text>
           <Text style={styles.date}>{formatDate(date)}</Text>
@@ -69,17 +197,67 @@ export default function DetectionDetail() {
             <Text style={styles.confidenceText}>{(confidence * 100).toFixed(1)}%</Text>
           </View>
 
-          {isDiseased && (
-            <>
-              <View style={styles.divider} />
-              <Text style={styles.sectionTitle}>Descripción</Text>
-              <Text style={styles.description}>{description}</Text>
+          {/* Nota: aquí no mostramos descripción ni tratamiento porque no están en remote_detections, solo en pathologies. Opcional: podrías consultar la tabla pathologies por diseaseName si lo deseas. Por simplicidad, lo omitimos o mostramos un mensaje. */}
+          <View style={styles.divider} />
+          <View style={styles.sectionHeader}>
+            <Feather name="edit-3" size={20} color={Colors.primary} />
+            <Text style={styles.sectionTitle}>Mi seguimiento</Text>
+          </View>
 
-              <Text style={styles.sectionTitle}>Tratamiento recomendado</Text>
-              <Text style={styles.treatment}>{treatment}</Text>
-            </>
+          <TouchableOpacity
+            style={styles.followUpButton}
+            onPress={() => navigation.navigate('TreatmentNote', { detectionId: detectionData._id, initialDiseaseName: diseaseName })}
+          >
+            <Feather name="calendar" size={20} color="#fff" />
+            <Text style={styles.followUpButtonText}>Agregar / Editar tratamiento</Text>
+          </TouchableOpacity>
+
+          {noteData && (
+            <View style={styles.notePreview}>
+              <Text style={styles.noteProduct}>🧪 {noteData.product_name}</Text>
+              <Text style={styles.noteDose}>💊 Dosis: {noteData.dose}</Text>
+              <Text style={styles.noteDate}>📅 Aplicado: {noteData.application_date}</Text>
+              {noteData.notes ? <Text style={styles.noteText}>📝 {noteData.notes}</Text> : null}
+            </View>
           )}
 
+          {/* Sección de recordatorios */}
+          <View style={styles.sectionHeader}>
+            <Feather name="bell" size={20} color={Colors.primary} />
+            <Text style={styles.sectionTitle}>Recordatorios</Text>
+          </View>
+
+          <TouchableOpacity style={styles.reminderButton} onPress={showDatePicker}>
+            <Feather name="clock" size={18} color="#fff" />
+            <Text style={styles.reminderButtonText}>Programar recordatorio</Text>
+          </TouchableOpacity>
+
+          {alarms.length > 0 && (
+            <View style={styles.alarmList}>
+              {alarms.map((alarm) => (
+                <View key={alarm.id} style={styles.alarmItem}>
+                  <View style={styles.alarmInfo}>
+                    <Feather name="bell" size={14} color={Colors.primary} />
+                    <Text style={styles.alarmText}>{new Date(alarm.trigger_date).toLocaleString()}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => handleDeleteAlarm(alarm.id, alarm.id.toString())}>
+                    <Feather name="trash-2" size={16} color="#dc2626" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <DateTimePickerModal
+            isVisible={isDatePickerVisible}
+            mode="datetime"
+            onConfirm={handleConfirmDate}
+            onCancel={hideDatePicker}
+            minimumDate={new Date()}
+            locale="es_ES"
+          />
+
+          {/* Ubicación */}
           {lat !== 0 && lng !== 0 && (
             <>
               <View style={styles.divider} />
@@ -110,28 +288,10 @@ const styles = StyleSheet.create({
     padding: 8,
     elevation: 5,
   },
-  imageContainer: {
-    width: '100%',
-    height: 350,
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  badge: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  badgeText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
+  imageContainer: { width: '100%', height: 350, position: 'relative' },
+  image: { width: '100%', height: '100%' },
+  badge: { position: 'absolute', bottom: 20, left: 20, paddingHorizontal: 15, paddingVertical: 6, borderRadius: 20 },
+  badgeText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
   infoCard: {
     backgroundColor: '#fff',
     marginTop: -20,
@@ -144,67 +304,54 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
-  diseaseName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 5,
+  diseaseName: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 5 },
+  date: { textAlign: 'center', color: '#7F8C8D', fontSize: 14, marginBottom: 20 },
+  confidenceContainer: { marginBottom: 15 },
+  label: { fontSize: 14, fontWeight: '600', color: '#2C3E50', marginBottom: 5 },
+  progressBar: { height: 10, backgroundColor: '#E0E0E0', borderRadius: 5, overflow: 'hidden', marginVertical: 5 },
+  progressFill: { height: '100%', borderRadius: 5 },
+  confidenceText: { fontSize: 14, fontWeight: 'bold', color: '#2C3E50', textAlign: 'right' },
+  divider: { height: 1, backgroundColor: '#E0E0E0', marginVertical: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#2C3E50', marginBottom: 8 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  description: { fontSize: 15, color: '#555', lineHeight: 22, marginBottom: 15 },
+  treatment: { fontSize: 15, color: '#27AE60', fontWeight: '500', marginBottom: 10 },
+  followUpButton: {
+    flexDirection: 'row',
+    backgroundColor: Colors.primary,
+    paddingVertical: 12,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 10,
   },
-  date: {
-    textAlign: 'center',
-    color: '#7F8C8D',
-    fontSize: 14,
-    marginBottom: 20,
+  followUpButtonText: { color: '#fff', fontWeight: 'bold', marginLeft: 8 },
+  notePreview: { backgroundColor: '#f0fdf4', padding: 12, borderRadius: 10, marginTop: 10 },
+  noteProduct: { fontSize: 16, fontWeight: 'bold', color: '#2C3E50' },
+  noteDose: { fontSize: 14, color: '#555' },
+  noteDate: { fontSize: 12, color: '#7F8C8D', marginTop: 4 },
+  noteText: { fontSize: 14, color: '#333', marginTop: 6, fontStyle: 'italic' },
+  reminderButton: {
+    flexDirection: 'row',
+    backgroundColor: '#3b82f6',
+    paddingVertical: 10,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
   },
-  confidenceContainer: {
-    marginBottom: 15,
+  reminderButtonText: { color: '#fff', fontWeight: 'bold', marginLeft: 8 },
+  alarmList: { marginTop: 12, gap: 6 },
+  alarmItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8fafc',
+    padding: 8,
+    borderRadius: 8,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2C3E50',
-    marginBottom: 5,
-  },
-  progressBar: {
-    height: 10,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 5,
-    overflow: 'hidden',
-    marginVertical: 5,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 5,
-  },
-  confidenceText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#2C3E50',
-    textAlign: 'right',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E0E0E0',
-    marginVertical: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2C3E50',
-    marginBottom: 8,
-  },
-  description: {
-    fontSize: 15,
-    color: '#555',
-    lineHeight: 22,
-    marginBottom: 15,
-  },
-  treatment: {
-    fontSize: 15,
-    color: '#27AE60',
-    fontWeight: '500',
-    marginBottom: 10,
-  },
+  alarmInfo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  alarmText: { fontSize: 13, color: '#475569' },
   mapButton: {
     flexDirection: 'row',
     backgroundColor: Colors.primary,
@@ -214,15 +361,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 10,
   },
-  mapButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  coords: {
-    fontSize: 12,
-    color: '#7F8C8D',
-    textAlign: 'center',
-    marginTop: 5,
-  },
+  mapButtonText: { color: '#fff', fontWeight: 'bold', marginLeft: 8 },
+  coords: { fontSize: 12, color: '#7F8C8D', textAlign: 'center', marginTop: 5 },
 });

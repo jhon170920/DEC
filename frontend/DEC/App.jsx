@@ -3,7 +3,16 @@ import { Platform, View, StyleSheet, Alert } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
-import { initDatabase } from './src/services/dbService';
+import { initDatabase, getAllActiveAlarms, deactivateAlarm } from './src/services/dbService';
+import * as RootNavigation from './src/navigation/RootNavigation';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export default function App() {
   useEffect(() => {
@@ -11,20 +20,56 @@ export default function App() {
       initDatabase();
     }
 
-    // Listener para notificaciones en primer plano
+    const setupNotifications = async () => {
+      if (Platform.OS === 'web') return;
+
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        console.warn('Permiso de notificaciones denegado');
+        return;
+      }
+
+      const activeAlarms = await getAllActiveAlarms();
+      for (const alarm of activeAlarms) {
+        const triggerDate = new Date(alarm.trigger_date);
+        if (triggerDate > new Date()) {
+          await Notifications.scheduleNotificationAsync({
+            identifier: alarm.id.toString(),
+            content: {
+              title: alarm.title,
+              body: alarm.message,
+              data: { detectionId: alarm.detection_id, screen: 'DetectionDetail' },
+            },
+            trigger: { type: 'date', date: triggerDate }, // ✅ Formato correcto
+          });
+          console.log(`🔔 Alarma reprogramada: ${alarm.id}`);
+        } else {
+          await deactivateAlarm(alarm.id);
+        }
+      }
+    };
+
+    setupNotifications();
+
     const notificationListener = Notifications.addNotificationReceivedListener(notification => {
       const { title, body } = notification.request.content;
       Alert.alert(title, body);
     });
 
-    // Listener para cuando el usuario toca la notificación
     const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
       const { data } = response.notification.request.content;
       console.log('Notificación tocada:', data);
-      // Aquí puedes agregar navegación si lo deseas
+      if (data?.detectionId && data?.screen === 'DetectionDetail') {
+        // Navegar usando el ref global
+        RootNavigation.navigate('DetectionDetail', { detectionId: data.detectionId });
+      }
     });
 
-    // ✅ CORRECTO: limpiar los listeners
     return () => {
       notificationListener.remove();
       responseListener.remove();
