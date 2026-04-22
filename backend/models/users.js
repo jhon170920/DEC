@@ -2,17 +2,34 @@ import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true },
-    password: { type: String, required: false }, // en false para permitir guardar usuarios con google
-    googleId: { type: String, unique: true, sparse: true }, // aquí guardamos si se loguea con google
-    // Diferenciar entre usuarios reales e invitados si decides persistirlos
-    role: { type: String, enum: ['user', 'guest', 'admin'], default: 'user' },
+    email: { type: String, required: true, unique: true, sparse: true, lowercase: true, trim: true },
+    password: { type: String, required: false, select: false },
+    phone: { type: String, default: '' },
+    pictureUrl: { type: String, default: '' },
+    isVerified: { type: Boolean, default: false},
+    
+    // CAMPOS PARA VERIFICAR EL CORREO DEL FORMULARIO DE REGISTRO
+    verificationCode: { type: String },
+    verificationCodeExpires: { type: Date },
+    
+    //CAMPOS PARA RECUPERACIÓN DE CONTRASEÑA
+    codeRecuperation: { type: String },
+    codeExpiration: { type: Date },
 
-    // Para sincronización: saber cuándo se actualizó por última vez
+
+    // LOGIN SOCIAL
+    facebookId: { type: String, unique: true, sparse: true},
+    googleId: { type: String, unique: true, sparse: true },
+    
+    // ORIGEN DE REGISTRO
+    provider: [{ type: String, enum: ['local', 'google', 'facebook', 'unknow']}],
+    
+    role: { type: String, enum: ['user', 'guest', 'admin'], default: 'user' },
+    active: { type: Boolean, default: true },
+    pushTokens: { type: [String], default: [] },
     lastSync: { type: Date, default: Date.now },
-    // Referencia al historial de detecciones
     history: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Detection' }]
-}, { timestamps: true }); // Crea createdAt y updatedAt automáticamente
+}, { timestamps: true });
 
 const User = mongoose.model("User", UserSchema);
 

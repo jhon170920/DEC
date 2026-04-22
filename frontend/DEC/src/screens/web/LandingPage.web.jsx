@@ -612,7 +612,6 @@ export default function LandingPage({ navigation }) {
             <Text style={styles.footerText}>© {new Date().getFullYear()} Proyecto DEC - SENA Regional Huila. Tecnología al servicio del campo colombiano.</Text>
           </View>
         </View>
-
       </ScrollView>
     </View>
   );

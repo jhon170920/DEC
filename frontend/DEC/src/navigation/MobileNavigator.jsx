@@ -8,8 +8,9 @@ import { AuthContext } from '../context/AuthContext';
 // --- IMPORTACIÓN DE PANTALLAS ---
 import Login from '../screens/mobile/Login';
 import Register from '../screens/mobile/Register';
+import VerifyCodeScreen from '../screens/mobile/VerifyCodeScreen';
 import ForgotPassword from '../screens/mobile/ForgotPassword'; // Paso 1: Enviar código
-// import ResetPassword from '../screens/ResetPassword';   // Paso 2: Ingresar código y nueva pass
+import ResetPassword from '../screens/mobile/ResetPassword'   // Paso 2: Ingresar código y nueva pass
 
 import MainApp from '../screens/mobile/MainApp'; // El Tab Navigator principal de la app
 import CameraScreen from '../screens/mobile/CameraScreen';
@@ -17,6 +18,12 @@ import Result from '../screens/mobile/Result';
 import HistoryScreen from '../screens/mobile/HistoryScreen';
 import Contact from '../screens/mobile/Contact';
 import Profile from '../screens/mobile/Profile';
+import EditProfile from '../screens/mobile/EditProfile';
+import DetectionDetail from '../screens/mobile/DetectionDetailScreen';
+import TreatmentNoteScreen from '../screens/mobile/TreatmentNoteScreen';
+import TreatmentLogScreen from '../screens/mobile/TreatmentLogScreen';
+import TreatmentFormScreen from '../screens/mobile/TreatmentFormScreen';
+
 // import ManualScreen from '../screens/ManualScreen';
 
 const Stack = createStackNavigator();
@@ -44,14 +51,21 @@ export default function AppNavigator() {
           <Stack.Screen name="Contact" component={Contact} />
           {/* <Stack.Screen name="Manual" component={ManualScreen} /> */}
           <Stack.Screen name="Result" component={Result} /> 
+          <Stack.Screen name="Profile" component={Profile} />
+          <Stack.Screen name='EditProfile' component={EditProfile}/>
+          <Stack.Screen name='DetectionDetail' component={DetectionDetail}/>
+          <Stack.Screen name='TreatmentNote' component={TreatmentNoteScreen}/>
+          <Stack.Screen name='TreatmentLog' component={TreatmentLogScreen}/>
+          <Stack.Screen name='TreatmentForm' component={TreatmentFormScreen}/>
         </>
       ) : (
         // --- STACK DE AUTENTICACIÓN ---
         <>
           <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="Register" component={Register} />
+          <Stack.Screen name='VerifyCode' component={VerifyCodeScreen} />
           <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
-          <Stack.Screen name='Perfil' component={Profile}/>
+          <Stack.Screen name='ResetPassword' component={ResetPassword} />
           {/* <Stack.Screen name="ResetPassword" component={ResetPassword} /> */}
         </>
       )}

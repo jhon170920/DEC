@@ -32,7 +32,8 @@ yarn-error.*
 *.pem
 
 # local env files
-.env*.local
+.local
+.env
 
 # typescript
 *.tsbuildinfo
@@ -42,3 +43,8 @@ yarn-error.*
 android/
 *.apk
 *.apk
+
+# credentials
+google-services.json
+GoogleService-Info.plist
+dec-admin-SDK.json

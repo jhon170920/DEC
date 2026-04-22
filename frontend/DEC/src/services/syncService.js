@@ -1,12 +1,12 @@
 import api from '../api/api';
-import { getUnsyncedDetections, markAsSynced, getPathologyByName } from './dbService';
+import { getUnsyncedDetections, markAsSynced, getPathologyByName, saveRemoteDetections, clearRemoteDetections } from './dbService';
 import { Platform } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 
+// Sincronizar detecciones pendientes (local → servidor)
 export const syncDetections = async () => {
   try {
     const pendingItems = await getUnsyncedDetections();
-    
-    
     
     for (const item of pendingItems) {
       const formData = new FormData();
@@ -18,16 +18,12 @@ export const syncDetections = async () => {
         continue;
       }
       
-      // 1. LIMPIEZA DE CONFIDENCE: Convertimos "78.00%" o 78 a 0.78
       const rawConfidence = parseFloat(item.confidence.replace('%', ''));
       const normalizedConfidence = rawConfidence > 1 ? rawConfidence / 100 : rawConfidence;
 
       formData.append('disease', String(item.disease));
-      formData.append('confidence', normalizedConfidence); // Ahora enviará 0.78
-      
-      // 2. CAMPO REQUERIDO: Añadimos plantName (ajusta el valor según tu backend)
+      formData.append('confidence', normalizedConfidence);
       formData.append('plantName', 'Cafeto'); 
-
       formData.append('date', item.date);
       formData.append('notes', item.notes || 'Sin observaciones');
       formData.append('lat', String(item.lat || 0));
@@ -39,7 +35,7 @@ export const syncDetections = async () => {
         name: `foto_${item.id}.jpg`,
       });
 
-      console.log(`Enviando: ${item.disease} (${normalizedConfidence}) para ${formData.get('plantName')}`);
+      console.log(`Enviando: ${item.disease} (${normalizedConfidence})`);
 
       const response = await api.post('detections/save', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -47,11 +43,47 @@ export const syncDetections = async () => {
 
       if (response.status === 201 || response.status === 200) {
         await markAsSynced(item.id);
-        console.log(`✅ Sincronización exitosa en Atlas para ID: ${item.id}`);
+        console.log(`✅ Sincronización exitosa para ID: ${item.id}`);
       }
     }
   } catch (error) {
-    // Aquí verás si Atlas sigue rechazando algo
-    console.error("❌ Error en Sync:", error.response?.data || error.message);
+    console.error("❌ Error en Sync (local→servidor):", error.response?.data || error.message);
+  }
+};
+
+// Sincronizar todas las detecciones del servidor a la base local (servidor → local)
+export const syncServerToLocal = async (token) => {
+  try {
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) {
+      console.log("⚠️ Sin internet, no se puede sincronizar desde el servidor");
+      return false;
+    }
+
+    let allDetections = [];
+    let page = 1;
+    const limit = 50;
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await api.get(`detections/history?page=${page}&limit=${limit}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const { history, hasMore: more } = response.data;
+      allDetections = [...allDetections, ...history];
+      hasMore = more;
+      page++;
+    }
+
+    if (allDetections.length > 0) {
+      // Opcional: limpiar tabla vieja para reemplazar todo (comentar si quieres mantener ambas)
+      // await clearRemoteDetections();
+      await saveRemoteDetections(allDetections);
+      console.log(`✅ Sincronizadas ${allDetections.length} detecciones desde MongoDB a SQLite`);
+    }
+    return true;
+  } catch (error) {
+    console.error("❌ Error sincronizando servidor → local:", error);
+    return false;
   }
 };

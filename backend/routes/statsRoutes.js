@@ -3,7 +3,7 @@ import { verifyToken, onlyAdmin } from '../middlewares/auth.js';
 import { 
     getIncidenceStats, 
     getMapData, 
-    getGeneralKPIs 
+    getKPIs 
 } from '../controllers/statsController.js';
 
 const router = express.Router();
@@ -11,6 +11,6 @@ const router = express.Router();
 // Todas estas rutas requieren ser Administrador
 router.get('/incidence', verifyToken, onlyAdmin, getIncidenceStats);
 router.get('/map', verifyToken, onlyAdmin, getMapData);
-router.get('/kpis', verifyToken, onlyAdmin, getGeneralKPIs);
+router.get('/kpis', verifyToken, onlyAdmin, getKPIs);
 
-export default router;
+export default router;  

@@ -1,6 +1,7 @@
 import Users from "../models/users.js"; // Importar el modelo de usuario (no olvidar al importar el archivo su extensión .js)
 import Detections from "../models/Detection.js"; // Importar las detecciones de los usuarios
 import Pathology from "../models/pathologies.js" // Importamos nuestras patologías, (cuando la tengamos)
+import { uploadToCloudinary } from './cloudinary.js';
 
 const expressions = {
     name: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,15}(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,15})?$/,
@@ -75,6 +76,7 @@ export const getAllDetections = async (req, res) => {
     try {
         // traemos todos las detecciones de la base de datos
         const detections = await Detections.find()
+            .populate('pathologyId', 'name')
         // enviamos lo encontrado
         res.status(200).json({
             message: "Detecciones obtenidas",
@@ -103,25 +105,6 @@ export const deleteDetection = async (req,res) => {
     }
 }
 
-// subir las pathologías de prueba
-// export const savePathology = async (req, res) => {
-//     try {
-//         const {name, description, treatment} = req.body;
-//         const newPathology = new Pathology({
-//             name,
-//             description,
-//             treatment
-//         })
-//         await newPathology.save()
-//         res.status(201).json({
-//             message: "¡Pahtología guardada con éxito en el historial!",
-//             data: newPathology
-//         });
-//     } catch (error) {
-//         res.status(500).json({ message: "Error al crear la pathología", error: error.message });
-//     }
-// }
-
 // obtener las patologías
 export const getAllPathologies = async (req, res) => {
     try {
@@ -138,23 +121,89 @@ export const getAllPathologies = async (req, res) => {
 }
 // editar una patología
 export const editPathology = async (req, res) => {
-    try {
-        const { id } = req.params; // traemos el id de la patología que vamos a editar
-        const { name, description, treatment } = req.body; //traer datos desde el formulario
-        // validar datos
-        if(!name || !description || !treatment ) return res.status(400).json({ message: "El nombre, la descripcion y el tratamiento son obligatorios" })
-
-        // validamos el nombre porpocionado 
-        if(!expressions.name.test(name)) return res.status(400).json({ message: "Escribe un nombre de patología válido" });
-
-        // realizamos el cambio
-        const updatedPathology = await Pathology.findByIdAndUpdate(id, { $set: {name: name, description: description, treatment: treatment} }, { returnDocument: 'after', runValidators: true }).select("-password");
-        // validamos si se realizo el cambio
-        if(!updatedPathology) return res.status(400).json({ message: "No se encontró la pathología a actualizar" })
-
-        // regresamos mensaje de feedback
-        res.status(200).json({ message: "Patolohia editada exitosamente" })
-    } catch (error) {
-        res.status(500).json({ message: "Error al editar una patologías", error: error.message });
+  try {
+    const { id } = req.params;
+    const { name, description, treatment, alert, recommendations } = req.body;
+    const updateData = { name, description, treatment, alert };
+    if (recommendations) updateData.recommendations = recommendations;
+    const updated = await Pathology.findByIdAndUpdate(id, updateData, { new: true });
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// editar una patología con recomendaciones (insumos)
+export const uploadPathologyImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!req.file) {
+      return res.status(400).json({ message: 'No se recibió ninguna imagen' });
     }
-}
+    
+    const imageUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
+    const updatedPathology = await Pathology.findByIdAndUpdate(
+      id, 
+      { imageUrl }, 
+      { new: true }
+    );
+    
+    if (!updatedPathology) {
+      return res.status(404).json({ message: 'Patología no encontrada' });
+    }
+    
+    res.json({ imageUrl: updatedPathology.imageUrl });
+  } catch (error) {
+    console.error('Error subiendo imagen:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+// usuarios ban o unban
+export const toggleBanUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) return res.status(400).json({ message: "No hay id de usuario" });
+ 
+        // Buscar el usuario actual para conocer su estado
+        const user = await Users.findById(id).select("-password");
+        if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+ 
+        // Invertir el estado active
+        const newActive = user.active === false ? true : false;
+        const updatedUser = await Users.findByIdAndUpdate(
+            id,
+            { $set: { active: newActive } },
+            { returnDocument: 'after' }
+        ).select("-password");
+ 
+        res.status(200).json({
+            message: newActive ? "Usuario habilitado exitosamente" : "Usuario inhabilitado exitosamente",
+            active: updatedUser.active,
+            user: updatedUser
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error al cambiar estado del usuario", error: error.message });
+    }
+};
+// Aprobar o desaprobar una detección
+export const toggleApproveDetection = async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Buscar la detección
+        const detection = await Detections.findById(id);
+        if (!detection) {
+            return res.status(404).json({ message: "Detección no encontrada" });
+        }
+
+        // Invertir el estado actual
+        const newApproved = !detection.approved;
+        detection.approved = newApproved;
+        await detection.save();
+
+        res.status(200).json({
+            message: newApproved ? "Detección aprobada" : "Aprobación revertida",
+            approved: newApproved
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Error al cambiar estado de aprobación", error: error.message });
+    }
+};

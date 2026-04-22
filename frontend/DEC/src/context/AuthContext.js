@@ -1,9 +1,31 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { Platform } from 'react-native'; // 👈 IMPORTANTE
+import { Platform, Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { syncPathologiesLocal } from '../services/dbService';
 import api from '../api/api';
-import { syncDetections } from '../services/syncService';
+import { syncDetections, syncServerToLocal } from '../services/syncService';
+import { registerForPushNotificationsAsync } from '../services/notificationService';
+
+// -------- MÓDULOS NATIVOS (SOLO MÓVIL) ----------
+let LoginManager, AccessToken, GoogleSignin, makeRedirectUri, Google, WebBrowser;
+
+if (Platform.OS !== 'web') {
+  // Importaciones dinámicas para evitar que webpack/metro las incluya en web
+  const fbsdk = require('react-native-fbsdk-next');
+  LoginManager = fbsdk.LoginManager;
+  AccessToken = fbsdk.AccessToken;
+
+  const googleSignin = require('@react-native-google-signin/google-signin');
+  GoogleSignin = googleSignin.GoogleSignin;
+
+  const expoAuth = require('expo-auth-session');
+  makeRedirectUri = expoAuth.makeRedirectUri;
+  Google = expoAuth.Google;
+
+  const webBrowser = require('expo-web-browser');
+  WebBrowser = webBrowser;
+  WebBrowser.maybeCompleteAuthSession();
+}
 
 export const AuthContext = createContext();
 
@@ -12,73 +34,153 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(false);
 
-useEffect(() => {
-  const checkToken = async () => {
-    try {
-      let token;
-      if (Platform.OS === 'web') {
-        token = localStorage.getItem('userToken'); // Usar localStorage nativo en Web
-      } else {
-        token = await SecureStore.getItemAsync('userToken');
-      }
+  useEffect(() => {
+    // Configurar Google solo en móvil
+    if (Platform.OS !== 'web' && GoogleSignin) {
+      GoogleSignin.configure({
+        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        offlineAccess: true,
+      });
+    }
 
-      if (token) {
-        setUserToken(token);
-        fetchAndSyncPathologies(token);
+    const checkToken = async () => {
+      try {
+        let token = Platform.OS === 'web'
+          ? localStorage.getItem('userToken')
+          : await SecureStore.getItemAsync('userToken');
+
+        if (token) {
+          setUserToken(token);
+          await fetchAndSyncPathologies(token);
+        } else if (Platform.OS !== 'web') {
+          // Solo revisar sesiones sociales en móvil
+          await checkSocialLogin();
+        }
+      } catch (e) {
+        console.log("Error leyendo el token", e);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (e) {
-      console.log("Error leyendo el token", e);
-    } finally {
-      setIsLoading(false);
+    };
+    checkToken();
+  }, []);
+
+  // Enviar token al backend (funciona igual en móvil y web, pero las llamadas sociales solo en móvil)
+  const sendTokenToServer = async (token, social) => {
+    try {
+      const response = await api.post(`users/auth/${social}`, {},
+        { headers: { 'Authorization': `Bearer ${token}` }, timeout: 10000 }
+      );
+      const sessionToken = response.data.token;
+      if (sessionToken) {
+        if (Platform.OS === 'web') {
+          localStorage.setItem('userToken', sessionToken);
+        } else {
+          await SecureStore.setItemAsync('userToken', sessionToken);
+        }
+        setUserToken(sessionToken);
+      }
+    } catch (error) {
+      if (!error.response) {
+        Alert.alert("Error de conexión", "No se pudo conectar con el servidor DEC. Verifica tu internet.");
+      } else if (error.response.status === 401) {
+        Alert.alert("Sesión inválida", "La autenticación con Google/Facebook falló o expiró.");
+      } else {
+        Alert.alert("Error", "Ocurrió un problema al iniciar sesión. Inténtalo de nuevo.");
+      }
     }
   };
-  checkToken();
-}, []);
+
+  // Solo se ejecuta en móvil
+  const checkSocialLogin = async () => {
+    if (Platform.OS === 'web') return;
+
+    try {
+      // Verificar Facebook
+      if (AccessToken) {
+        const fbData = await AccessToken.getCurrentAccessToken();
+        if (fbData) {
+          console.log("Sesión persistente de Facebook detectada");
+          await sendTokenToServer(fbData.accessToken.toString(), 'facebook');
+          return;
+        }
+      }
+
+      // Verificar Google
+      if (GoogleSignin) {
+        const hasGoogle = await GoogleSignin.hasPreviousSignIn();
+        if (hasGoogle) {
+          console.log("Sesión persistente de Google detectada");
+          const googleUser = await GoogleSignin.signInSilently();
+          const idToken = googleUser.data?.idToken || googleUser.idToken;
+          await sendTokenToServer(idToken, 'google');
+        }
+      }
+    } catch (error) {
+      console.log("No hay sesión silenciosa disponible", error);
+    }
+  };
 
   const fetchAndSyncPathologies = async (token) => {
     try {
       const response = await api.get('pathologies');
-      
       if (response.data && response.data.length > 0) {
-        
-        // --- BLOQUE PROTEGIDO PARA MÓVIL ---
         if (Platform.OS !== 'web') {
-          // Solo intentamos tocar SQLite si NO estamos en la web
-          await syncPathologiesLocal(response.data); 
+          await syncPathologiesLocal(response.data);
           console.log("✅ Catálogo SQLite actualizado (Móvil)");
-          await syncDetections(); 
+          await syncDetections();
+          await syncServerToLocal(token);
         } else {
-          // En la web solo guardamos en el estado o simplemente confirmamos
           console.log("✅ Datos recibidos en Web (Sin usar SQLite)");
         }
-        // -----------------------------------
-
       }
     } catch (error) {
       console.log("❌ Error en la petición:", error.message);
     }
   };
 
- const login = async (token) => {
-  if (Platform.OS === 'web') {
-    localStorage.setItem('userToken', token);
-  } else {
-    await SecureStore.setItemAsync('userToken', token);
-  }
-  setUserToken(token);
-  setIsGuest(false);
-  fetchAndSyncPathologies(token); 
-};
+  const login = async (token) => {
+    if (Platform.OS === 'web') {
+      localStorage.setItem('userToken', token);
+    } else {
+      await SecureStore.setItemAsync('userToken', token);
+    }
+    setUserToken(token);
+    setIsGuest(false);
+    fetchAndSyncPathologies(token);
+    if (Platform.OS !== 'web') {
+      await registerForPushNotificationsAsync(token);
+    }
+  };
 
- const logout = async () => {
-  if (Platform.OS === 'web') {
-    localStorage.removeItem('userToken');
-  } else {
-    await SecureStore.deleteItemAsync('userToken');
-  }
-  setUserToken(null);
-  setIsGuest(false);
-};
+  const logout = async () => {
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.removeItem('userToken');
+      } else {
+        // Cerrar sesiones sociales solo en móvil
+        if (LoginManager && AccessToken) {
+          const fbToken = await AccessToken.getCurrentAccessToken();
+          if (fbToken) {
+            LoginManager.logOut();
+            console.log("Facebook Session Closed");
+          }
+        }
+        if (GoogleSignin) {
+          const hasGoogle = await GoogleSignin.hasPreviousSignIn();
+          if (hasGoogle) {
+            await GoogleSignin.signOut();
+            console.log("Google Session Closed");
+          }
+        }
+        await SecureStore.deleteItemAsync('userToken');
+      }
+      setUserToken(null);
+      setIsGuest(false);
+    } catch (error) {
+      console.error("Error durante logout:", error);
+    }
+  };
 
   const enterAsGuest = () => {
     setIsGuest(true);
@@ -86,7 +188,7 @@ useEffect(() => {
   };
 
   return (
-    <AuthContext.Provider value={{ userToken, isLoading, isGuest, login, logout, enterAsGuest }}>
+    <AuthContext.Provider value={{ userToken, setUserToken, isLoading, isGuest, login, logout, enterAsGuest, sendTokenToServer }}>
       {children}
     </AuthContext.Provider>
   );

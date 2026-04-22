@@ -20,23 +20,21 @@ import { useNavigation } from '@react-navigation/native'; // Para navegar al log
 import { Colors } from '../../constants/colors';
 import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 import { StyleRegister as styles } from '../../styles/RegisterStyles';
-import FloatingInput from '../../components/FloatingInput';
-import BtnLoginGoogle from '../../components/BtnLoginGoogle';
+//BOTONES DE LOGIN SOCIAL
+import BtnLoginFacebook from '../../components/BtnLoginFacebook.jsx';
+import BtnLoginGoogle from '../../components/BtnLoginGoogle.jsx';
+//COMPONENTE REUTILIZABLE
+import FloatingInput from '../../components/FloatingInput.jsx';
 
 
 export default function Register() {
-    //CARGAR PRIMERO LA DIMENSION DE LA PANTALLA
-    const { width, height } = useWindowDimensions();
     const navigation = useNavigation();
-
-
 
     // 1. Estados para el formulario
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const {
@@ -45,12 +43,8 @@ export default function Register() {
         logoRingS,
         logoImgS,
         headlineS,
-        sublineS,
         fieldH,
-        btnH,
-        ghostH,
-        socialH,
-        iconS
+        btnH
     } = useResponsiveLayout();
 
     //ANIMACIONES ENTRADA Y CAMBIO DE PANALLAS
@@ -71,7 +65,11 @@ export default function Register() {
             Alert.alert("Error", "Por favor completa todos los campos");
             return;
         }
-        
+        const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{2,50}$/;
+        if (!nameRegex.test(name.trim())) {
+            Alert.alert("Error", "Ingresa un nombre válido (solo letras, mínimo 2 caracteres)");
+            return;
+        }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             Alert.alert("Error", "Correo electrónico no válido");
@@ -93,10 +91,12 @@ export default function Register() {
         try {
             // 2. Llamada a la API centralizada
             await registerUser(name, email.toLowerCase().trim(), password);
-
-            // 3. Éxito
-            Alert.alert("¡Éxito!", "Cuenta creada correctamente. Ahora puedes iniciar sesión.");
-            navigation.navigate('Login');
+             // En lugar de alertar y navegar a Login, vamos a verificación
+             Alert.alert(
+                "¡Registro exitoso!",
+                "Se ha enviado un código de verificación a tu correo."
+            );
+            navigation.navigate('VerifyCode', { email: email.toLowerCase().trim() });
 
         } catch (error) {
             console.error("Register Error:", error);
@@ -141,7 +141,7 @@ export default function Register() {
                     ]}>
                         <Image
                         source={require("../../../assets/image/logo.png")}
-                       style={{ width: logoImgS, height: logoImgS }}
+                        style={{ width: logoImgS, height: logoImgS }}
                         resizeMode="contain"
                     />
                     </View>
@@ -218,14 +218,14 @@ export default function Register() {
 
                         {/* Redes Sociales */}
                         <View style={[styles.socialRow, { marginBottom: sp(0.024) }]}>
-                            <BtnLoginGoogle />
-                            <BtnLoginGoogle />
+                            <BtnLoginGoogle/>
+                            <BtnLoginFacebook/>
                         </View>
 
                         {/* Footer navegación al Login */}
                         <TouchableOpacity
                             style={styles.loginRow}
-                            onPress={() => navigation.navigate('Login')}
+                            onPress={() => navigation.goBack()}
                         >
                             <Text style={styles.loginText} >
                                 ¿Ya tienes una cuenta?{' '} <Text style={styles.loginLink} >Inicia sesión</Text>

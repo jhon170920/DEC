@@ -12,7 +12,7 @@ const trasnporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASS
     }
 });
-
+// mensaje, falta terminar creo
 export const contactUs = async (req, res) => {
     try {
         const {name, email, message} = req.body;

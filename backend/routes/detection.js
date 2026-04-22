@@ -1,5 +1,5 @@
 import express from "express";
-import { getUserHistory, saveDetection, deleteUserDetection, deleteUserHistory } from "../controllers/detectionController.js";
+import { getUserHistory, saveDetection, deleteUserDetection, deleteUserHistory, getUserDetectionCount } from "../controllers/detectionController.js";
 import { verifyToken } from "../middlewares/auth.js";
 import { upload } from "../services/cloudinary.js";
 
@@ -17,7 +17,7 @@ router.delete("/delete-detection:id", verifyToken, deleteUserDetection)
 // limpiar el historial
 router.delete("/clear-history", verifyToken, deleteUserHistory)
 
-
+router.get('/count', verifyToken, getUserDetectionCount);
 
 
 export default router;

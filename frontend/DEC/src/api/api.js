@@ -8,7 +8,7 @@ const BASE_URL = 'http://192.168.101.210:8089/api/';
 
 const api = axios.create({
     baseURL: BASE_URL,
-    timeout: 15000, // Si el internet en el campo es lento, espera 10s antes de fallar
+    timeout: 20000, // Si el internet en el campo es lento, espera 20s antes de fallar
 });
 
 // 2. INTERCEPTOR: Este código se ejecuta ANTES de cada petición
@@ -54,6 +54,61 @@ export const registerUser = async (name, email, password) => {
     // Lanzamos el error para que el componente lo capture
     throw error.response ? error.response.data : new Error('Error de conexión');
   }
+};
+// VERIFICAR CODIGO PARA CULMINAR REGISTRO
+export const verifyCode = async (email, code) => {
+  try {
+    const response = await api.post('users/verify-code', { email, code });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Error de conexión');
+  }
+};
+
+// RECUPERACIÓN DE CONTRASEÑA
+export const requestRecoveryCode = async (email) => {
+  try {
+      const response = await api.post('recover/req-code', { email });
+      return response.data;
+  } catch (error) {
+      throw error.response ? error.response.data : new Error('Error de conexión');
+  }
+};
+
+export const changePasswordWithCode = async (email, code, newPass) => {
+  try {
+      const response = await api.post('recover/change-pass', { email, code, newPass });
+      return response.data;
+  } catch (error) {
+      throw error.response ? error.response.data : new Error('Error de conexión');
+  }
+};
+
+export const logoutUser = async () => {
+    // Solo limpia el almacenamiento local, no hay llamada al backend
+    return Promise.resolve();
+};
+
+export const deleteUserAccount = async (password) => {
+    try {
+        const response = await api.put('users/delete', { password });
+        return response.data;
+    } catch (error) {
+        throw error.response ? error.response.data : new Error('Error de conexión');
+    }
+};
+export const statsService = {
+  // estadísticas de línea
+  getIncidence: (start, end, groupBy) => 
+      api.get(`/stats/incidence?startDate=${start}&endDate=${end}&groupBy=${groupBy}`),
+  
+  // Para el Mapa de Calor
+  getMapData: (start, end) => 
+      api.get(`/stats/map?startDate=${start}&endDate=${end}`),
+  
+  // Para los contadores superiores
+  getKPIs: (start, end) => 
+      api.get(`/stats/kpis?startDate=${start}&endDate=${end}`)
 };
 
 export default api;

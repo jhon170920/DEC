@@ -6,7 +6,7 @@ import Users from "../models/users.js";
 
 dotenv.config();
 
-const trasnporter = nodemailer.createTransport({
+const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: process.env.EMAIL_USER,
@@ -17,26 +17,19 @@ const trasnporter = nodemailer.createTransport({
 const codeGenerator = () => {
     return Math.floor(100000 + Math.random()*900000).toString();
 };
-
+// pedir el codigo
 export const requestCode = async (req, res) => {
     try {
         // traemos el email del usuario
         const {email} = req.body;
         //verificamos que exista
-        if (!email) {
-            return res.status(400).json({message: "El correo electrónico es obligatorio."});
-        };
+        if (!email) return res.status(400).json({message: "El correo electrónico es obligatorio."});
         // validamos que si esté bien escrito
-        if(!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]{1,15}\.[a-zA-Z]{2,15}\s?$/.test(email)){
-            return res.status(400).json({message: "Escrbie un correo electrónico válido"});
-
-        }
+        if(!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]{1,15}\.[a-zA-Z]{2,15}\s?$/.test(email)) return res.status(400).json({message: "Escrbie un correo electrónico válido"});
         // buscamos el usuario
         const user = await Users.findOne({email});
         // buscamos si existe
-        if (!user) {
-            return res.status(400).json({message: "Este correo no está registrado."});
-        };
+        if (!user) return res.status(400).json({message: "Este correo no está registrado."});
         // generamos el codigo
         const code = codeGenerator();
         // se lo agregamos al usuario
@@ -105,7 +98,7 @@ export const requestCode = async (req, res) => {
             `
         };
         // lo confirmamos y lo enviamos
-        await trasnporter.sendMail(emailOption);
+        await transporter.sendMail(emailOption);
         // DEBUG
         console.log(`Código enviado a ${user.email}: ${code}`);
         // mensaje de feedbakc al usuario
@@ -123,13 +116,9 @@ export const changePassword = async (req, res) => {
         const {email, code, newPass} = req.body;
 
         // validaciones
-        if (!email|| !code|| !newPass) {
-            return res.status(400).json({message: "Todos los campos son obligatorios."});
-        };
+        if (!email|| !code|| !newPass) return res.status(400).json({message: "Todos los campos son obligatorios."});
         // validamos el codigo
-        if (!/^[0-9]{6}$/.test(code)) {
-            return res.status(400).json({message: "Escribe un código válido"})
-        };
+        if (!/^[0-9]{6}$/.test(code)) return res.status(400).json({message: "Escribe un código válido"})
         // encontramos el usuario que cumpla con el codigo y que no supere a los 15 minutos que lo guardamos
         const user = await Users.findOne({
             email: email,
@@ -137,9 +126,7 @@ export const changePassword = async (req, res) => {
             codeExpiration: {$gt: new Date()}
         });
         // validmos
-        if(!user){
-            return res.status(400).json({message: "Código inválido o expirado"})
-        }
+        if(!user) return res.status(400).json({message: "Código inválido o expirado"}) 
         // encriptamos la nueva contraseña
         const salt = await bcrypt.genSalt(10);
         const hashedNewPass = await bcrypt.hash(newPass, salt);
@@ -149,10 +136,9 @@ export const changePassword = async (req, res) => {
         user.codeExpiration = undefined;
         await user.save();
 
-
         const emailOption = {
             from: process.env.EMAIL_USER,
-            to: Users.email,
+            to: user.email,
             subject: 'Contraseña Actualizada - DEC',
             html:
             `
@@ -194,7 +180,7 @@ export const changePassword = async (req, res) => {
             `
         };
 
-        await trasnporter.sendMail(emailOption);
+        await transporter.sendMail(emailOption);
 
         return res.status(200).json({message: "Contraseña actualizada exitosamente. Ya puedes iniciar sesión con tu nueva contraseña"});
 

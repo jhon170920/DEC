@@ -1,14 +1,28 @@
 import express from 'express';
-import { registerUser, loginUser, editUser, deleteUser, googleAuth } from '../controllers/users.js';
+import { loginUser, editUser, deleteUser, updateProfile, changePassword, getMe, uploadProfilePicture } from '../controllers/users.js';
+import { registerUser, verifyCode } from '../controllers/registerUser.js';
+import { googleAuth } from '../controllers/googleAuth.js';
+import { facebookAuth } from '../controllers/facebookAuth.js';
 import { contactUs } from '../controllers/contactUs.js';
 import { verifyToken } from '../middlewares/auth.js';
+import { savePushToken } from '../controllers/notificationController.js';
+import multer from 'multer';
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
+// ruta para iniciar/registrarse con facebook
+router.post('/auth/facebook', facebookAuth)
+
+// ruta para iniciar/registrarse con google
 router.post('/auth/google', googleAuth)
 
 // Ruta para crear un nuevo usuario
 router.post('/register', registerUser);
+// Ruta para validar el codigo de registro
+router.post('/verify-code', verifyCode)
+
+
 // ruta para iniciar sesion
 router.post('/login', loginUser);
 
@@ -16,11 +30,25 @@ router.post('/login', loginUser);
 router.put('/edit', verifyToken, editUser);
 
 // ruta para eliminar cuentica
-router.delete('/delete', verifyToken, deleteUser);
+router.put('/delete', verifyToken, deleteUser);
 
-// ruta de contactos
+// ruta de contactanos
 router.post('/send-message', contactUs);
 
+//Ruta push NOTIFICACIONES
 
-    
+router.post('/save-push-token', verifyToken, savePushToken);
+
+// Obtener mi perfil (usuario logueado)
+router.get('/me', verifyToken, getMe);
+
+// Actualizar perfil (nombre, teléfono, foto)
+router.put('/edit-profile', verifyToken, updateProfile);
+
+// Cambiar contraseña
+router.post('/change-password', verifyToken, changePassword);
+
+// Subir foto de perfil
+router.post('/upload-profile-picture', verifyToken, upload.single('image'), uploadProfilePicture);
+
 export default router;

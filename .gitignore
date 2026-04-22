@@ -1,4 +1,8 @@
 # --- IGNORE ---
 frontend/DEC/node_modules/
+frontend/DEC/.env
 # --- IGNORE ---
 backend/node_modules/
+
+.DS_Store
+

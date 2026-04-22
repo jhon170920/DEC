@@ -1,22 +1,207 @@
-import React, { useState } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, TextInput, 
-  ScrollView, Image, Platform, Switch, Modal 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, TextInput,
+  ScrollView, Image, Platform, Switch, Modal, ActivityIndicator, Alert
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import api from '../../../../api/api';
 
 const CatalogTab = () => {
-  const [selectedPathology, setSelectedPathology] = useState(MOCK_CATALOG[0]);
+  const [pathologies, setPathologies] = useState([]);
+  const [selectedPathology, setSelectedPathology] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [detectionsCount, setDetectionsCount] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Estado para insumos mientras se edita
+  const [recommendations, setRecommendations] = useState([]);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [resPath, resDet] = await Promise.all([
+        api.get('admin/get-pathologies'),
+        api.get('admin/get-detections')
+      ]);
+      const pathologiesData = resPath.data.pathologies || [];
+      setPathologies(pathologiesData);
+      if (pathologiesData.length > 0 && !selectedPathology) {
+        setSelectedPathology(pathologiesData[0]);
+        setRecommendations(pathologiesData[0].recommendations || []);
+      }
+      const detections = resDet.data.detections || [];
+      const counts = {};
+      detections.forEach(d => {
+        const pid = d.pathologyId?._id || d.pathologyId;
+        if (pid) counts[pid] = (counts[pid] || 0) + 1;
+      });
+      setDetectionsCount(counts);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudieron cargar los datos');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Guardar cambios de la patología (incluyendo insumos)
+  const handleSave = async () => {
+    if (!selectedPathology) return;
+    setSaving(true);
+    try {
+      const { _id, name, description, treatment, alert } = selectedPathology;
+      await api.put(`admin/edit-pathology/${_id}`, {
+        name, description, treatment, alert, recommendations
+      });
+      // Actualizar lista local
+      const updatedPathology = { ...selectedPathology, recommendations };
+      setPathologies(prev => prev.map(p => p._id === _id ? updatedPathology : p));
+      setSelectedPathology(updatedPathology);
+      setIsEditing(false);
+      Alert.alert('Éxito', 'Patología actualizada');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo guardar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Cambiar alerta
+  const toggleAlert = async (value) => {
+    if (!selectedPathology) return;
+    const updated = { ...selectedPathology, alert: value };
+    setSelectedPathology(updated);
+    try {
+      await api.put(`admin/edit-pathology/${updated._id}`, {
+        name: updated.name, description: updated.description,
+        treatment: updated.treatment, alert: updated.alert, recommendations
+      });
+      setPathologies(prev => prev.map(p => p._id === updated._id ? updated : p));
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo actualizar el estado de alerta');
+      setSelectedPathology(prev => ({ ...prev, alert: !value }));
+    }
+  };
+
+  // Subir imagen
+const pickImage = async () => {
+  // Solicitar permisos
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== 'granted') {
+    Alert.alert('Permiso denegado', 'Necesitamos acceso a tu galería');
+    return;
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    quality: 0.8,
+    base64: false
+  });
+
+  if (!result.canceled) {
+    setUploadingImage(true);
+    const asset = result.assets[0];
+    
+    try {
+      let fileToSend;
+      
+      if (Platform.OS === 'web') {
+        // En web: convertir la URI a Blob usando fetch
+        const response = await fetch(asset.uri);
+        const blob = await response.blob();
+        const filename = asset.uri.split('/').pop() || 'image.jpg';
+        fileToSend = new File([blob], filename, { type: blob.type });
+      } else {
+        // En móvil: usar el objeto con uri, name, type
+        const filename = asset.uri.split('/').pop();
+        const extension = filename?.split('.').pop() || 'jpg';
+        const mimeType = `image/${extension === 'jpg' ? 'jpeg' : extension}`;
+        fileToSend = {
+          uri: asset.uri,
+          name: `patologia_${Date.now()}.${extension}`,
+          type: mimeType,
+        };
+      }
+      
+      const formData = new FormData();
+      formData.append('image', fileToSend);
+      
+      const res = await api.post(`admin/upload-pathology-image/${selectedPathology._id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      
+      const updated = { ...selectedPathology, imageUrl: res.data.imageUrl };
+      setSelectedPathology(updated);
+      setPathologies(prev => prev.map(p => p._id === updated._id ? updated : p));
+      Alert.alert('Éxito', 'Imagen actualizada correctamente');
+    } catch (error) {
+      console.error('Error subiendo imagen:', error);
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo subir la imagen');
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+};
+
+  // Gestión de insumos
+  const addRecommendation = () => {
+    setRecommendations([
+      ...recommendations,
+      { productName: '', dose: '', price: '', supplier: '', link: '' }
+    ]);
+  };
+
+  const updateRecommendation = (index, field, value) => {
+    const updated = [...recommendations];
+    updated[index][field] = value;
+    setRecommendations(updated);
+  };
+
+  const removeRecommendation = (index) => {
+    const updated = [...recommendations];
+    updated.splice(index, 1);
+    setRecommendations(updated);
+  };
+
+  // Enviar alerta push
+  const handleSendAlert = async (location, message) => {
+    try {
+      await api.post('/admin/send-notification', {
+        title: `🚨 Alerta: ${selectedPathology.name}`,
+        body: `${message}\n📍 Ubicación: ${location}`,
+        data: { pathologyId: selectedPathology._id, location }
+      });
+      Alert.alert('Alerta enviada', 'Notificación enviada a todos los usuarios');
+      setModalVisible(false);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo enviar la alerta');
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#16a34a" />
+        <Text style={styles.loadingText}>Cargando catálogo...</Text>
+      </View>
+    );
+  }
+
+  if (!selectedPathology) return null;
 
   return (
     <View style={styles.container}>
-      {/* MODAL DE NOTIFICACIÓN PUSH */}
-      <AlertModal 
-        visible={modalVisible} 
-        onClose={() => setModalVisible(false)} 
-        pathologyName={selectedPathology.name} 
+      <AlertModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        pathologyName={selectedPathology.name}
+        onSend={handleSendAlert}
       />
 
       <View style={styles.header}>
@@ -24,87 +209,177 @@ const CatalogTab = () => {
           <Text style={styles.title}>Catálogo Fitopatológico</Text>
           <Text style={styles.sub}>Base de conocimientos y alertas sanitarias</Text>
         </View>
-        
-        {/* BOTÓN DE ALERTA RÁPIDA */}
-        <TouchableOpacity 
-          style={styles.broadcastBtn}
-          onPress={() => setModalVisible(true)}
-        >
+        <TouchableOpacity style={styles.broadcastBtn} onPress={() => setModalVisible(true)}>
           <Feather name="rss" size={18} color="#fff" />
           <Text style={styles.broadcastBtnText}>Emitir Alerta Push</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.mainLayout}>
-        {/* LISTA IZQUIERDA: Selector de Patologías */}
+        {/* Lista izquierda */}
         <View style={styles.listSide}>
-          {MOCK_CATALOG.map((item) => (
-            <TouchableOpacity 
-              key={item.id} 
-              style={[styles.itemCard, selectedPathology?.id === item.id && styles.itemCardActive]}
-              onPress={() => { setSelectedPathology(item); setIsEditing(false); }}
+          {pathologies.map((item) => (
+            <TouchableOpacity
+              key={item._id}
+              style={[styles.itemCard, selectedPathology?._id === item._id && styles.itemCardActive]}
+              onPress={() => {
+                setSelectedPathology(item);
+                setRecommendations(item.recommendations || []);
+                setIsEditing(false);
+              }}
             >
-              <Text style={[styles.itemTitle, selectedPathology?.id === item.id && styles.activeText]}>
-                {item.name}
-              </Text>
-              <Feather name="chevron-right" size={16} color={selectedPathology?.id === item.id ? '#fff' : '#9ca3af'} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {item.imageUrl ? (
+                  <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
+                ) : (
+                  <View style={styles.itemImagePlaceholder}>
+                    <Feather name="image" size={16} color="#9ca3af" />
+                  </View>
+                )}
+                <Text style={[styles.itemTitle, selectedPathology?._id === item._id && styles.activeText]}>
+                  {item.name}
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={16} color={selectedPathology?._id === item._id ? '#fff' : '#9ca3af'} />
             </TouchableOpacity>
           ))}
-          
-          <View style={styles.historyCard}>
-            <Text style={styles.historyTitle}>Últimas Alertas</Text>
-            <View style={styles.historyItem}>
-              <Text style={styles.historyDate}>Hoy, 08:30 AM</Text>
-              <Text style={styles.historyText}>Brote de Roya en Vereda El Recreo...</Text>
-            </View>
-          </View>
         </View>
 
-        {/* LADO DERECHO: Editor de Contenido */}
+        {/* Lado derecho: editor */}
         <View style={styles.editorSide}>
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.editorHeader}>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.pathologyTitle}>{selectedPathology.name}</Text>
-                <Text style={styles.scientificName}>{selectedPathology.scientificName}</Text>
+                <Text style={styles.scientificName}>
+                  {selectedPathology.scientificName || 'Nombre científico no registrado'}
+                </Text>
               </View>
-              <TouchableOpacity 
-                style={[styles.editBtn, isEditing && styles.saveBtn]} 
-                onPress={() => setIsEditing(!isEditing)}
+              <TouchableOpacity
+                style={[styles.editBtn, isEditing && styles.saveBtn]}
+                onPress={isEditing ? handleSave : () => setIsEditing(true)}
+                disabled={saving}
               >
                 <Feather name={isEditing ? "check" : "edit-3"} size={18} color="#fff" />
-                <Text style={styles.editBtnText}>{isEditing ? "Guardar Cambios" : "Editar Ficha"}</Text>
+                <Text style={styles.editBtnText}>
+                  {isEditing ? (saving ? 'Guardando...' : 'Guardar') : "Editar Ficha"}
+                </Text>
               </TouchableOpacity>
             </View>
 
-            {/* IMAGEN DE REFERENCIA */}
+            {/* Imagen */}
             <View style={styles.imageContainer}>
-              <Image source={{ uri: selectedPathology.image }} style={styles.refImage} />
+              {selectedPathology.imageUrl ? (
+                <Image source={{ uri: selectedPathology.imageUrl }} style={styles.refImage} />
+              ) : (
+                <View style={[styles.refImage, styles.noImage]}>
+                  <Feather name="image" size={48} color="#d1d5db" />
+                  <Text style={styles.noImageText}>Sin imagen</Text>
+                </View>
+              )}
               {isEditing && (
-                <TouchableOpacity style={styles.uploadOverlay}>
-                  <Feather name="camera" size={24} color="#fff" />
-                  <Text style={styles.uploadText}>Cambiar Imagen de Referencia</Text>
+                <TouchableOpacity style={styles.uploadOverlay} onPress={pickImage} disabled={uploadingImage}>
+                  {uploadingImage ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Feather name="camera" size={24} color="#fff" />
+                      <Text style={styles.uploadText}>
+                        {selectedPathology.imageUrl ? 'Cambiar imagen' : 'Subir imagen'}
+                      </Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               )}
             </View>
 
-            {/* FORMULARIO DE EDICIÓN */}
+            {/* Formulario */}
             <View style={styles.form}>
               <Text style={styles.label}>Descripción de la Afección (Síntomas)</Text>
-              <TextInput 
-                multiline 
+              <TextInput
+                multiline
                 editable={isEditing}
                 style={[styles.input, styles.textArea, isEditing && styles.inputActive]}
                 value={selectedPathology.description}
+                onChangeText={(text) => setSelectedPathology({ ...selectedPathology, description: text })}
               />
 
               <Text style={styles.label}>Protocolo de Tratamiento Sugerido</Text>
-              <TextInput 
-                multiline 
+              <TextInput
+                multiline
                 editable={isEditing}
                 style={[styles.input, styles.textArea, isEditing && styles.inputActive]}
                 value={selectedPathology.treatment}
+                onChangeText={(text) => setSelectedPathology({ ...selectedPathology, treatment: text })}
               />
+
+              {/* Insumos recomendados */}
+              <View style={styles.recommendationsSection}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.label}>Insumos recomendados</Text>
+                  {isEditing && (
+                    <TouchableOpacity onPress={addRecommendation} style={styles.addBtn}>
+                      <Feather name="plus" size={16} color="#16a34a" />
+                      <Text style={styles.addBtnText}>Agregar</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                {recommendations.map((rec, idx) => (
+                  <View key={idx} style={styles.recommendationCard}>
+                    {isEditing ? (
+                      <>
+                        <View style={styles.recommendationRow}>
+                          <TextInput
+                            style={[styles.input, styles.recommendationInput]}
+                            placeholder="Producto"
+                            value={rec.productName}
+                            onChangeText={(v) => updateRecommendation(idx, 'productName', v)}
+                          />
+                          <TextInput
+                            style={[styles.input, styles.recommendationInputSmall]}
+                            placeholder="Dosis"
+                            value={rec.dose}
+                            onChangeText={(v) => updateRecommendation(idx, 'dose', v)}
+                          />
+                        </View>
+                        <View style={styles.recommendationRow}>
+                          <TextInput
+                            style={[styles.input, styles.recommendationInput]}
+                            placeholder="Precio"
+                            value={rec.price}
+                            onChangeText={(v) => updateRecommendation(idx, 'price', v)}
+                          />
+                          <TextInput
+                            style={[styles.input, styles.recommendationInput]}
+                            placeholder="Proveedor"
+                            value={rec.supplier}
+                            onChangeText={(v) => updateRecommendation(idx, 'supplier', v)}
+                          />
+                        </View>
+                        <TouchableOpacity onPress={() => removeRecommendation(idx)} style={styles.removeBtn}>
+                          <Feather name="trash-2" size={14} color="#ef4444" />
+                          <Text style={styles.removeBtnText}>Eliminar</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <View>
+                        <Text style={styles.recommendationProduct}>{rec.productName}</Text>
+                        <Text style={styles.recommendationDetail}>Dosis: {rec.dose}</Text>
+                        {rec.price && <Text style={styles.recommendationDetail}>Precio: {rec.price}</Text>}
+                        {rec.supplier && <Text style={styles.recommendationDetail}>Proveedor: {rec.supplier}</Text>}
+                        {rec.link && (
+                          <TouchableOpacity onPress={() => Linking.openURL(rec.link)}>
+                            <Text style={styles.linkText}>Ver producto</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                ))}
+                {!isEditing && recommendations.length === 0 && (
+                  <Text style={styles.noDataText}>No hay insumos registrados</Text>
+                )}
+              </View>
 
               <View style={styles.row}>
                 <View style={styles.fieldGroup}>
@@ -113,17 +388,19 @@ const CatalogTab = () => {
                     <Text style={[styles.statusText, { color: selectedPathology.alert ? '#ef4444' : '#6b7280' }]}>
                       {selectedPathology.alert ? 'ALTA PRIORIDAD' : 'Normal'}
                     </Text>
-                    <Switch 
-                      value={selectedPathology.alert} 
+                    <Switch
+                      value={selectedPathology.alert || false}
+                      onValueChange={toggleAlert}
                       trackColor={{ false: "#d1d5db", true: "#fca5a5" }}
                       thumbColor={selectedPathology.alert ? "#ef4444" : "#f4f3f4"}
                     />
                   </View>
                 </View>
-                
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Incidencia en Garzón</Text>
-                  <Text style={styles.incidenciaValue}>{selectedPathology.totalDetections} casos</Text>
+                  <Text style={styles.incidenciaValue}>
+                    {detectionsCount[selectedPathology._id] || 0} casos
+                  </Text>
                 </View>
               </View>
             </View>
@@ -134,8 +411,21 @@ const CatalogTab = () => {
   );
 };
 
-/* COMPONENTE INTERNO: Modal de Notificación */
-const AlertModal = ({ visible, onClose, pathologyName }) => {
+// Modal de alerta (sin cambios)
+const AlertModal = ({ visible, onClose, pathologyName, onSend }) => {
+  const [location, setLocation] = useState('');
+  const [message, setMessage] = useState('');
+
+  const handleSend = () => {
+    if (!location.trim()) {
+      Alert.alert('Error', 'Ingresa la ubicación del brote');
+      return;
+    }
+    onSend(location, message);
+    setLocation('');
+    setMessage('');
+  };
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.modalOverlay}>
@@ -144,27 +434,30 @@ const AlertModal = ({ visible, onClose, pathologyName }) => {
             <Feather name="alert-triangle" size={24} color="#ef4444" />
             <Text style={styles.modalTitle}>Emitir Notificación Push</Text>
           </View>
-          
           <Text style={styles.modalSub}>
             Esta alerta llegará al celular de todos los usuarios vinculados.
           </Text>
-
           <Text style={styles.label}>Ubicación del Brote</Text>
-          <TextInput placeholder="Ej: Vereda La Jagua, Garzón" style={styles.modalInput} />
-
-          <Text style={styles.label}>Instrucciones para el usuario</Text>
-          <TextInput 
-            multiline 
-            numberOfLines={4}
-            placeholder="Ej: Se reporta alta incidencia. Favor intensificar muestreos y cuidados." 
-            style={[styles.modalInput, { height: 80, textAlignVertical: 'top' }]} 
+          <TextInput
+            placeholder="Ej: Vereda La Jagua, Garzón"
+            style={styles.modalInput}
+            value={location}
+            onChangeText={setLocation}
           />
-
+          <Text style={styles.label}>Instrucciones para el usuario</Text>
+          <TextInput
+            multiline
+            numberOfLines={4}
+            placeholder="Ej: Se reporta alta incidencia. Favor intensificar muestreos y cuidados."
+            style={[styles.modalInput, { height: 80, textAlignVertical: 'top' }]}
+            value={message}
+            onChangeText={setMessage}
+          />
           <View style={styles.modalActions}>
             <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
               <Text style={styles.cancelBtnText}>Cancelar</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.confirmBtn} onPress={onClose}>
+            <TouchableOpacity style={styles.confirmBtn} onPress={handleSend}>
               <Feather name="send" size={16} color="#fff" />
               <Text style={styles.confirmBtnText}>Enviar Alerta</Text>
             </TouchableOpacity>
@@ -175,37 +468,14 @@ const AlertModal = ({ visible, onClose, pathologyName }) => {
   );
 };
 
-// --- DATOS DE EJEMPLO ---
-const MOCK_CATALOG = [
-  { 
-    id: '1', 
-    name: 'Roya del Café', 
-    scientificName: 'Hemileia vastatrix',
-    description: 'Pústulas de color naranja en el envés de las hojas. Provoca defoliación severa.',
-    treatment: 'Manejo de sombra, fertilización adecuada y fungicidas cúpricos en periodos de lluvia.',
-    image: 'https://images.unsplash.com/photo-1592819695396-064b9570a5d0?q=80&w=500',
-    totalDetections: 452,
-    alert: true
-  },
-  { 
-    id: '2', 
-    name: 'Minador de Hoja', 
-    scientificName: 'Leucoptera coffeella',
-    description: 'Manchas cafés secas (minas) que reducen la capacidad fotosintética del árbol.',
-    treatment: 'Control cultural mediante podas y monitoreo de poblaciones de avispas depredadoras.',
-    image: 'https://images.unsplash.com/photo-1521503862181-2cdd007b0555?q=80&w=500',
-    totalDetections: 215,
-    alert: false
-  }
-];
-
+// Estilos (los mismos que tenías, solo añado centerContainer, loadingText, etc.)
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginBottom: 25 
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 25
   },
   title: { fontSize: 26, fontWeight: '800', color: '#1f2937' },
   sub: { color: '#6b7280', marginTop: 4 },
@@ -217,13 +487,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    ...Platform.select({ web: { cursor: 'pointer' } })
   },
   broadcastBtnText: { color: '#fff', fontWeight: '700' },
-
   mainLayout: { flexDirection: 'row', gap: 20, flex: 1 },
-
-  /* Lista Izquierda */
   listSide: { width: 300 },
   itemCard: {
     backgroundColor: '#fff',
@@ -239,39 +505,33 @@ const styles = StyleSheet.create({
   itemCardActive: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
   itemTitle: { fontWeight: '700', color: '#374151', fontSize: 15 },
   activeText: { color: '#fff' },
-
   historyCard: { marginTop: 20, backgroundColor: '#fff', padding: 15, borderRadius: 15, borderStyle: 'dashed', borderWidth: 1, borderColor: '#d1d5db' },
   historyTitle: { fontSize: 12, fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', marginBottom: 10 },
   historyItem: { marginBottom: 8 },
   historyDate: { fontSize: 11, fontWeight: '700', color: '#16a34a' },
   historyText: { fontSize: 12, color: '#6b7280' },
-
-  /* Lado Derecho */
-  editorSide: { 
-    flex: 1, 
-    backgroundColor: '#fff', 
-    borderRadius: 24, 
+  editorSide: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 24,
     padding: 30,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    ...Platform.select({ web: { boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' } })
   },
   editorHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 25 },
   pathologyTitle: { fontSize: 28, fontWeight: '800', color: '#111827' },
   scientificName: { fontStyle: 'italic', color: '#6b7280', fontSize: 18 },
-  
-  editBtn: { 
-    flexDirection: 'row', 
-    backgroundColor: '#374151', 
-    paddingHorizontal: 16, 
-    paddingVertical: 10, 
-    borderRadius: 10, 
-    alignItems: 'center', 
-    gap: 8 
+  editBtn: {
+    flexDirection: 'row',
+    backgroundColor: '#374151',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    gap: 8
   },
   saveBtn: { backgroundColor: '#16a34a' },
   editBtnText: { color: '#fff', fontWeight: '700' },
-
   imageContainer: { width: '100%', height: 220, borderRadius: 20, overflow: 'hidden', marginBottom: 30, position: 'relative' },
   refImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   uploadOverlay: {
@@ -282,7 +542,6 @@ const styles = StyleSheet.create({
     gap: 10
   },
   uploadText: { color: '#fff', fontWeight: '700' },
-
   form: { gap: 20 },
   label: { fontSize: 13, fontWeight: '800', color: '#4b5563', marginBottom: 8 },
   input: {
@@ -296,14 +555,11 @@ const styles = StyleSheet.create({
   },
   inputActive: { backgroundColor: '#fff', borderColor: '#16a34a', borderWidth: 1.5 },
   textArea: { minHeight: 120, textAlignVertical: 'top' },
-  
   row: { flexDirection: 'row', gap: 25 },
   fieldGroup: { flex: 1 },
   switchContainer: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 5 },
   statusText: { fontSize: 12, fontWeight: '800' },
   incidenciaValue: { fontSize: 22, fontWeight: '800', color: '#16a34a', marginTop: 5 },
-
-  /* Modal */
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
   modalCard: { backgroundColor: '#fff', width: 450, padding: 30, borderRadius: 24 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
@@ -314,7 +570,118 @@ const styles = StyleSheet.create({
   cancelBtn: { padding: 15 },
   cancelBtnText: { color: '#6b7280', fontWeight: '700' },
   confirmBtn: { backgroundColor: '#ef4444', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  confirmBtnText: { color: '#fff', fontWeight: '700' }
+  confirmBtnText: { color: '#fff', fontWeight: '700' },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, color: '#6b7280' },
+  itemImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f3f4f6'
+  },
+  itemImagePlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  noImage: {
+    backgroundColor: '#f9fafb',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  noImageText: {
+    marginTop: 8,
+    color: '#9ca3af',
+    fontSize: 12
+  },
+  recommendationsSection: {
+    marginTop: 10
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12
+  },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#f0fdf4',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8
+  },
+  addBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#16a34a'
+  },
+  recommendationCard: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb'
+  },
+  recommendationRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10
+  },
+  recommendationInput: {
+    flex: 1,
+    padding: 8,
+    fontSize: 13
+  },
+  recommendationInputSmall: {
+    flex: 0.7,
+    padding: 8,
+    fontSize: 13
+  },
+  recommendationProduct: {
+    fontWeight: '700',
+    fontSize: 15,
+    color: '#1f2937',
+    marginBottom: 4
+  },
+  recommendationDetail: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 2
+  },
+  removeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 6,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb'
+  },
+  removeBtnText: {
+    fontSize: 12,
+    color: '#ef4444',
+    fontWeight: '600'
+  },
+  linkText: {
+    fontSize: 12,
+    color: '#3b82f6',
+    marginTop: 4,
+    textDecorationLine: 'underline'
+  },
+  noDataText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginVertical: 20
+  }
 });
 
 export default CatalogTab;

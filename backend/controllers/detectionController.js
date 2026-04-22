@@ -76,7 +76,7 @@ export const getUserHistory = async (req, res) => {
         // ejecutamos dos busquedas al mismo tiempo, el history y el total records
         const [history, totalRecords] = await Promise.all([
             Detections.find({ userId: req.user.id })
-                .populate("pathologyId", "name treatment description") // tratemos la patología
+                .populate("pathologyId", "name treatment") // tratemos la patología
                 .sort({ createdAt: -1 }) // la más reciente arriba
                 .skip(skip)// nos saltemos los análisis ya hechos
                 .limit(limit), // el límite de detecciones cada pagina
@@ -128,4 +128,13 @@ export const deleteUserHistory = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: "Error al eliminar el historial", error: error.message });
     }
+};
+export const getUserDetectionCount = async (req, res) => {
+  try {
+    const count = await Detections.countDocuments({ userId: req.user.id });
+    res.json({ count });
+  } catch (error) {
+    console.error('Error en getUserDetectionCount:', error);
+    res.status(500).json({ message: error.message });
+  }
 };
