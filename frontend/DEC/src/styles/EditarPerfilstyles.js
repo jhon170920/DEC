@@ -94,14 +94,18 @@ export const EditProfileStyles = StyleSheet.create({
   flex: 1,
   backgroundColor: 'rgba(0,0,0,0.5)',
   justifyContent: 'center',
-  alignItems: 'center',
+},
+modalScrollContent: {
+  flexGrow: 1,
+  justifyContent: 'center',
+  paddingVertical: 20,
 },
 modalBox: {
   width: '80%',
   backgroundColor: '#fff',
   borderRadius: 20,
   padding: 20,
-  alignItems: 'center',
+  alignSelf:'center',
 },
 modalTitle: {
   fontSize: 20,
@@ -142,11 +146,17 @@ modalBtnText: {
 modalCancelBtn: {
   paddingVertical: 10,
   paddingHorizontal: 20,
+  width: '100%'
 },
 modalCancelText: {
-  color: Colors.textMuted,
-  fontSize: 14,
+  color: Colors.surface,
+  fontSize: 17,
   fontWeight: '500',
+  textAlign: 'center',
+  backgroundColor: Colors.danger,
+  borderRadius: 14,
+  paddingVertical: 12,
+  fontWeight: 'bold'
 },
 
 });

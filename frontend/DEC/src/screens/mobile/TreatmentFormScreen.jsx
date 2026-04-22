@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
-  StatusBar, StyleSheet, Modal, FlatList, Image
+  StatusBar, StyleSheet, Modal, FlatList, Image, KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -273,103 +274,115 @@ export default function TreatmentFormScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
       <LinearGradient colors={['#e8f5ec', '#f4faf5']} style={StyleSheet.absoluteFill} />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Feather name="arrow-left" size={24} color={Colors.primary} />
-          </TouchableOpacity>
-          <Text style={styles.title}>{logId ? 'Editar seguimiento' : 'Nuevo seguimiento'}</Text>
-          <View style={{ width: 40 }} />
-        </View>
-
-        <View style={styles.card}>
-          {/* Botón para asociar detección */}
-          <TouchableOpacity style={styles.selectDetectionBtn} onPress={() => setShowDetectionModal(true)}>
-            <Feather name="search" size={18} color={Colors.primary} />
-            <Text style={styles.selectDetectionText}>Asociar a una detección del historial</Text>
-          </TouchableOpacity>
-
-          {/* Mostrar imagen y datos de la detección seleccionada */}
-          {selectedDetection && (
-            <View style={styles.selectedDetectionContainer}>
-              {selectedDetectionImage ? (
-                <Image source={{ uri: selectedDetectionImage }} style={styles.detectionThumb} />
-              ) : null}
-              <View style={styles.selectedInfo}>
-                <Feather name="check-circle" size={14} color={Colors.primary} />
-                <Text style={styles.selectedText}>
-                  Asociado a: {new Date(selectedDetection.created_at).toLocaleDateString()}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Botón para programar recordatorio (solo si hay detección asociada) */}
-          {selectedDetection && (
-            <TouchableOpacity style={styles.reminderBtn} onPress={() => setShowReminderPicker(true)}>
-              <Feather name="bell" size={18} color="#fff" />
-              <Text style={styles.reminderText}>Programar recordatorio de evolución</Text>
+      
+      {/* KeyboardAvoidingView principal para evitar que el teclado tape los inputs */}
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Feather name="arrow-left" size={24} color={Colors.primary} />
             </TouchableOpacity>
-          )}
+            <Text style={styles.title}>{logId ? 'Editar seguimiento' : 'Nuevo seguimiento'}</Text>
+            <View style={{ width: 40 }} />
+          </View>
 
-          <Text style={styles.label}>Enfermedad / Afección *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ej: Roya, Mancha de hierro"
-            value={diseaseName}
-            onChangeText={setDiseaseName}
-          />
+          <View style={styles.card}>
+            {/* Botón para asociar detección */}
+            <TouchableOpacity style={styles.selectDetectionBtn} onPress={() => setShowDetectionModal(true)}>
+              <Feather name="search" size={18} color={Colors.primary} />
+              <Text style={styles.selectDetectionText}>Asociar a una detección del historial</Text>
+            </TouchableOpacity>
 
-          <Text style={styles.label}>Notas generales</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Observaciones adicionales"
-            value={generalNotes}
-            onChangeText={setGeneralNotes}
-            multiline
-            numberOfLines={3}
-          />
-
-          <Text style={styles.label}>Productos aplicados</Text>
-          {products.length === 0 ? (
-            <Text style={styles.emptyList}>No hay productos agregados</Text>
-          ) : (
-            products.map((item, index) => (
-              <View key={index} style={styles.productCard}>
-                <View style={styles.productHeader}>
-                  <Text style={styles.productName}>{item.product_name}</Text>
-                  <View style={styles.productActions}>
-                    <TouchableOpacity onPress={() => openEditProduct(index)}>
-                      <Feather name="edit-2" size={18} color={Colors.primary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => removeProduct(index)} style={{ marginLeft: 12 }}>
-                      <Feather name="trash-2" size={18} color="#dc2626" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                {item.dose ? <Text style={styles.productDetail}>💊 Dosis: {item.dose}</Text> : null}
-                {item.application_date ? (
-                  <Text style={styles.productDetail}>📅 Aplicación: {new Date(item.application_date).toLocaleDateString()}</Text>
+            {/* Mostrar imagen y datos de la detección seleccionada */}
+            {selectedDetection && (
+              <View style={styles.selectedDetectionContainer}>
+                {selectedDetectionImage ? (
+                  <Image source={{ uri: selectedDetectionImage }} style={styles.detectionThumb} />
                 ) : null}
-                {item.notes ? <Text style={styles.productDetail}>📝 {item.notes}</Text> : null}
+                <View style={styles.selectedInfo}>
+                  <Feather name="check-circle" size={14} color={Colors.primary} />
+                  <Text style={styles.selectedText}>
+                    Asociado a: {new Date(selectedDetection.created_at).toLocaleDateString()}
+                  </Text>
+                </View>
               </View>
-            ))
-          )}
-          <TouchableOpacity style={styles.addProductBtn} onPress={openAddProduct}>
-            <Feather name="plus" size={20} color={Colors.primary} />
-            <Text style={styles.addProductText}>Agregar producto</Text>
-          </TouchableOpacity>
+            )}
 
-          <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
-            <LinearGradient colors={['#22c55e', '#16a34a']} style={styles.saveGradient}>
-              <Text style={styles.saveText}>{loading ? 'Guardando...' : 'Guardar seguimiento'}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+            {/* Botón para programar recordatorio (solo si hay detección asociada) */}
+            {selectedDetection && (
+              <TouchableOpacity style={styles.reminderBtn} onPress={() => setShowReminderPicker(true)}>
+                <Feather name="bell" size={18} color="#fff" />
+                <Text style={styles.reminderText}>Programar recordatorio de evolución</Text>
+              </TouchableOpacity>
+            )}
 
-      {/* Modal para seleccionar detección */}
+            <Text style={styles.label}>Enfermedad / Afección *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: Roya, Mancha de hierro"
+              value={diseaseName}
+              onChangeText={setDiseaseName}
+            />
+
+            <Text style={styles.label}>Notas generales</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Observaciones adicionales"
+              value={generalNotes}
+              onChangeText={setGeneralNotes}
+              multiline
+              numberOfLines={3}
+            />
+
+            <Text style={styles.label}>Productos aplicados</Text>
+            {products.length === 0 ? (
+              <Text style={styles.emptyList}>No hay productos agregados</Text>
+            ) : (
+              products.map((item, index) => (
+                <View key={index} style={styles.productCard}>
+                  <View style={styles.productHeader}>
+                    <Text style={styles.productName}>{item.product_name}</Text>
+                    <View style={styles.productActions}>
+                      <TouchableOpacity onPress={() => openEditProduct(index)}>
+                        <Feather name="edit-2" size={18} color={Colors.primary} />
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => removeProduct(index)} style={{ marginLeft: 12 }}>
+                        <Feather name="trash-2" size={18} color="#dc2626" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  {item.dose ? <Text style={styles.productDetail}>💊 Dosis: {item.dose}</Text> : null}
+                  {item.application_date ? (
+                    <Text style={styles.productDetail}>📅 Aplicación: {new Date(item.application_date).toLocaleDateString()}</Text>
+                  ) : null}
+                  {item.notes ? <Text style={styles.productDetail}>📝 {item.notes}</Text> : null}
+                </View>
+              ))
+            )}
+            <TouchableOpacity style={styles.addProductBtn} onPress={openAddProduct}>
+              <Feather name="plus" size={20} color={Colors.primary} />
+              <Text style={styles.addProductText}>Agregar producto</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
+              <LinearGradient colors={['#22c55e', '#16a34a']} style={styles.saveGradient}>
+                <Text style={styles.saveText}>{loading ? 'Guardando...' : 'Guardar seguimiento'}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Modal para seleccionar detección (sin inputs, no necesita KeyboardAvoidingView) */}
       <Modal visible={showDetectionModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -392,9 +405,12 @@ export default function TreatmentFormScreen() {
         </View>
       </Modal>
 
-      {/* Modal para agregar/editar producto */}
+      {/* Modal para agregar/editar producto (con inputs, necesita KeyboardAvoidingView) */}
       <Modal visible={showProductModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView 
+          style={styles.modalOverlay} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>{currentProductIndex !== null ? 'Editar producto' : 'Nuevo producto'}</Text>
             <TextInput
@@ -433,7 +449,7 @@ export default function TreatmentFormScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* DateTimePicker para fecha de producto */}
@@ -500,10 +516,9 @@ export default function TreatmentFormScreen() {
 }
 
 const styles = StyleSheet.create({
-  // ... todos los estilos permanecen igual (no se modificaron)
   container: { flex: 1, backgroundColor: Colors.bg },
-  scrollContent: { paddingBottom: 30 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15 },
+  scrollContent: { paddingBottom: 40 }, // Aumentado para mejor desplazamiento
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, marginTop: 15, },
   backBtn: { padding: 5 },
   title: { fontSize: 20, fontWeight: 'bold', color: Colors.text },
   card: { backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 20, padding: 20, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },

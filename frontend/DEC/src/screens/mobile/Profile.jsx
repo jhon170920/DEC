@@ -201,7 +201,7 @@ export default function Profile() {
         </View>
 
         <View style={styles.groupCard}>
-          <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => {}}>
+          <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => navigation.navigate('Centro')}>
             <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: "#eff6ff" }]}>
               <Feather name="help-circle" size={iconS} color="#3b82f6" />
             </View>
@@ -209,7 +209,7 @@ export default function Profile() {
             <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
           </TouchableOpacity>
           <View style={styles.itemDivider} />
-          <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => {}}>
+          <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => navigation.navigate('Terminos')}>
             <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: Colors.surfaceAlt }]}>
               <Feather name="file-text" size={iconS} color={Colors.textMuted} />
             </View>

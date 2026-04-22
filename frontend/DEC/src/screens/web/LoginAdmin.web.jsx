@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Modal, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import api  from '../../api/api';
+import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import api from '../../api/api';
 
 const C = {
   bg: '#f4faf5',
@@ -9,6 +11,7 @@ const C = {
   p: '#16a34a',
   text: '#0f2d1a',
   mid: '#2d6a4f',
+  danger: '#dc2626',
 };
 
 export default function LoginAdmin() {
@@ -17,33 +20,70 @@ export default function LoginAdmin() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Estados para el modal
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
+  const [modalType, setModalType] = useState('error'); // 'error', 'success', 'info'
+
+  const validateEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+
+  const showModal = (title, message, type = 'error') => {
+    setModalTitle(title);
+    setModalMessage(message);
+    setModalType(type);
+    setModalVisible(true);
+  };
+
+  const getModalIcon = () => {
+    switch (modalType) {
+      case 'success':
+        return <Feather name="check-circle" size={48} color={C.p} style={{ alignSelf: 'center', marginBottom: 12 }} />;
+      case 'error':
+        return <Feather name="alert-circle" size={48} color={C.danger} style={{ alignSelf: 'center', marginBottom: 12 }} />;
+      default:
+        return <Feather name="info" size={48} color={C.mid} style={{ alignSelf: 'center', marginBottom: 12 }} />;
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!email || !password) {
-      return Alert.alert("Error", "Por favor completa todos los campos.");
+    if (!email.trim()) {
+      showModal("Error", "Por favor ingresa tu correo electrónico.");
+      return;
+    }
+    if (!validateEmail(email.trim())) {
+      showModal("Error", "Ingresa un correo electrónico válido.");
+      return;
+    }
+    if (!password.trim()) {
+      showModal("Error", "Por favor ingresa tu contraseña.");
+      return;
     }
 
     setLoading(true);
     try {
-      // 1. Llamamos al endpoint de login que ya tienes en users.js
       const response = await api.post('users/login', { email, password });
       const { token, user } = response.data;
 
-      // 2. Validamos que el usuario tenga el ROL de administrador
-      // Tu middleware onlyAdmin en el backend depende de esto
-      if (user.role !== 'admin') { 
-        // Nota: He puesto un ejemplo de correo por si aún no has seteado el primer admin en la DB
-        throw new Error("No tienes permisos de administrador.");
+      if (user.role !== 'admin') {
+        showModal("Acceso Denegado", "No tienes permisos de administrador.");
+        return;
       }
 
-      // 3. Guardamos el token en localStorage (estamos en Web)
       localStorage.setItem('userToken', token);
-      
-      // 4. Navegamos al Dashboard
       navigation.navigate('AdminDashboard');
 
     } catch (error) {
-      const msg = error.response?.data?.message || error.message || "Error al iniciar sesión";
-      Alert.alert("Acceso Denegado", msg);
+      let errorMessage = "Error al iniciar sesión. Verifica tus credenciales.";
+      if (error.response) {
+        errorMessage = error.response.data?.message || errorMessage;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      showModal("Error de Autenticación", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -74,14 +114,57 @@ export default function LoginAdmin() {
           secureTextEntry
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-          <Text style={styles.buttonText}>{loading ? "Verificando..." : "Entrar al Sistema"}</Text>
+        <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
+          <LinearGradient
+            colors={[C.p, '#15803d']}
+            style={styles.buttonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.buttonText}>Entrar al Sistema</Text>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate('Home')}>
           <Text style={styles.link}>Volver a la Landing</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Modal personalizado */}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            {getModalIcon()}
+            <Text style={[styles.modalTitle, modalType === 'error' && { color: C.danger }]}>
+              {modalTitle}
+            </Text>
+            <Text style={styles.modalMessage}>{modalMessage}</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setModalVisible(false)}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={modalType === 'error' ? [C.danger, '#b91c1c'] : [C.p, '#15803d']}
+                style={styles.modalButtonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.modalButtonText}>Aceptar</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -130,11 +213,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#f7fcf8',
   },
   button: {
-    backgroundColor: C.p,
     borderRadius: 14,
-    paddingVertical: 16,
+    overflow: 'hidden',
     marginTop: 8,
     marginBottom: 16,
+  },
+  buttonGradient: {
+    paddingVertical: 16,
     alignItems: 'center',
   },
   buttonText: {
@@ -146,5 +231,51 @@ const styles = StyleSheet.create({
     color: C.p,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '20%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+    color: C.text,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#475569',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  modalButton: {
+    width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modalButtonGradient: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontWeight: 'bold', 
+    fontSize: 16,
   },
 });

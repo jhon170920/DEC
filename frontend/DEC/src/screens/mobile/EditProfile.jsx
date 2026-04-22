@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StatusBar, ScrollView,
-  Modal, StyleSheet, Image, ActivityIndicator
+  Modal, StyleSheet, Image, ActivityIndicator, KeyboardAvoidingView,
+  Platform, TouchableWithoutFeedback, Keyboard
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
@@ -170,172 +171,204 @@ export default function EditProfile() {
   };
 
   return (
-    <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.root}>
+          <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
 
-      <LinearGradient
-        colors={["#e8f5ec", "#f4faf5", "#f4faf5"]}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
-
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingHorizontal: hPad }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* HEADER */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} activeOpacity={0.75} onPress={() => navigation.goBack()}>
-            <Feather name="arrow-left" size={iconS} color={Colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Editar Perfil</Text>
-          <View style={{ width: 40 }} />
-        </View>
-
-        {/* AVATAR */}
-        <View style={styles.avatarWrap}>
-          <TouchableOpacity onPress={pickImage} disabled={uploadingImage} activeOpacity={0.8}>
-            {fotoPerfil ? (
-              <Image source={{ uri: fotoPerfil }} style={styles.avatarImage} />
-            ) : (
-              <View style={styles.avatarCircle}>
-                <Ionicons name="person-outline" size={60} color={Colors.textMuted} />
-              </View>
-            )}
-            <View style={styles.avatarCameraBtn}>
-              {uploadingImage ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Feather name="camera" size={16} color="#fff" />
-              )}
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* NOMBRE */}
-        <View style={[styles.inputWrap, { height: fieldH }]}>
-          <Feather name="user" size={iconS} color={Colors.textMuted} style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Nombre completo"
-            placeholderTextColor={Colors.textMuted}
-            value={nombre}
-            onChangeText={setNombre}
-          />
-          <Feather name="chevron-right" size={16} color={Colors.textMuted} />
-        </View>
-
-        {/* CORREO (no editable) */}
-        <View style={[styles.inputWrap, { height: fieldH }]}>
-          <Feather name="mail" size={iconS} color={Colors.textMuted} style={styles.inputIcon} />
-          <Text style={styles.inputReadOnly}>{correo}</Text>
-        </View>
-
-        {/* TELÉFONO */}
-        <View style={[styles.inputWrap, { height: fieldH }]}>
-          <Feather name="phone" size={iconS} color={Colors.textMuted} style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Teléfono"
-            placeholderTextColor={Colors.textMuted}
-            value={telefono}
-            onChangeText={setTelefono}
-            keyboardType="phone-pad"
-          />
-        </View>
-
-        {/* CAMBIAR CONTRASEÑA */}
-        <TouchableOpacity style={[styles.inputWrap, { height: fieldH }]} activeOpacity={0.75} onPress={() => setModalVisible(true)}>
-          <Feather name="key" size={iconS} color={Colors.textMuted} style={styles.inputIcon} />
-          <Text style={styles.inputPlaceholder}>Cambiar contraseña</Text>
-          <Feather name="chevron-right" size={16} color={Colors.textMuted} />
-        </TouchableOpacity>
-
-        {/* BOTÓN GUARDAR */}
-        <TouchableOpacity style={styles.btnGuardar} activeOpacity={0.85} onPress={handleGuardar} disabled={loading}>
           <LinearGradient
-            colors={["#22c55e", "#16a34a", "#15803d"]}
-            style={[styles.btnGradient, { height: btnH }]}
+            colors={["#e8f5ec", "#f4faf5", "#f4faf5"]}
+            style={StyleSheet.absoluteFill}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-          >
-            <Text style={styles.btnText}>{loading ? 'Guardando...' : 'Guardar Cambios'}</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </ScrollView>
+          />
 
-      {/* MODAL CAMBIAR CONTRASEÑA */}
-      <Modal transparent animationType="fade" visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>Cambiar contraseña</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Contraseña actual"
-              placeholderTextColor={Colors.textMuted}
-              value={passActual}
-              onChangeText={setPassActual}
-              secureTextEntry
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Contraseña nueva"
-              placeholderTextColor={Colors.textMuted}
-              value={passNueva}
-              onChangeText={setPassNueva}
-              secureTextEntry
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Confirmar contraseña"
-              placeholderTextColor={Colors.textMuted}
-              value={passConfirmar}
-              onChangeText={setPassConfirmar}
-              secureTextEntry
-            />
-            <TouchableOpacity style={styles.modalBtn} activeOpacity={0.85} onPress={handleCambiarPass} disabled={loadingPass}>
+          <ScrollView
+            contentContainerStyle={[
+              styles.scroll,
+              {
+                paddingHorizontal: hPad,
+                paddingBottom: Platform.OS === "ios" ? 40 : 30,
+              }
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* HEADER */}
+            <View style={styles.header}>
+              <TouchableOpacity style={styles.backBtn} activeOpacity={0.75} onPress={() => navigation.goBack()}>
+                <Feather name="arrow-left" size={iconS} color={Colors.text} />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Editar Perfil</Text>
+              <View style={{ width: 40 }} />
+            </View>
+
+            {/* AVATAR */}
+            <View style={styles.avatarWrap}>
+              <TouchableOpacity onPress={pickImage} disabled={uploadingImage} activeOpacity={0.8}>
+                {fotoPerfil ? (
+                  <Image source={{ uri: fotoPerfil }} style={styles.avatarImage} />
+                ) : (
+                  <View style={styles.avatarCircle}>
+                    <Ionicons name="person-outline" size={60} color={Colors.textMuted} />
+                  </View>
+                )}
+                <View style={styles.avatarCameraBtn}>
+                  {uploadingImage ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Feather name="camera" size={16} color="#fff" />
+                  )}
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* NOMBRE */}
+            <View style={[styles.inputWrap, { height: fieldH }]}>
+              <Feather name="user" size={iconS} color={Colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Nombre completo"
+                placeholderTextColor={Colors.textMuted}
+                value={nombre}
+                onChangeText={setNombre}
+              />
+              <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+            </View>
+
+            {/* CORREO (no editable) */}
+            <View style={[styles.inputWrap, { height: fieldH }]}>
+              <Feather name="mail" size={iconS} color={Colors.textMuted} style={styles.inputIcon} />
+              <Text style={styles.inputReadOnly}>{correo}</Text>
+            </View>
+
+            {/* TELÉFONO */}
+            <View style={[styles.inputWrap, { height: fieldH }]}>
+              <Feather name="phone" size={iconS} color={Colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Teléfono"
+                placeholderTextColor={Colors.textMuted}
+                value={telefono}
+                onChangeText={setTelefono}
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            {/* CAMBIAR CONTRASEÑA */}
+            <TouchableOpacity style={[styles.inputWrap, { height: fieldH }]} activeOpacity={0.75} onPress={() => setModalVisible(true)}>
+              <Feather name="key" size={iconS} color={Colors.textMuted} style={styles.inputIcon} />
+              <Text style={styles.inputPlaceholder}>Cambiar contraseña</Text>
+              <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+            </TouchableOpacity>
+
+            {/* BOTÓN GUARDAR */}
+            <TouchableOpacity style={styles.btnGuardar} activeOpacity={0.85} onPress={handleGuardar} disabled={loading}>
               <LinearGradient
                 colors={["#22c55e", "#16a34a", "#15803d"]}
-                style={styles.modalBtnGradient}
+                style={[styles.btnGradient, { height: btnH }]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Text style={styles.modalBtnText}>{loadingPass ? "Actualizando..." : "Confirmar"}</Text>
+                <Text style={styles.btnText}>{loading ? 'Guardando...' : 'Guardar Cambios'}</Text>
               </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalCancelBtn} activeOpacity={0.75} onPress={() => setModalVisible(false)}>
-              <Text style={styles.modalCancelText}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+          </ScrollView>
 
-      {/* MODAL DE ERROR */}
-      <Modal transparent animationType="fade" visible={errorModalVisible} onRequestClose={() => setErrorModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Feather name="alert-circle" size={40} color="#dc2626" style={{ alignSelf: 'center', marginBottom: 10 }} />
-            <Text style={[styles.modalTitle, { color: "#dc2626" }]}>Error</Text>
-            <Text style={styles.modalSubtitle}>{errorMessage}</Text>
-            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: "#dc2626" }]} onPress={() => setErrorModalVisible(false)}>
-              <Text style={styles.modalBtnText}>Cerrar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+          {/* MODAL CAMBIAR CONTRASEÑA CON PROTECCIÓN DE TECLADO */}
+          <Modal transparent animationType="fade" visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+            <KeyboardAvoidingView
+              style={{ flex: 1 }}
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+            >
+              <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <View style={styles.modalOverlay}>
+                  <ScrollView
+                    contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <View style={styles.modalBox}>
+                      <Text style={styles.modalTitle}>Cambiar contraseña</Text>
+                      
+                      <TextInput
+                        style={styles.modalInput}
+                        placeholder="Contraseña actual"
+                        placeholderTextColor={Colors.textMuted}
+                        value={passActual}
+                        onChangeText={setPassActual}
+                        secureTextEntry
+                      />
+                      <TextInput
+                        style={styles.modalInput}
+                        placeholder="Contraseña nueva"
+                        placeholderTextColor={Colors.textMuted}
+                        value={passNueva}
+                        onChangeText={setPassNueva}
+                        secureTextEntry
+                      />
+                      <TextInput
+                        style={styles.modalInput}
+                        placeholder="Confirmar contraseña"
+                        placeholderTextColor={Colors.textMuted}
+                        value={passConfirmar}
+                        onChangeText={setPassConfirmar}
+                        secureTextEntry
+                      />
+                      
+                      <TouchableOpacity style={styles.modalBtn} activeOpacity={0.85} onPress={handleCambiarPass} disabled={loadingPass}>
+                        <LinearGradient
+                          colors={["#22c55e", "#16a34a", "#15803d"]}
+                          style={styles.modalBtnGradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                        >
+                          <Text style={styles.modalBtnText}>{loadingPass ? "Actualizando..." : "Confirmar"}</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity style={styles.modalBtn} activeOpacity={0.75} onPress={() => setModalVisible(false)}>
+                        <Text style={styles.modalCancelText}>Cancelar</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </ScrollView>
+                </View>
+              </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
+          </Modal>
 
-      {/* MODAL DE ÉXITO */}
-      <Modal transparent animationType="fade" visible={successModalVisible} onRequestClose={() => setSuccessModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Feather name="check-circle" size={40} color={Colors.primary} style={{ alignSelf: 'center', marginBottom: 10 }} />
-            <Text style={styles.modalTitle}>Éxito</Text>
-            <Text style={styles.modalSubtitle}>{successMessage}</Text>
-            <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: 10 }} />
-          </View>
+          {/* MODAL DE ERROR */}
+          <Modal transparent animationType="fade" visible={errorModalVisible} onRequestClose={() => setErrorModalVisible(false)}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalBox}>
+                <Feather name="alert-circle" size={40} color="#dc2626" style={{ alignSelf: 'center', marginBottom: 10 }} />
+                <Text style={[styles.modalTitle, { color: "#dc2626" }]}>Error</Text>
+                <Text style={styles.modalSubtitle}>{errorMessage}</Text>
+                <TouchableOpacity style={[styles.modalBtn, { backgroundColor: "#dc2626" }]} onPress={() => setErrorModalVisible(false)}>
+                  <Text style={styles.modalBtnText}>Cerrar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+          {/* MODAL DE ÉXITO */}
+          <Modal transparent animationType="fade" visible={successModalVisible} onRequestClose={() => setSuccessModalVisible(false)}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalBox}>
+                <Feather name="check-circle" size={40} color={Colors.primary} style={{ alignSelf: 'center', marginBottom: 10 }} />
+                <Text style={styles.modalTitle}>Éxito</Text>
+                <Text style={styles.modalSubtitle}>{successMessage}</Text>
+                <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: 10 }} />
+              </View>
+            </View>
+          </Modal>
         </View>
-      </Modal>
-    </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
