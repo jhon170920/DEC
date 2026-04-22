@@ -8,6 +8,7 @@ import { verifyToken } from '../middlewares/auth.js';
 import { savePushToken } from '../controllers/notificationController.js';
 import multer from 'multer';
 
+
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
