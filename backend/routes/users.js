@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginUser, editUser, deleteUser, deleteUserSocial, updateProfile, changePassword, getMe, uploadProfilePicture, deleteUserSocial } from '../controllers/users.js';
+import { loginUser, editUser, deleteUser, deleteUserSocial, updateProfile, changePassword, getMe, uploadProfilePicture } from '../controllers/users.js';
 import { registerUser, verifyCode } from '../controllers/registerUser.js';
 import { googleAuth } from '../controllers/googleAuth.js';
 import { facebookAuth } from '../controllers/facebookAuth.js';
