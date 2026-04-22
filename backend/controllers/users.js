@@ -79,7 +79,7 @@ export const editUser = async (req, res) => {
     }
 }
 
-// eliminar la cuenta
+// eliminar la cuenta de formulario
 export const deleteUser = async (req, res) => {
     try {
         // extraemos la contraseña para validarla y eliminar la cuenta
@@ -99,6 +99,22 @@ export const deleteUser = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Error al eliminar cuenta', error: error.message });
     }
+}
+// eliminar la cuenta social
+export const deleteUserSocial = async (req, res) => {
+  try {
+      // validamos si hay id por el middleware
+      if(!req.user.id) return res.status(400).json({ message: "El id es requerido" });
+      // buscamos el usuario por su id y validamos que exista el usuario
+      const user = await Users.findById(req.user.id);
+      if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+      // si todo esta bien, eliminamos la cuenta
+      await Users.findByIdAndDelete(req.user.id);
+      // enviamos un mensajito de feedback
+      res.status(200).json({ message: `Se ha eliminado la cuentica de ${user.email}` });
+  } catch (error) {
+      res.status(500).json({ message: 'Error al eliminar cuenta', error: error.message });
+  }
 }
 export const getMe = async (req, res) => {
   try {

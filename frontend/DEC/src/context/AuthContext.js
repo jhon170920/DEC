@@ -7,13 +7,17 @@ import { syncDetections, syncServerToLocal } from '../services/syncService';
 import { registerForPushNotificationsAsync } from '../services/notificationService';
 
 // -------- MÓDULOS NATIVOS (SOLO MÓVIL) ----------
-let LoginManager, AccessToken, GoogleSignin, makeRedirectUri, Google, WebBrowser;
+let LoginManager, AccessToken, GoogleSignin, makeRedirectUri, Google, WebBrowser, GraphRequest, GraphRequestManager, Settings;
 
 if (Platform.OS !== 'web') {
   // Importaciones dinámicas para evitar que webpack/metro las incluya en web
   const fbsdk = require('react-native-fbsdk-next');
   LoginManager = fbsdk.LoginManager;
   AccessToken = fbsdk.AccessToken;
+  GraphRequest = fbsdk.GraphRequest;
+  GraphRequestManager = fbsdk.GraphRequestManager;
+  Settings = fbsdk.Settings;
+
 
   const googleSignin = require('@react-native-google-signin/google-signin');
   GoogleSignin = googleSignin.GoogleSignin;
@@ -35,12 +39,13 @@ export const AuthProvider = ({ children }) => {
   const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
-    // Configurar Google solo en móvil
-    if (Platform.OS !== 'web' && GoogleSignin) {
+    // Configurar Google y Facebook solo en móvil
+    if (Platform.OS !== 'web' && GoogleSignin && Settings) {
       GoogleSignin.configure({
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
         offlineAccess: true,
       });
+      Settings.initializeSDK()
     }
 
     const checkToken = async () => {
@@ -50,7 +55,7 @@ export const AuthProvider = ({ children }) => {
           : await SecureStore.getItemAsync('userToken');
 
         if (token) {
-          setUserToken(token);
+          await setUserToken(token);
           await fetchAndSyncPathologies(token);
         } else if (Platform.OS !== 'web') {
           // Solo revisar sesiones sociales en móvil
@@ -78,7 +83,7 @@ export const AuthProvider = ({ children }) => {
         } else {
           await SecureStore.setItemAsync('userToken', sessionToken);
         }
-        setUserToken(sessionToken);
+        await setUserToken(sessionToken);
       }
     } catch (error) {
       if (!error.response) {
@@ -162,7 +167,7 @@ export const AuthProvider = ({ children }) => {
         if (LoginManager && AccessToken) {
           const fbToken = await AccessToken.getCurrentAccessToken();
           if (fbToken) {
-            LoginManager.logOut();
+            await LoginManager.logOut();
             console.log("Facebook Session Closed");
           }
         }
@@ -181,6 +186,39 @@ export const AuthProvider = ({ children }) => {
       console.error("Error durante logout:", error);
     }
   };
+  // Elmininar permisos si se  si se creó con fb/google
+  const RevokeAccessSocial = async () => {
+    try {
+      if(Platform.OS !== 'web'){
+        // Solo intentamos revocar Google si hay sesión activa
+        const hasGoogle = await GoogleSignin.hasPreviousSignIn();
+        if (hasGoogle) {
+            await GoogleSignin.revokeAccess(); // Elimina el permiso de la App en su cuenta de Google
+            console.log("Cuenta con Google eliminada") 
+        }
+        // Función de facebook (Revocación de los permisos mediante Graph API)
+        const revokeFB = (tokenData) => new Promise((resolve, reject) => {
+          const token = tokenData?.accessToken.toString();
+          const request = new GraphRequest('/me/permissions', { accessToken: token, httpMethod: 'DELETE' }, (err, res) => {
+            if (err) {
+              console.error('Error Graph API:', err);
+              reject(err);
+            } else {
+              console.log('Acceso a los datos de Facebook eliminado con éxito.');
+              resolve(res);
+            }
+          });
+          new GraphRequestManager().addRequest(request).start();
+        });
+        // Solo intentamos revocar FB si hay sesión activa
+        const fbData = await AccessToken.getCurrentAccessToken();
+        console.log(fbData)
+        if (fbData) await revokeFB(fbData);
+      }
+    } catch (error) {
+      console.error("Error durante eliminar cuentas sociales", error);
+    }
+  }
 
   const enterAsGuest = () => {
     setIsGuest(true);
@@ -188,7 +226,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ userToken, setUserToken, isLoading, isGuest, login, logout, enterAsGuest, sendTokenToServer }}>
+    <AuthContext.Provider value={{ userToken, setUserToken, isLoading, isGuest, login, logout, RevokeAccessSocial, enterAsGuest, sendTokenToServer }}>
       {children}
     </AuthContext.Provider>
   );

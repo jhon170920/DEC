@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginUser, editUser, deleteUser, updateProfile, changePassword, getMe, uploadProfilePicture } from '../controllers/users.js';
+import { loginUser, editUser, deleteUser, deleteUserSocial, updateProfile, changePassword, getMe, uploadProfilePicture } from '../controllers/users.js';
 import { registerUser, verifyCode } from '../controllers/registerUser.js';
 import { googleAuth } from '../controllers/googleAuth.js';
 import { facebookAuth } from '../controllers/facebookAuth.js';
@@ -29,8 +29,11 @@ router.post('/login', loginUser);
 // ruta para editar la cuentica
 router.put('/edit', verifyToken, editUser);
 
-// ruta para eliminar cuentica
-router.put('/delete', verifyToken, deleteUser);
+// ruta para eliminar cuentica  con formulario
+router.delete('/delete', verifyToken, deleteUser);
+// ruta para eliminar cuenta con google/facebook
+router.delete('/delete-social', verifyToken, deleteUserSocial);
+
 
 // ruta de contactanos
 router.post('/send-message', contactUs);
