@@ -10,4 +10,6 @@ export const Colors = {
     textMid:      '#2d6a4f',
     textSoft:     '#5a8a6a',
     textMuted:    '#8aad96',
+    warning:      '#f8ba1c',
+    danger:       '#ff1e00be',
   };

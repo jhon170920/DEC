@@ -4,11 +4,14 @@ import {
   StatusBar, TouchableOpacity, Alert, RefreshControl
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import NetInfo from '@react-native-community/netinfo';
 import { AuthContext } from "../../context/AuthContext";
 import { getAllRemoteDetections } from '../../services/dbService';
 import { syncServerToLocal } from '../../services/syncService';
 import api from '../../api/api';
+import { Colors } from '../../constants/colors';
 
 // Formatear fecha
 const formatSimpleDate = (dateString) => {
@@ -19,13 +22,13 @@ const formatSimpleDate = (dateString) => {
   }).format(date);
 };
 
-// Componente de tarjeta (ahora con navegación)
+// Componente de tarjeta
 const HistoryCard = ({ item, onPress }) => {
   const diseaseName = item.disease_name || item.pathologyId?.name || 'Planta Sana';
   const confidence = item.confidence ?? 0;
   const imageUrl = item.image_url || item.imageUrl;
   const isDiseased = diseaseName !== 'Planta Sana';
-  const mainColor = isDiseased ? '#E67E22' : '#27AE60';
+  const mainColor = isDiseased ? Colors.warning : Colors.success;
 
   return (
     <TouchableOpacity
@@ -54,6 +57,7 @@ const HistoryCard = ({ item, onPress }) => {
 
 const EmptyState = () => (
   <View style={styles.emptyContainer}>
+    <Feather name="search" size={48} color={Colors.textMuted} />
     <Text style={styles.emptyText}>No hay análisis registrados aún.</Text>
   </View>
 );
@@ -66,7 +70,6 @@ export default function HistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
 
-  // Cargar datos (online o local)
   const loadData = async () => {
     setLoading(true);
     const netState = await NetInfo.fetch();
@@ -78,7 +81,6 @@ export default function HistoryScreen() {
         const response = await api.get('detections/history?page=1&limit=100');
         const data = response.data;
         setHistory(data.history);
-        // Sincronizar en segundo plano (guardar en SQLite)
         syncServerToLocal(userToken).catch(err => console.warn(err));
       } catch (error) {
         console.error(error);
@@ -102,7 +104,6 @@ export default function HistoryScreen() {
     setRefreshing(false);
   }, [isOnline, userToken]);
 
-  // Al presionar una tarjeta, navegar al detalle
   const handlePressItem = (item) => {
     navigation.navigate('DetectionDetail', { detection: item });
   };
@@ -111,7 +112,6 @@ export default function HistoryScreen() {
     loadData();
   }, []);
 
-  // Escuchar cambios de conectividad
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsOnline(state.isConnected);
@@ -121,9 +121,23 @@ export default function HistoryScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.mainContainer}>
-      <StatusBar barStyle="dark-content" />
-      <Text style={styles.mainHeader}>Mis análisis</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
+      <LinearGradient
+        colors={['#e8f5ec', '#f4faf5', '#f4faf5']}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
+      {/* Header con botón de retroceso */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Feather name="arrow-left" size={24} color={Colors.primary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Mis análisis</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <FlatList
         data={history}
         keyExtractor={(item) => item._id || item.id}
@@ -140,16 +154,34 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: {
+  safeArea: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: Colors.bg,
   },
-  mainHeader: {
-    fontSize: 22,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: 'transparent',
+    marginTop: 20,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  headerTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#1A1C1E',
+    color: Colors.text,
     textAlign: 'center',
-    marginVertical: 20,
   },
   listContent: {
     paddingHorizontal: 16,
@@ -187,7 +219,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 12,
-    color: '#7F8C8D',
+    color: Colors.textMuted,
     fontWeight: '600',
     textTransform: 'capitalize',
     marginBottom: 2,
@@ -221,9 +253,12 @@ const styles = StyleSheet.create({
   emptyContainer: {
     marginTop: 50,
     alignItems: 'center',
+    paddingHorizontal: 20,
   },
   emptyText: {
-    color: '#7F8C8D',
+    color: Colors.textMuted,
     fontSize: 16,
+    textAlign: 'center',
+    marginTop: 12,
   },
 });

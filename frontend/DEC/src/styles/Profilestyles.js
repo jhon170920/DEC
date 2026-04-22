@@ -146,7 +146,7 @@ modalBox: {
 modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: Colors.primary,
     marginBottom: 8,
 },
 modalSubtitle: {
@@ -165,10 +165,10 @@ modalInput: {
     fontSize: 16,
 },
 modalBtn: {
-    width: '100%',
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
     borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 12,
 },
 modalBtnGradient: {
     paddingVertical: 14,
@@ -178,12 +178,21 @@ modalBtnText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+    padding: 2,
+    textAlign: 'center',
 },
 modalCancelBtn: {
-    paddingVertical: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
 },
 modalCancelText: {
-    color: '#64748b',
-    fontSize: 14,
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    padding: 2,
+    textAlign: 'center',
 },
+
 });

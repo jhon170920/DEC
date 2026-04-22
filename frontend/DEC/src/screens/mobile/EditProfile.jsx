@@ -1,16 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StatusBar,
-  ScrollView,
-  Modal,
-  StyleSheet,
-  Alert,
-  Image,
-  ActivityIndicator
+  View, Text, TextInput, TouchableOpacity, StatusBar, ScrollView,
+  Modal, StyleSheet, Image, ActivityIndicator
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
@@ -38,11 +29,18 @@ export default function EditProfile() {
   const [passNueva, setPassNueva] = useState("");
   const [passConfirmar, setPassConfirmar] = useState("");
 
+  // Estados para modales personalizados
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [loadingPass, setLoadingPass] = useState(false);
+
   // Cargar datos del usuario actual
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const res = await api.get('users/me'); // Necesitas crear este endpoint o usar el token para obtener el usuario
+        const res = await api.get('users/me');
         const user = res.data.user;
         setNombre(user.name || '');
         setTelefono(user.phone || '');
@@ -50,7 +48,8 @@ export default function EditProfile() {
         setFotoPerfil(user.pictureUrl || null);
       } catch (error) {
         console.error(error);
-        Alert.alert('Error', 'No se pudo cargar la información del usuario');
+        setErrorMessage("No se pudo cargar la información del usuario");
+        setErrorModalVisible(true);
       }
     };
     fetchUserData();
@@ -59,16 +58,23 @@ export default function EditProfile() {
   // Guardar cambios de perfil
   const handleGuardar = async () => {
     if (!nombre.trim()) {
-      Alert.alert('Error', 'El nombre es obligatorio');
+      setErrorMessage("El nombre es obligatorio");
+      setErrorModalVisible(true);
       return;
     }
     setLoading(true);
     try {
       await api.put('users/edit-profile', { name: nombre, phone: telefono });
-      Alert.alert('Éxito', 'Perfil actualizado correctamente');
-      navigation.goBack();
+      setSuccessMessage("Perfil actualizado correctamente");
+      setSuccessModalVisible(true);
+      setTimeout(() => {
+        setSuccessModalVisible(false);
+        navigation.goBack();
+      }, 1500);
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.message || 'No se pudo actualizar');
+      const msg = error.response?.data?.message || "No se pudo actualizar";
+      setErrorMessage(msg);
+      setErrorModalVisible(true);
     } finally {
       setLoading(false);
     }
@@ -77,32 +83,41 @@ export default function EditProfile() {
   // Cambiar contraseña
   const handleCambiarPass = async () => {
     if (!passActual || !passNueva || !passConfirmar) {
-      Alert.alert('Error', 'Todos los campos son obligatorios');
+      setErrorMessage("Todos los campos son obligatorios");
+      setErrorModalVisible(true);
       return;
     }
     if (passNueva !== passConfirmar) {
-      Alert.alert('Error', 'Las contraseñas nuevas no coinciden');
+      setErrorMessage("Las contraseñas nuevas no coinciden");
+      setErrorModalVisible(true);
       return;
     }
     if (passNueva.length < 8) {
-      Alert.alert('Error', 'La nueva contraseña debe tener al menos 8 caracteres');
+      setErrorMessage("La nueva contraseña debe tener al menos 8 caracteres");
+      setErrorModalVisible(true);
       return;
     }
-    setLoading(true);
+    setLoadingPass(true);
     try {
       await api.post('users/change-password', {
         currentPassword: passActual,
         newPassword: passNueva
       });
-      Alert.alert('Éxito', 'Contraseña actualizada');
+      setSuccessMessage("Contraseña actualizada correctamente");
+      setSuccessModalVisible(true);
       setModalVisible(false);
       setPassActual('');
       setPassNueva('');
       setPassConfirmar('');
+      setTimeout(() => {
+        setSuccessModalVisible(false);
+      }, 1500);
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.message || 'No se pudo cambiar la contraseña');
+      const msg = error.response?.data?.message || "No se pudo cambiar la contraseña";
+      setErrorMessage(msg);
+      setErrorModalVisible(true);
     } finally {
-      setLoading(false);
+      setLoadingPass(false);
     }
   };
 
@@ -110,7 +125,8 @@ export default function EditProfile() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Necesitamos acceso a tu galería');
+      setErrorMessage("Necesitamos acceso a tu galería");
+      setErrorModalVisible(true);
       return;
     }
 
@@ -139,9 +155,14 @@ export default function EditProfile() {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
         setFotoPerfil(res.data.pictureUrl);
-        Alert.alert('Éxito', 'Foto de perfil actualizada');
+        setSuccessMessage("Foto de perfil actualizada");
+        setSuccessModalVisible(true);
+        setTimeout(() => {
+          setSuccessModalVisible(false);
+        }, 1500);
       } catch (error) {
-        Alert.alert('Error', 'No se pudo subir la imagen');
+        setErrorMessage("No se pudo subir la imagen");
+        setErrorModalVisible(true);
       } finally {
         setUploadingImage(false);
       }
@@ -163,7 +184,6 @@ export default function EditProfile() {
         contentContainerStyle={[styles.scroll, { paddingHorizontal: hPad }]}
         showsVerticalScrollIndicator={false}
       >
-
         {/* HEADER */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.75} onPress={() => navigation.goBack()}>
@@ -243,7 +263,6 @@ export default function EditProfile() {
             <Text style={styles.btnText}>{loading ? 'Guardando...' : 'Guardar Cambios'}</Text>
           </LinearGradient>
         </TouchableOpacity>
-
       </ScrollView>
 
       {/* MODAL CAMBIAR CONTRASEÑA */}
@@ -275,19 +294,45 @@ export default function EditProfile() {
               onChangeText={setPassConfirmar}
               secureTextEntry
             />
-            <TouchableOpacity style={styles.modalBtn} activeOpacity={0.85} onPress={handleCambiarPass} disabled={loading}>
+            <TouchableOpacity style={styles.modalBtn} activeOpacity={0.85} onPress={handleCambiarPass} disabled={loadingPass}>
               <LinearGradient
                 colors={["#22c55e", "#16a34a", "#15803d"]}
                 style={styles.modalBtnGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Text style={styles.modalBtnText}>Confirmar</Text>
+                <Text style={styles.modalBtnText}>{loadingPass ? "Actualizando..." : "Confirmar"}</Text>
               </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity style={styles.modalCancelBtn} activeOpacity={0.75} onPress={() => setModalVisible(false)}>
               <Text style={styles.modalCancelText}>Cancelar</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL DE ERROR */}
+      <Modal transparent animationType="fade" visible={errorModalVisible} onRequestClose={() => setErrorModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Feather name="alert-circle" size={40} color="#dc2626" style={{ alignSelf: 'center', marginBottom: 10 }} />
+            <Text style={[styles.modalTitle, { color: "#dc2626" }]}>Error</Text>
+            <Text style={styles.modalSubtitle}>{errorMessage}</Text>
+            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: "#dc2626" }]} onPress={() => setErrorModalVisible(false)}>
+              <Text style={styles.modalBtnText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL DE ÉXITO */}
+      <Modal transparent animationType="fade" visible={successModalVisible} onRequestClose={() => setSuccessModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Feather name="check-circle" size={40} color={Colors.primary} style={{ alignSelf: 'center', marginBottom: 10 }} />
+            <Text style={styles.modalTitle}>Éxito</Text>
+            <Text style={styles.modalSubtitle}>{successMessage}</Text>
+            <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: 10 }} />
           </View>
         </View>
       </Modal>

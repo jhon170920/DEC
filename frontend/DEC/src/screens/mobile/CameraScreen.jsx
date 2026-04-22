@@ -150,11 +150,11 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'space-between', padding: 20 },
   guideContainer: { alignItems: 'center', marginTop: 50 },
   guideText: { color: '#fff', fontSize: 14, backgroundColor: 'rgba(0,0,0,0.6)', padding: 10, borderRadius: 20 },
-  reticle: { width: 280, height: 280, borderWidth: 3, borderColor: '#16a34a', borderStyle: 'dashed', borderRadius: 25, marginTop: 40 },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40 },
+  reticle: { width: '90%', height: '85%', borderWidth: 3, borderColor: '#16a34a', borderStyle: 'dashed', borderRadius: 25, marginTop: 5 },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40, marginTop: -50 },
   captureButton: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', borderWidth: 5, borderColor: '#fff' },
   innerCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#fff' },
   buttonDisabled: { opacity: 0.5 },
-  backButton: { backgroundColor: 'rgba(0,0,0,0.5)', padding: 15, borderRadius: 30 },
+  backButton: { backgroundColor: 'rgb(28, 146, 18)', padding: 15, borderRadius: 30 },
   backText: { color: '#fff', fontWeight: 'bold' }
 });

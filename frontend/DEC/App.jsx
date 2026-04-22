@@ -5,6 +5,7 @@ import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { initDatabase, getAllActiveAlarms, deactivateAlarm } from './src/services/dbService';
 import * as RootNavigation from './src/navigation/RootNavigation';
+import { SyncManager } from './src/components/SyncManager';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -79,6 +80,7 @@ export default function App() {
   return (
     <View style={styles.container}>
       <AuthProvider>
+        <SyncManager />
         <AppNavigator />
       </AuthProvider>
     </View>

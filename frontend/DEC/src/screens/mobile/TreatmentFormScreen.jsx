@@ -1,41 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, TextInput, ScrollView, TouchableOpacity, Alert,
-  StatusBar, StyleSheet, Modal, FlatList
+  View, Text, TextInput, ScrollView, TouchableOpacity,
+  StatusBar, StyleSheet, Modal, FlatList, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import * as Notifications from 'expo-notifications';
 import { Colors } from '../../constants/colors';
 import {
   saveTreatmentLog,
   updateTreatmentLog,
   getTreatmentLogById,
-  getAllDetectionsForSelector
+  getAllDetectionsForSelector,
+  saveAlarm
 } from '../../services/dbService';
 
 export default function TreatmentFormScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { logId } = route.params || {};
+  const { logId, detectionId, initialDiseaseName } = route.params || {};
 
+  // Estados del formulario
   const [diseaseName, setDiseaseName] = useState('');
   const [generalNotes, setGeneralNotes] = useState('');
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Estados para selector de detección
   const [detections, setDetections] = useState([]);
   const [showDetectionModal, setShowDetectionModal] = useState(false);
   const [selectedDetection, setSelectedDetection] = useState(null);
+  const [selectedDetectionImage, setSelectedDetectionImage] = useState(null);
 
-  // Estado temporal para agregar/editar producto
+  // Estados para productos (modal)
   const [showProductModal, setShowProductModal] = useState(false);
   const [tempProduct, setTempProduct] = useState({ product_name: '', dose: '', application_date: '', notes: '' });
   const [currentProductIndex, setCurrentProductIndex] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [datePickerTarget, setDatePickerTarget] = useState(null); // 'temp' o 'edit'
+  const [datePickerTarget, setDatePickerTarget] = useState(null);
 
-  // Cargar lista de detecciones para el selector
+  // Estado para recordatorio
+  const [showReminderPicker, setShowReminderPicker] = useState(false);
+  const [reminderDate, setReminderDate] = useState(new Date());
+
+  // Estados para modales personalizados
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
+  const [modalType, setModalType] = useState('info');
+  const [modalOnConfirm, setModalOnConfirm] = useState(null);
+  const [modalConfirmText, setModalConfirmText] = useState('Aceptar');
+  const [modalCancelText, setModalCancelText] = useState('Cancelar');
+  const [showCancelButton, setShowCancelButton] = useState(false);
+
+  // Cargar lista de detecciones disponibles
   useEffect(() => {
     const loadDetections = async () => {
       const data = await getAllDetectionsForSelector();
@@ -44,7 +64,7 @@ export default function TreatmentFormScreen() {
     loadDetections();
   }, []);
 
-  // Si estamos editando, cargar los datos del seguimiento
+  // Si estamos editando un log existente, cargar sus datos
   useEffect(() => {
     if (logId) {
       const loadLog = async () => {
@@ -55,7 +75,10 @@ export default function TreatmentFormScreen() {
           setProducts(log.products || []);
           if (log.detection_id) {
             const found = detections.find(d => d.id === log.detection_id);
-            if (found) setSelectedDetection(found);
+            if (found) {
+              setSelectedDetection(found);
+              setSelectedDetectionImage(found.image_url);
+            }
           }
         }
       };
@@ -63,7 +86,43 @@ export default function TreatmentFormScreen() {
     }
   }, [logId, detections]);
 
-  // ------ Productos ------
+  // Si recibimos detectionId desde la pantalla de detalle (nuevo seguimiento asociado)
+  useEffect(() => {
+    if (detectionId && detections.length) {
+      const found = detections.find(d => d.id === detectionId);
+      if (found) {
+        setSelectedDetection(found);
+        setSelectedDetectionImage(found.image_url);
+        setDiseaseName(initialDiseaseName || found.disease_name);
+      }
+    }
+  }, [detectionId, detections]);
+
+  // Función para mostrar modales
+  const showModal = (title, message, type = 'info', onConfirm = null, confirmText = 'Aceptar', cancelText = 'Cancelar', showCancel = false) => {
+    setModalTitle(title);
+    setModalMessage(message);
+    setModalType(type);
+    setModalOnConfirm(() => onConfirm);
+    setModalConfirmText(confirmText);
+    setModalCancelText(cancelText);
+    setShowCancelButton(showCancel);
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+    setModalOnConfirm(null);
+  };
+
+  const handleModalConfirm = () => {
+    if (modalOnConfirm) {
+      modalOnConfirm();
+    }
+    closeModal();
+  };
+
+  // ------ Gestión de productos ------
   const openAddProduct = () => {
     setTempProduct({ product_name: '', dose: '', application_date: '', notes: '' });
     setCurrentProductIndex(null);
@@ -78,7 +137,15 @@ export default function TreatmentFormScreen() {
 
   const saveProduct = () => {
     if (!tempProduct.product_name.trim()) {
-      Alert.alert('Error', 'El nombre del producto es obligatorio');
+      showModal('Error', 'El nombre del producto es obligatorio', 'error');
+      return;
+    }
+    if (!tempProduct.dose.trim()) {
+      showModal('Error', 'La dosis del producto es obligatoria', 'error');
+      return;
+    }
+    if (!tempProduct.application_date) {
+      showModal('Error', 'La fecha de aplicación es obligatoria', 'error');
       return;
     }
     if (currentProductIndex !== null) {
@@ -99,16 +166,17 @@ export default function TreatmentFormScreen() {
     setProducts(updated);
   };
 
-  // ------ Detección asociada ------
+  // ------ Selección de detección ------
   const handleSelectDetection = (detection) => {
     setSelectedDetection(detection);
+    setSelectedDetectionImage(detection.image_url);
     setDiseaseName(detection.disease_name);
     setShowDetectionModal(false);
   };
 
   // ------ Fecha para producto ------
   const showDatePickerForProduct = () => {
-    setDatePickerTarget('temp');
+    setDatePickerTarget('product');
     setShowDatePicker(true);
   };
 
@@ -116,16 +184,49 @@ export default function TreatmentFormScreen() {
     setShowDatePicker(false);
     if (date) {
       const formattedDate = date.toISOString();
-      if (datePickerTarget === 'temp') {
+      if (datePickerTarget === 'product') {
         setTempProduct({ ...tempProduct, application_date: formattedDate });
       }
+    }
+  };
+
+  // ------ Programar recordatorio ------
+  const scheduleReminder = async (date) => {
+    if (!selectedDetection) {
+      showModal('Atención', 'Primero asocia una detección para programar un recordatorio', 'info');
+      return;
+    }
+    if (!date || date <= new Date()) {
+      showModal('Error', 'Selecciona una fecha futura', 'error');
+      return;
+    }
+    try {
+      const alarmId = await saveAlarm({
+        detection_id: selectedDetection.id,
+        title: '📢 Recordatorio de seguimiento',
+        message: `Revisa la evolución de "${selectedDetection.disease_name}"`,
+        trigger_date: date.toISOString(),
+      });
+      await Notifications.scheduleNotificationAsync({
+        identifier: alarmId.toString(),
+        content: {
+          title: '📢 Seguimiento de enfermedad',
+          body: `Revisa la evolución de "${selectedDetection.disease_name}"`,
+          data: { detectionId: selectedDetection.id, screen: 'DetectionDetail' },
+        },
+        trigger: { type: 'date', date: date },
+      });
+      showModal('Éxito', 'Recordatorio programado correctamente', 'success');
+    } catch (error) {
+      console.error(error);
+      showModal('Error', 'No se pudo programar el recordatorio', 'error');
     }
   };
 
   // ------ Guardar seguimiento ------
   const handleSave = async () => {
     if (!diseaseName.trim()) {
-      Alert.alert('Error', 'Ingresa el nombre de la enfermedad o afección');
+      showModal('Error', 'Ingresa el nombre de la enfermedad o afección', 'error');
       return;
     }
     setLoading(true);
@@ -143,17 +244,28 @@ export default function TreatmentFormScreen() {
       };
       if (logId) {
         await updateTreatmentLog(logId, logData);
-        Alert.alert('Éxito', 'Seguimiento actualizado');
+        showModal('Éxito', 'Seguimiento actualizado', 'success', () => navigation.goBack());
       } else {
         await saveTreatmentLog(logData);
-        Alert.alert('Éxito', 'Seguimiento creado');
+        showModal('Éxito', 'Seguimiento creado', 'success', () => navigation.goBack());
       }
-      navigation.goBack();
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudo guardar el seguimiento');
+      showModal('Error', 'No se pudo guardar el seguimiento', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Obtener color del ícono según tipo de modal
+  const getModalIcon = () => {
+    switch (modalType) {
+      case 'success':
+        return <Feather name="check-circle" size={50} color={Colors.primary} style={{ alignSelf: 'center', marginBottom: 10 }} />;
+      case 'error':
+        return <Feather name="alert-circle" size={50} color="#dc2626" style={{ alignSelf: 'center', marginBottom: 10 }} />;
+      default:
+        return <Feather name="info" size={50} color={Colors.primaryLight} style={{ alignSelf: 'center', marginBottom: 10 }} />;
     }
   };
 
@@ -177,13 +289,28 @@ export default function TreatmentFormScreen() {
             <Feather name="search" size={18} color={Colors.primary} />
             <Text style={styles.selectDetectionText}>Asociar a una detección del historial</Text>
           </TouchableOpacity>
+
+          {/* Mostrar imagen y datos de la detección seleccionada */}
           {selectedDetection && (
-            <View style={styles.selectedInfo}>
-              <Feather name="check-circle" size={14} color={Colors.primary} />
-              <Text style={styles.selectedText}>
-                Asociado a: {new Date(selectedDetection.created_at).toLocaleDateString()}
-              </Text>
+            <View style={styles.selectedDetectionContainer}>
+              {selectedDetectionImage ? (
+                <Image source={{ uri: selectedDetectionImage }} style={styles.detectionThumb} />
+              ) : null}
+              <View style={styles.selectedInfo}>
+                <Feather name="check-circle" size={14} color={Colors.primary} />
+                <Text style={styles.selectedText}>
+                  Asociado a: {new Date(selectedDetection.created_at).toLocaleDateString()}
+                </Text>
+              </View>
             </View>
+          )}
+
+          {/* Botón para programar recordatorio (solo si hay detección asociada) */}
+          {selectedDetection && (
+            <TouchableOpacity style={styles.reminderBtn} onPress={() => setShowReminderPicker(true)}>
+              <Feather name="bell" size={18} color="#fff" />
+              <Text style={styles.reminderText}>Programar recordatorio de evolución</Text>
+            </TouchableOpacity>
           )}
 
           <Text style={styles.label}>Enfermedad / Afección *</Text>
@@ -278,21 +405,21 @@ export default function TreatmentFormScreen() {
             />
             <TextInput
               style={styles.modalInput}
-              placeholder="Dosis (ej: 2 L/ha)"
+              placeholder="Dosis (ej: 2 L/ha) *"
               value={tempProduct.dose}
               onChangeText={(text) => setTempProduct({ ...tempProduct, dose: text })}
             />
             <TouchableOpacity onPress={showDatePickerForProduct}>
               <TextInput
                 style={styles.modalInput}
-                placeholder="Fecha de aplicación"
+                placeholder="Fecha de aplicación *"
                 value={tempProduct.application_date ? new Date(tempProduct.application_date).toLocaleDateString() : ''}
                 editable={false}
               />
             </TouchableOpacity>
             <TextInput
               style={styles.modalInput}
-              placeholder="Observaciones del producto"
+              placeholder="Observaciones del producto (opcional)"
               value={tempProduct.notes}
               onChangeText={(text) => setTempProduct({ ...tempProduct, notes: text })}
               multiline
@@ -309,6 +436,7 @@ export default function TreatmentFormScreen() {
         </View>
       </Modal>
 
+      {/* DateTimePicker para fecha de producto */}
       <DateTimePickerModal
         isVisible={showDatePicker}
         mode="datetime"
@@ -317,214 +445,104 @@ export default function TreatmentFormScreen() {
         minimumDate={new Date()}
         locale="es_ES"
       />
+
+      {/* DateTimePicker para recordatorio */}
+      <DateTimePickerModal
+        isVisible={showReminderPicker}
+        mode="datetime"
+        onConfirm={(date) => {
+          setShowReminderPicker(false);
+          scheduleReminder(date);
+        }}
+        onCancel={() => setShowReminderPicker(false)}
+        minimumDate={new Date()}
+        locale="es_ES"
+      />
+
+      {/* Modal personalizado para mensajes */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            {getModalIcon()}
+            <Text style={[styles.modalTitle, modalType === 'error' && { color: '#dc2626' }]}>
+              {modalTitle}
+            </Text>
+            <Text style={styles.modalText}>{modalMessage}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 20 }}>
+              {showCancelButton && (
+                <TouchableOpacity
+                  style={[styles.modalCloseBtn, { backgroundColor: '#e2e8f0', marginRight: 10, flex: 1 }]}
+                  onPress={closeModal}
+                >
+                  <Text style={{ color: Colors.text }}>{modalCancelText}</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={[
+                  styles.modalCloseBtn,
+                  { backgroundColor: modalType === 'error' ? '#dc2626' : Colors.primary, flex: showCancelButton ? 1 : undefined }
+                ]}
+                onPress={handleModalConfirm}
+              >
+                <Text style={{ color: '#fff' }}>{modalConfirmText}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // ... todos los estilos permanecen igual (no se modificaron)
   container: { flex: 1, backgroundColor: Colors.bg },
   scrollContent: { paddingBottom: 30 },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-  },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15 },
   backBtn: { padding: 5 },
   title: { fontSize: 20, fontWeight: 'bold', color: Colors.text },
-  card: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    borderRadius: 20,
-    padding: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-  },
-  selectDetectionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-    padding: 10,
-    backgroundColor: '#f0fdf4',
-    borderRadius: 10,
-  },
-  selectDetectionText: {
-    color: Colors.primary,
-    marginLeft: 8,
-    fontWeight: '500',
-  },
-  selectedInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 5,
-  },
-  selectedText: {
-    fontSize: 12,
-    color: '#475569',
-    marginLeft: 6,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2C3E50',
-    marginBottom: 5,
-    marginTop: 10,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  productCard: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 8,
-  },
-  productHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.primary,
-  },
-  productActions: {
-    flexDirection: 'row',
-  },
-  productDetail: {
-    fontSize: 13,
-    color: '#475569',
-    marginTop: 4,
-  },
-  emptyList: {
-    fontSize: 14,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    marginVertical: 10,
-  },
-  addProductBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
-    marginBottom: 15,
-  },
-  addProductText: {
-    color: Colors.primary,
-    marginLeft: 8,
-    fontWeight: '600',
-  },
-  saveBtn: {
-    marginTop: 20,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  saveGradient: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  saveText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: '85%',
-    maxHeight: '70%',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  detectionItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  detectionDisease: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.primary,
-  },
-  detectionDate: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: Colors.textMuted,
-    marginVertical: 20,
-  },
-  modalClose: {
-    marginTop: 15,
-    padding: 10,
-    backgroundColor: '#e2e8f0',
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalCloseText: {
-    fontWeight: '500',
-  },
-  modalBox: {
-    width: '85%',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
-    fontSize: 16,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-  modalCancel: {
-    flex: 1,
-    padding: 10,
-    alignItems: 'center',
-    backgroundColor: '#e2e8f0',
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  modalConfirm: {
-    flex: 1,
-    padding: 10,
-    alignItems: 'center',
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    marginLeft: 8,
-  },
+  card: { backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 20, padding: 20, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },
+  selectDetectionBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, padding: 10, backgroundColor: '#f0fdf4', borderRadius: 10 },
+  selectDetectionText: { color: Colors.primary, marginLeft: 8, fontWeight: '500' },
+  selectedDetectionContainer: { marginBottom: 12 },
+  detectionThumb: { width: 80, height: 80, borderRadius: 10, marginBottom: 8, alignSelf: 'center' },
+  selectedInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  selectedText: { fontSize: 12, color: '#475569', marginLeft: 6 },
+  reminderBtn: { flexDirection: 'row', backgroundColor: '#3b82f6', paddingVertical: 10, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
+  reminderText: { color: '#fff', fontWeight: 'bold', marginLeft: 8 },
+  label: { fontSize: 16, fontWeight: '600', color: '#2C3E50', marginBottom: 5, marginTop: 10 },
+  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 16, marginBottom: 10 },
+  textArea: { height: 80, textAlignVertical: 'top' },
+  productCard: { backgroundColor: '#f8fafc', borderRadius: 8, padding: 10, marginBottom: 8 },
+  productHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  productName: { fontSize: 16, fontWeight: 'bold', color: Colors.primary },
+  productActions: { flexDirection: 'row' },
+  productDetail: { fontSize: 13, color: '#475569', marginTop: 4 },
+  emptyList: { fontSize: 14, color: Colors.textMuted, textAlign: 'center', marginVertical: 10 },
+  addProductBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 5, marginBottom: 15 },
+  addProductText: { color: Colors.primary, marginLeft: 8, fontWeight: '600' },
+  saveBtn: { marginTop: 20, borderRadius: 12, overflow: 'hidden' },
+  saveGradient: { paddingVertical: 12, alignItems: 'center' },
+  saveText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalContainer: { width: '85%', maxHeight: '70%', backgroundColor: '#fff', borderRadius: 20, padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
+  detectionItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  detectionDisease: { fontSize: 16, fontWeight: 'bold', color: Colors.primary },
+  detectionDate: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
+  emptyText: { textAlign: 'center', color: Colors.textMuted, marginVertical: 20 },
+  modalClose: { marginTop: 15, padding: 10, backgroundColor: '#e2e8f0', borderRadius: 10, alignItems: 'center' },
+  modalCloseText: { fontWeight: '500' },
+  modalBox: { width: '85%', backgroundColor: '#fff', borderRadius: 20, padding: 20 },
+  modalInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16 },
+  modalButtons: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  modalCancel: { flex: 1, padding: 10, alignItems: 'center', backgroundColor: '#e2e8f0', borderRadius: 8, marginRight: 8 },
+  modalConfirm: { flex: 1, padding: 10, alignItems: 'center', backgroundColor: Colors.primary, borderRadius: 8, marginLeft: 8 },
+  modalText: { fontSize: 16, color: '#333', textAlign: 'center', lineHeight: 22 },
+  modalCloseBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10, alignItems: 'center' },
 });

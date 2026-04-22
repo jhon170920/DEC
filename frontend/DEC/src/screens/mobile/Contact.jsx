@@ -24,6 +24,8 @@ export default function Contact() {
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const {
     sp,
@@ -36,8 +38,36 @@ export default function Contact() {
     iconS,
   } = useResponsiveLayout();
 
+  const validateEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+
   const handleEnviar = () => {
+    // Validar campos obligatorios
+    if (!nombre.trim()) {
+      setErrorMessage("Por favor ingresa tu nombre.");
+      setErrorModalVisible(true);
+      return;
+    }
+    if (!correo.trim()) {
+      setErrorMessage("Por favor ingresa tu correo electrónico.");
+      setErrorModalVisible(true);
+      return;
+    }
+    if (!validateEmail(correo.trim())) {
+      setErrorMessage("Ingresa un correo electrónico válido.");
+      setErrorModalVisible(true);
+      return;
+    }
+    if (!mensaje.trim()) {
+      setErrorMessage("Por favor escribe tu mensaje.");
+      setErrorModalVisible(true);
+      return;
+    }
+
     setLoading(true);
+    // Simular envío (aquí conectarías con tu backend)
     setTimeout(() => {
       setLoading(false);
       setModalVisible(true);
@@ -61,7 +91,7 @@ export default function Contact() {
       >
         {/* ── BACK ── */}
         <TouchableOpacity style={styles.backBtn} activeOpacity={0.75} onPress={() => navigation.goBack()}>
-          <Feather name="arrow-left" size={iconS} color={Colors.text} />
+          <Feather name="arrow-left" size={iconS} color={Colors.primary} />
         </TouchableOpacity>
 
         {/* ── LOGO ── */}
@@ -83,38 +113,39 @@ export default function Contact() {
         </Text>
 
         {/* ── NOMBRE ── */}
-        <Text style={[styles.label, { fontSize: sublineS }]}>Nombre</Text>
+        <Text style={[styles.label, { fontSize: sublineS }]}>Nombre *</Text>
         <View style={[styles.inputWrap, { marginBottom: sp(0.030) }]}>
           <Feather name="user" size={iconS} color={Colors.text} style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Nombre"
-            placeholderTextColor={Colors.text}
+            placeholder="Tu nombre"
+            placeholderTextColor={Colors.textMuted}
             value={nombre}
             onChangeText={setNombre}
           />
         </View>
 
         {/* ── CORREO ── */}
-        <Text style={[styles.label, { fontSize: sublineS }]}>Correo</Text>
+        <Text style={[styles.label, { fontSize: sublineS }]}>Correo electrónico *</Text>
         <View style={[styles.inputWrap, { marginBottom: sp(0.030) }]}>
           <Feather name="mail" size={iconS} color={Colors.text} style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Correo"
-            placeholderTextColor={Colors.text}
+            placeholder="correo@ejemplo.com"
+            placeholderTextColor={Colors.textMuted}
             value={correo}
             onChangeText={setCorreo}
             keyboardType="email-address"
+            autoCapitalize="none"
           />
         </View>
 
         {/* ── MENSAJE ── */}
-        <Text style={[styles.label, { fontSize: sublineS }]}>Mensaje</Text>
+        <Text style={[styles.label, { fontSize: sublineS }]}>Mensaje *</Text>
         <TextInput
           style={[styles.textArea, { marginBottom: sp(0.06) }]}
-          placeholder="Mensaje"
-          placeholderTextColor={Colors.text}
+          placeholder="Escribe tu mensaje aquí..."
+          placeholderTextColor={Colors.textMuted}
           value={mensaje}
           onChangeText={setMensaje}
           multiline
@@ -133,12 +164,12 @@ export default function Contact() {
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.btnText}>Enviar</Text>
+              <Text style={styles.btnText}>Enviar mensaje</Text>
             )}
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* ── MODAL ── */}
+        {/* ── MODAL DE ÉXITO ── */}
         <Modal transparent animationType="fade" visible={modalVisible}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalBox}>
@@ -150,6 +181,20 @@ export default function Contact() {
                 navigation.navigate("MainApp");
               }}>
                 <Text style={styles.modalBtnText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* ── MODAL DE ERROR ── */}
+        <Modal transparent animationType="fade" visible={errorModalVisible}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalBox}>
+              <Feather name="alert-circle" size={48} color="#dc2626" />
+              <Text style={[styles.modalTitle, { color: "#dc2626" }]}>Error</Text>
+              <Text style={styles.modalSub}>{errorMessage}</Text>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: "#dc2626" }]} activeOpacity={0.85} onPress={() => setErrorModalVisible(false)}>
+                <Text style={styles.modalBtnText}>Cerrar</Text>
               </TouchableOpacity>
             </View>
           </View>

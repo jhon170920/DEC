@@ -61,6 +61,15 @@ export default function TreatmentLogScreen() {
       {item.general_notes ? (
         <Text style={styles.notes} numberOfLines={2}>{item.general_notes}</Text>
       ) : null}
+      {item.detection_id ? (
+        <TouchableOpacity
+          style={styles.linkDetection}
+          onPress={() => navigation.navigate('DetectionDetail', { detectionId: item.detection_id })}
+        >
+          <Feather name="link" size={14} color={Colors.primary} />
+          <Text style={styles.linkText}>Ver detección asociada</Text>
+        </TouchableOpacity>
+      ) : null}
     </TouchableOpacity>
   );
 
@@ -108,19 +117,63 @@ export default function TreatmentLogScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, marginTop: 20 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    marginTop: 20,
+  },
   backBtn: { padding: 5 },
   title: { fontSize: 20, fontWeight: 'bold', color: Colors.text },
   addBtn: { padding: 5 },
   list: { paddingHorizontal: 16, paddingBottom: 20 },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
-  diseaseName: { fontSize: 18, fontWeight: 'bold', color: Colors.primary, flex: 1 },
-  date: { fontSize: 12, color: Colors.textMuted, marginBottom: 8 },
-  notes: { fontSize: 14, color: '#555' },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  diseaseName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.primary,
+    flex: 1,
+  },
+  date: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginBottom: 8,
+  },
+  notes: {
+    fontSize: 14,
+    color: '#555',
+  },
+  linkDetection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  linkText: {
+    fontSize: 12,
+    color: Colors.primary,
+    marginLeft: 5,
+    textDecorationLine: 'underline',
+  },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
   emptyText: { fontSize: 16, color: Colors.textMuted, marginTop: 16, textAlign: 'center' },
   emptyBtn: { marginTop: 20, backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 25 },
-  emptyBtnText: { color: '#fff', fontWeight: 'bold' }
+  emptyBtnText: { color: '#fff', fontWeight: 'bold' },
 });

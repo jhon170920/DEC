@@ -1,10 +1,18 @@
 import api from '../api/api';
-import { getUnsyncedDetections, markAsSynced, getPathologyByName, saveRemoteDetections, clearRemoteDetections } from './dbService';
+import { getUnsyncedDetections, markAsSynced, getPathologyByName, saveRemoteDetections } from './dbService';
 import { Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 
+let isSyncing = false;
+let syncListener = null;
+
 // Sincronizar detecciones pendientes (local → servidor)
 export const syncDetections = async () => {
+  if (isSyncing) {
+    console.log('⚠️ Sincronización ya en curso, omitiendo...');
+    return;
+  }
+  isSyncing = true;
   try {
     const pendingItems = await getUnsyncedDetections();
     
@@ -48,6 +56,8 @@ export const syncDetections = async () => {
     }
   } catch (error) {
     console.error("❌ Error en Sync (local→servidor):", error.response?.data || error.message);
+  } finally {
+    isSyncing = false;
   }
 };
 
@@ -86,4 +96,30 @@ export const syncServerToLocal = async (token) => {
     console.error("❌ Error sincronizando servidor → local:", error);
     return false;
   }
+};
+
+// Iniciar monitoreo de conectividad (llamar al iniciar la app, con el token)
+export const startAutoSync = (token) => {
+  if (syncListener) return;
+  syncListener = NetInfo.addEventListener(async (state) => {
+    if (state.isConnected) {
+      console.log('🌐 Internet detectado, sincronizando...');
+      await syncDetections();
+      if (token) await syncServerToLocal(token);
+    }
+  });
+};
+
+// Detener monitoreo (opcional)
+export const stopAutoSync = () => {
+  if (syncListener) {
+    syncListener();
+    syncListener = null;
+  }
+};
+
+// Forzar sincronización manual
+export const forceSync = async (token) => {
+  await syncDetections();
+  if (token) await syncServerToLocal(token);
 };

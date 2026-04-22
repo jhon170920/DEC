@@ -90,47 +90,63 @@ export const EditProfileStyles = StyleSheet.create({
   },
   btnText: { color: "#fff", fontSize: 15, fontWeight: "700", letterSpacing: 0.4 },
 
-  // Modal
   modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalBox: {
-    width: "85%",
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
-    padding: 24,
-    gap: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15, shadowRadius: 20, elevation: 10,
-  },
-  modalTitle: {
-    fontSize: 17, fontWeight: "700",
-    color: Colors.text, letterSpacing: -0.2,
-    marginBottom: 4,
-  },
-  modalInput: {
-    height: 48,
-    backgroundColor: Colors.surfaceAlt,
-    borderWidth: 1.5, borderColor: Colors.border,
-    borderRadius: 12, paddingHorizontal: 14,
-    fontSize: 14, color: Colors.text,
-  },
-  modalBtn: {
-    borderRadius: 12, overflow: "hidden",
-    marginTop: 4,
-  },
-  modalBtnGradient: {
-    height: 48, alignItems: "center", justifyContent: "center",
-  },
-  modalBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
-  modalCancelBtn: {
-    alignItems: "center", paddingVertical: 8,
-  },
-  modalCancelText: {
-    fontSize: 14, color: Colors.textMuted, fontWeight: "500",
-  },
+  flex: 1,
+  backgroundColor: 'rgba(0,0,0,0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+modalBox: {
+  width: '80%',
+  backgroundColor: '#fff',
+  borderRadius: 20,
+  padding: 20,
+  alignItems: 'center',
+},
+modalTitle: {
+  fontSize: 20,
+  fontWeight: 'bold',
+  marginBottom: 8,
+  color: Colors.text,
+},
+modalSubtitle: {
+  fontSize: 14,
+  color: Colors.textMuted,
+  textAlign: 'center',
+  marginBottom: 20,
+},
+modalInput: {
+  width: '100%',
+  borderWidth: 1,
+  borderColor: '#ddd',
+  borderRadius: 10,
+  padding: 12,
+  marginBottom: 20,
+  fontSize: 16,
+},
+modalBtn: {
+  width: '100%',
+  borderRadius: 10,
+  overflow: 'hidden',
+  marginBottom: 10,
+},
+modalBtnGradient: {
+  paddingVertical: 12,
+  alignItems: 'center',
+},
+modalBtnText: {
+  color: '#fff',
+  fontWeight: 'bold',
+  fontSize: 16,
+},
+modalCancelBtn: {
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+},
+modalCancelText: {
+  color: Colors.textMuted,
+  fontSize: 14,
+  fontWeight: '500',
+},
+
 });
