@@ -248,15 +248,21 @@ export default function Profile() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Eliminar cuenta</Text>
-            <Text style={styles.modalSubtitle}>Ingresa tu contraseña para confirmar</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Contraseña"
-              placeholderTextColor={Colors.textMuted}
-              value={deletePassword}
-              onChangeText={setDeletePassword}
-              secureTextEntry
-            />
+            {userData.provider.includes('local') && 
+              (
+                <>
+                  <Text style={styles.modalSubtitle}>Ingresa tu contraseña para confirmar</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Contraseña"
+                    placeholderTextColor={Colors.textMuted}
+                    value={deletePassword}
+                    onChangeText={setDeletePassword}
+                    secureTextEntry
+                  />
+                </>
+              )
+            }
             <TouchableOpacity style={styles.modalBtn} activeOpacity={0.85} onPress={userData.provider.includes('local') ? confirmDeleteAccount : confirmDeleteAccountSocial} disabled={deleting}>
               <LinearGradient colors={["#dc2626", "#b91c1c"]} style={styles.modalBtnGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                 <Text style={styles.modalBtnText}>{deleting ? "Eliminando..." : "Eliminar"}</Text>

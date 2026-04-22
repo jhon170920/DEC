@@ -104,7 +104,7 @@ export const deleteUser = async (req, res) => {
 export const deleteUserSocial = async (req, res) => {
   try {
       // validamos si hay id por el middleware
-      if(req.user.id) return res.status(400).json({ message: "El id es requerido" });
+      if(!req.user.id) return res.status(400).json({ message: "El id es requerido" });
       // buscamos el usuario por su id y validamos que exista el usuario
       const user = await Users.findById(req.user.id);
       if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
