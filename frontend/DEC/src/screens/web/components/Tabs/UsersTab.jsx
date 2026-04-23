@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  TextInput, Platform, ActivityIndicator, Modal, ScrollView, Alert
+  TextInput, Platform, ActivityIndicator, Modal, FlatList, Alert
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import ReactDOM from 'react-dom';
 import api from '../../../../api/api';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 
 const UsersTab = () => {
   const [users, setUsers] = useState([]);
@@ -21,7 +20,10 @@ const UsersTab = () => {
   const [growthData, setGrowthData] = useState([]);
   const [showGrowthChart, setShowGrowthChart] = useState(false);
 
-  // Cargar usuarios
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -29,7 +31,6 @@ const UsersTab = () => {
       const res = await api.get('admin/get-users');
       setUsers(res.data.users);
       setFiltered(res.data.users);
-      // Calcular crecimiento mensual
       calculateGrowth(res.data.users);
     } catch (err) {
       setError(err?.message || 'Error al cargar usuarios');
@@ -40,7 +41,6 @@ const UsersTab = () => {
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  // Calcular crecimiento por mes
   const calculateGrowth = (usersList) => {
     const months = {};
     usersList.forEach(user => {
@@ -48,17 +48,16 @@ const UsersTab = () => {
       const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
       months[key] = (months[key] || 0) + 1;
     });
-    const sorted = Object.entries(months).sort((a,b) => a[0].localeCompare(b[0]));
+    const sorted = Object.entries(months).sort((a, b) => a[0].localeCompare(b[0]));
     const labels = sorted.map(([key]) => {
       const [year, month] = key.split('-');
-      const date = new Date(year, month-1);
+      const date = new Date(year, month - 1);
       return date.toLocaleString('es-ES', { month: 'short', year: 'numeric' });
     });
-    const values = sorted.map(([,count]) => count);
+    const values = sorted.map(([, count]) => count);
     setGrowthData({ labels, values });
   };
 
-  // Exportar a CSV
   const exportToCSV = async () => {
     try {
       const headers = ['ID', 'Nombre', 'Email', 'Rol', 'Estado', 'Fecha registro', 'Último acceso'];
@@ -76,7 +75,7 @@ const UsersTab = () => {
       const url = URL.createObjectURL(csvBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `usuarios_${new Date().toISOString().slice(0,10)}.csv`);
+      link.setAttribute('download', `usuarios_${new Date().toISOString().slice(0, 10)}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -87,7 +86,6 @@ const UsersTab = () => {
     }
   };
 
-  // Restablecer contraseña
   const handleResetPassword = async (user) => {
     try {
       await api.post('admin/reset-password', { userId: user._id });
@@ -97,7 +95,6 @@ const UsersTab = () => {
     }
   };
 
-  // Cambiar rol
   const handleChangeRole = async (user, newRole) => {
     try {
       await api.patch(`admin/change-role/${user._id}`, { role: newRole });
@@ -108,7 +105,6 @@ const UsersTab = () => {
     }
   };
 
-  // Eliminar usuario
   const handleDelete = async (user) => {
     try {
       await api.delete(`admin/delete-user/${user._id}`);
@@ -119,7 +115,6 @@ const UsersTab = () => {
     }
   };
 
-  // Ban / Unban
   const handleToggleBan = async (user) => {
     try {
       const res = await api.patch(`admin/toggle-ban/${user._id}`);
@@ -136,13 +131,25 @@ const UsersTab = () => {
   // Filtros
   useEffect(() => {
     const q = search.toLowerCase();
-    setFiltered(users.filter(u => {
+    let result = users.filter(u => {
       const matchSearch = u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
       const matchRole = roleFilter === 'all' || u.role === roleFilter;
       const matchStatus = statusFilter === 'all' ? true : statusFilter === 'banned' ? u.active === false : u.active !== false;
       return matchSearch && matchRole && matchStatus;
-    }));
+    });
+    setFiltered(result);
+    setCurrentPage(1);
   }, [search, roleFilter, statusFilter, users]);
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginatedUsers = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+  const goToPrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
 
   if (selectedUser) {
     return <UserDetailView user={selectedUser} onBack={() => setSelectedUser(null)} />;
@@ -152,7 +159,6 @@ const UsersTab = () => {
     <View style={styles.container}>
       <ConfirmModal modal={modal} onClose={closeModal} onConfirmDelete={() => handleDelete(modal.user)} onConfirmBan={() => handleToggleBan(modal.user)} />
 
-      {/* Header con acciones */}
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.title}>Gestión de Usuarios</Text>
@@ -173,7 +179,6 @@ const UsersTab = () => {
         </View>
       </View>
 
-      {/* Gráfico de crecimiento (simple) */}
       {showGrowthChart && growthData.labels && growthData.labels.length > 0 && (
         <View style={styles.growthCard}>
           <Text style={styles.growthTitle}>Crecimiento de usuarios por mes</Text>
@@ -191,7 +196,6 @@ const UsersTab = () => {
         </View>
       )}
 
-      {/* Filtros */}
       <View style={styles.filterTabs}>
         <View style={styles.filterGroup}>
           <Text style={styles.filterGroupLabel}>Rol:</Text>
@@ -215,7 +219,6 @@ const UsersTab = () => {
         </View>
       </View>
 
-      {/* Búsqueda */}
       <View style={styles.searchBar}>
         <Feather name="search" size={18} color="#9ca3af" />
         <TextInput placeholder="Buscar por nombre o correo..." style={styles.searchInput} value={search} onChangeText={setSearch} placeholderTextColor="#9ca3af" />
@@ -228,17 +231,46 @@ const UsersTab = () => {
       {!loading && !error && (
         <View style={styles.tableCard}>
           <View style={styles.tableHeader}>
-            <Text style={[styles.hText, { flex: 2 }]}>USUARIO</Text>
-            <Text style={[styles.hText, { flex: 1, textAlign: 'center' }]}>ROL</Text>
-            <Text style={[styles.hText, { flex: 1, textAlign: 'center' }]}>ESTADO</Text>
-            <Text style={[styles.hText, { flex: 1.5, textAlign: 'right' }]}>ACCIONES</Text>
+            <Text style={[styles.hText, styles.colUser]}>USUARIO</Text>
+            <Text style={[styles.hText, styles.colRole, { textAlign: 'center' }]}>ROL</Text>
+            <Text style={[styles.hText, styles.colStatus, { textAlign: 'center' }]}>ESTADO</Text>
+            <Text style={[styles.hText, styles.colActions, { textAlign: 'right' }]}>ACCIONES</Text>
           </View>
-          {filtered.length === 0 ? (
-            <View style={styles.emptyBox}><Feather name="users" size={32} color="#d1d5db" /><Text style={styles.emptyText}>No se encontraron usuarios</Text></View>
-          ) : (
-            filtered.map((user, idx) => (
-              <UserRow key={user._id} user={user} isLast={idx === filtered.length-1} onViewDetail={() => setSelectedUser(user)} onDelete={() => openModal('delete', user)} onToggleBan={() => openModal('ban', user)} onChangeRole={(role) => handleChangeRole(user, role)} onResetPassword={() => handleResetPassword(user)} />
-            ))
+
+          <FlatList
+            data={paginatedUsers}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item, index }) => (
+              <UserRow
+                user={item}
+                isLast={index === paginatedUsers.length - 1}
+                onViewDetail={() => setSelectedUser(item)}
+                onDelete={() => openModal('delete', item)}
+                onToggleBan={() => openModal('ban', item)}
+                onChangeRole={(role) => handleChangeRole(item, role)}
+                onResetPassword={() => handleResetPassword(item)}
+              />
+            )}
+            ListEmptyComponent={
+              <View style={styles.emptyBox}>
+                <Feather name="users" size={32} color="#d1d5db" />
+                <Text style={styles.emptyText}>No se encontraron usuarios</Text>
+              </View>
+            }
+          />
+
+          {filtered.length > itemsPerPage && (
+            <View style={styles.paginationContainer}>
+              <TouchableOpacity style={[styles.pageButton, currentPage === 1 && styles.pageButtonDisabled]} onPress={goToPrevPage} disabled={currentPage === 1}>
+                <Feather name="chevron-left" size={18} color={currentPage === 1 ? '#cbd5e1' : '#16a34a'} />
+                <Text style={[styles.pageButtonText, currentPage === 1 && styles.pageButtonTextDisabled]}>Anterior</Text>
+              </TouchableOpacity>
+              <Text style={styles.pageIndicator}>Página {currentPage} de {totalPages}</Text>
+              <TouchableOpacity style={[styles.pageButton, currentPage === totalPages && styles.pageButtonDisabled]} onPress={goToNextPage} disabled={currentPage === totalPages}>
+                <Text style={[styles.pageButtonText, currentPage === totalPages && styles.pageButtonTextDisabled]}>Siguiente</Text>
+                <Feather name="chevron-right" size={18} color={currentPage === totalPages ? '#cbd5e1' : '#16a34a'} />
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       )}
@@ -246,15 +278,131 @@ const UsersTab = () => {
   );
 };
 
-// Fila de usuario con menú de roles
+// ===================== USER ROW CON MENÚ CORREGIDO (Toggle + Outside Click) =====================
 const UserRow = ({ user, isLast, onViewDetail, onDelete, onToggleBan, onChangeRole, onResetPassword }) => {
   const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
   const isBanned = user.active === false;
   const isAdmin = user.role === 'admin';
 
+  // Alternar menú (abrir/cerrar)
+  const toggleMenu = () => {
+    if (!showRoleMenu) {
+      // Calcular posición solo cuando se va a abrir
+      if (Platform.OS === 'web' && buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        setMenuPosition({
+          top: rect.bottom + window.scrollY,
+          left: rect.left + window.scrollX,
+        });
+      }
+      setShowRoleMenu(true);
+    } else {
+      setShowRoleMenu(false);
+    }
+  };
+
+  const closeMenu = () => {
+    setShowRoleMenu(false);
+  };
+
+  // Cerrar al hacer clic fuera (solo web)
+  useEffect(() => {
+    if (!showRoleMenu || Platform.OS !== 'web') return;
+
+    const handleClickOutside = (e) => {
+      // Verificar si el clic ocurrió fuera del botón y fuera del menú
+      const isOutsideButton = buttonRef.current && !buttonRef.current.contains(e.target);
+      const isOutsideMenu = menuRef.current && !menuRef.current.contains(e.target);
+      if (isOutsideButton && isOutsideMenu) {
+        closeMenu();
+      }
+    };
+
+    // Añadir un pequeño retraso para evitar que el mismo clic que abrió el menú lo cierre
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showRoleMenu]);
+
+  const renderRoleMenu = () => {
+    const options = ['user', 'tecnico', 'admin'].filter(r => r !== user.role);
+    if (Platform.OS === 'web') {
+      return ReactDOM.createPortal(
+        <div
+          ref={menuRef}
+          style={{
+            position: 'absolute',
+            top: menuPosition.top,
+            left: menuPosition.left,
+            backgroundColor: '#fff',
+            borderRadius: 8,
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+            zIndex: 9999,
+            minWidth: 100,
+          }}
+          // Detener propagación para que el clic dentro del menú no cierre el menú
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {options.map(role => (
+            <div
+              key={role}
+              style={{
+                padding: '8px 16px',
+                cursor: 'pointer',
+                borderBottom: '1px solid #f3f4f6',
+                fontSize: 14,
+                color: '#374151',
+              }}
+              onClick={() => {
+                onChangeRole(role);
+                closeMenu();
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              {role.charAt(0).toUpperCase() + role.slice(1)}
+            </div>
+          ))}
+        </div>,
+        document.body
+      );
+    }
+    // Móvil: modal
+    return (
+      <Modal visible={showRoleMenu} transparent animationType="fade" onRequestClose={closeMenu}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }} activeOpacity={1} onPress={closeMenu}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, minWidth: 200 }}>
+            {options.map(role => (
+              <TouchableOpacity
+                key={role}
+                style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' }}
+                onPress={() => {
+                  onChangeRole(role);
+                  closeMenu();
+                }}
+              >
+                <Text style={{ fontSize: 16, color: '#374151', textAlign: 'center' }}>
+                  {role.charAt(0).toUpperCase() + role.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    );
+  };
+
   return (
     <View style={[styles.row, isLast && { borderBottomWidth: 0 }]}>
-      <View style={{ flex: 2 }}>
+      <View style={styles.colUser}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View style={[styles.avatar, isBanned && styles.avatarBanned]}>
             <Text style={styles.avatarText}>{user.name?.charAt(0).toUpperCase()}</Text>
@@ -265,35 +413,39 @@ const UserRow = ({ user, isLast, onViewDetail, onDelete, onToggleBan, onChangeRo
           </View>
         </View>
       </View>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <TouchableOpacity onPress={() => setShowRoleMenu(!showRoleMenu)} style={styles.roleBadge}>
+      <View style={styles.colRole}>
+        <TouchableOpacity ref={buttonRef} onPress={toggleMenu} style={styles.roleBadge}>
           <Text style={styles.roleText}>{user.role || 'user'}</Text>
           <Feather name="chevron-down" size={12} color="#6b7280" />
         </TouchableOpacity>
-        {showRoleMenu && (
-          <View style={styles.roleMenu}>
-            {['user', 'tecnico', 'admin'].filter(r => r !== user.role).map(role => (
-              <TouchableOpacity key={role} style={styles.roleMenuItem} onPress={() => { onChangeRole(role); setShowRoleMenu(false); }}>
-                <Text style={styles.roleMenuItemText}>{role.charAt(0).toUpperCase() + role.slice(1)}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+        {renderRoleMenu()}
       </View>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={styles.colStatus}>
         <View style={[styles.statusDot, isBanned ? styles.dotBanned : styles.dotActive]} />
       </View>
-      <View style={{ flex: 1.5, flexDirection: 'row', justifyContent: 'flex-end', gap: 6, alignItems: 'center' }}>
-        <TouchableOpacity style={styles.iconBtn} onPress={onViewDetail}><Feather name="eye" size={15} color="#6b7280" /></TouchableOpacity>
-        <TouchableOpacity style={styles.iconBtn} onPress={onResetPassword}><Feather name="mail" size={15} color="#3b82f6" /></TouchableOpacity>
-        {!isAdmin && <TouchableOpacity style={[styles.iconBtn, isBanned ? styles.iconBtnGreen : styles.iconBtnOrange]} onPress={onToggleBan}><Feather name={isBanned ? 'unlock' : 'lock'} size={15} color={isBanned ? '#16a34a' : '#f59e0b'} /></TouchableOpacity>}
-        {!isAdmin && <TouchableOpacity style={[styles.iconBtn, styles.iconBtnRed]} onPress={onDelete}><Feather name="trash-2" size={15} color="#ef4444" /></TouchableOpacity>}
+      <View style={styles.colActions}>
+        <TouchableOpacity style={styles.iconBtn} onPress={onViewDetail}>
+          <Feather name="eye" size={15} color="#6b7280" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconBtn} onPress={onResetPassword}>
+          <Feather name="mail" size={15} color="#3b82f6" />
+        </TouchableOpacity>
+        {!isAdmin && (
+          <TouchableOpacity style={[styles.iconBtn, isBanned ? styles.iconBtnGreen : styles.iconBtnOrange]} onPress={onToggleBan}>
+            <Feather name={isBanned ? 'unlock' : 'lock'} size={15} color={isBanned ? '#16a34a' : '#f59e0b'} />
+          </TouchableOpacity>
+        )}
+        {!isAdmin && (
+          <TouchableOpacity style={[styles.iconBtn, styles.iconBtnRed]} onPress={onDelete}>
+            <Feather name="trash-2" size={15} color="#ef4444" />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
 };
 
-// Vista de detalle (similar a la anterior, se mantiene)
+// ===================== USER DETAIL VIEW =====================
 const UserDetailView = ({ user, onBack }) => {
   const [detections, setDetections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -309,13 +461,26 @@ const UserDetailView = ({ user, onBack }) => {
   }, [user._id]);
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={onBack} style={styles.backBtn}><Feather name="arrow-left" size={20} color="#16a34a" /><Text style={styles.backText}>Volver</Text></TouchableOpacity>
+      <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+        <Feather name="arrow-left" size={20} color="#16a34a" />
+        <Text style={styles.backText}>Volver</Text>
+      </TouchableOpacity>
       <View style={styles.detailHeaderCard}>
-        <View style={styles.detailAvatar}><Text style={styles.detailAvatarText}>{user.name?.charAt(0).toUpperCase()}</Text></View>
-        <View style={{ flex: 1 }}><Text style={styles.detailTitle}>{user.name}</Text><Text style={styles.detailEmail}>{user.email}</Text><Text style={styles.detailRole}>Rol: {user.role || 'user'}</Text></View>
+        <View style={styles.detailAvatar}>
+          <Text style={styles.detailAvatarText}>{user.name?.charAt(0).toUpperCase()}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.detailTitle}>{user.name}</Text>
+          <Text style={styles.detailEmail}>{user.email}</Text>
+          <Text style={styles.detailRole}>Rol: {user.role || 'user'}</Text>
+        </View>
       </View>
       <View style={styles.tableCard}>
-        <View style={styles.tableHeader}><Text style={[styles.hText, { flex: 2 }]}>FECHA</Text><Text style={[styles.hText, { flex: 1 }]}>AFECCIÓN</Text><Text style={[styles.hText, { flex: 1, textAlign: 'right' }]}>CONFIANZA</Text></View>
+        <View style={styles.tableHeader}>
+          <Text style={[styles.hText, { flex: 2 }]}>FECHA</Text>
+          <Text style={[styles.hText, { flex: 1 }]}>AFECCIÓN</Text>
+          <Text style={[styles.hText, { flex: 1, textAlign: 'right' }]}>CONFIANZA</Text>
+        </View>
         {loading ? <ActivityIndicator /> : detections.length === 0 ? <Text style={styles.emptyText}>Sin detecciones</Text> : detections.map(d => (
           <View key={d._id} style={styles.row}>
             <Text style={{ flex: 2 }}>{new Date(d.createdAt).toLocaleDateString()}</Text>
@@ -328,7 +493,7 @@ const UserDetailView = ({ user, onBack }) => {
   );
 };
 
-// Modal de confirmación (similar al anterior, se mantiene)
+// ===================== CONFIRM MODAL =====================
 const ConfirmModal = ({ modal, onClose, onConfirmDelete, onConfirmBan }) => {
   if (!modal.visible || !modal.user) return null;
   const isDelete = modal.type === 'delete';
@@ -342,7 +507,9 @@ const ConfirmModal = ({ modal, onClose, onConfirmDelete, onConfirmBan }) => {
           <Text style={styles.modalBody}>{isDelete ? `Eliminar a ${modal.user.name}?` : (isBanned ? `Habilitar a ${modal.user.name}` : `Inhabilitar a ${modal.user.name}`)}</Text>
           <View style={styles.modalActions}>
             <TouchableOpacity onPress={onClose} style={styles.cancelBtn}><Text style={styles.cancelText}>Cancelar</Text></TouchableOpacity>
-            <TouchableOpacity onPress={isDelete ? onConfirmDelete : onConfirmBan} style={[styles.confirmBtn, isDelete ? styles.confirmBtnRed : styles.confirmBtnOrange]}><Text style={styles.confirmText}>{isDelete ? 'Eliminar' : (isBanned ? 'Habilitar' : 'Inhabilitar')}</Text></TouchableOpacity>
+            <TouchableOpacity onPress={isDelete ? onConfirmDelete : onConfirmBan} style={[styles.confirmBtn, isDelete ? styles.confirmBtnRed : styles.confirmBtnOrange]}>
+              <Text style={styles.confirmText}>{isDelete ? 'Eliminar' : (isBanned ? 'Habilitar' : 'Inhabilitar')}</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -350,22 +517,20 @@ const ConfirmModal = ({ modal, onClose, onConfirmDelete, onConfirmBan }) => {
   );
 };
 
-// ─────────────────────────────────────────────
-// ESTILOS
-// ─────────────────────────────────────────────
+// ===================== ESTILOS =====================
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+  container: { flex: 1, backgroundColor: '#f9fafb', padding: 20 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 10 },
   title: { fontSize: 24, fontWeight: '800', color: '#1f2937' },
   subtitle: { fontSize: 13, color: '#6b7280', marginTop: 2 },
-  headerActions: { flexDirection: 'row', gap: 8 },
+  headerActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#d1fae5', backgroundColor: '#f0fdf4' },
   actionBtnText: { fontSize: 13, fontWeight: '600', color: '#16a34a' },
   refreshBtn: { padding: 10, borderRadius: 10, borderWidth: 1, borderColor: '#d1fae5', backgroundColor: '#f0fdf4' },
   growthCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#e5e7eb' },
   growthTitle: { fontSize: 14, fontWeight: '700', marginBottom: 12, textAlign: 'center' },
-  chartContainer: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 150 },
-  barItem: { alignItems: 'center', width: 50 },
+  chartContainer: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 150, flexWrap: 'wrap' },
+  barItem: { alignItems: 'center', width: 50, marginVertical: 5 },
   barLabel: { fontSize: 10, marginBottom: 6 },
   barBg: { width: 30, height: 100, backgroundColor: '#f3f4f6', borderRadius: 4, overflow: 'hidden', justifyContent: 'flex-end' },
   barFill: { width: '100%', backgroundColor: '#16a34a', borderRadius: 4 },
@@ -379,10 +544,14 @@ const styles = StyleSheet.create({
   filterTabTextActive: { color: '#fff' },
   searchBar: { flexDirection: 'row', backgroundColor: '#fff', padding: 12, borderRadius: 12, alignItems: 'center', marginBottom: 20, borderWidth: 1, borderColor: '#e5e7eb', gap: 8 },
   searchInput: { flex: 1, fontSize: 14, color: '#1f2937' },
-  tableCard: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#f3f4f6', overflow: 'hidden', marginBottom: 24 },
+  tableCard: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#f3f4f6', overflowX: 'auto', marginBottom: 24 },
   tableHeader: { flexDirection: 'row', padding: 14, backgroundColor: '#f9fafb', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   hText: { fontSize: 11, fontWeight: '700', color: '#9ca3af', letterSpacing: 0.5 },
-  row: { flexDirection: 'row', padding: 14, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f9fafb' },
+  colUser: { flex: 2, minWidth: 180 },
+  colRole: { flex: 1, alignItems: 'center', justifyContent: 'center', minWidth: 100, position: 'relative' },
+  colStatus: { flex: 1, alignItems: 'center', justifyContent: 'center', minWidth: 80 },
+  colActions: { flex: 1.5, flexDirection: 'row', justifyContent: 'flex-end', gap: 6, minWidth: 140 },
+  row: { flexDirection: 'row', padding: 14, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f9fafb', flexWrap: 'wrap' },
   avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#dcfce7', justifyContent: 'center', alignItems: 'center' },
   avatarBanned: { backgroundColor: '#fee2e2' },
   avatarText: { fontWeight: '800', color: '#16a34a', fontSize: 15 },
@@ -391,9 +560,6 @@ const styles = StyleSheet.create({
   uEmail: { fontSize: 12, color: '#6b7280' },
   roleBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: '#f3f4f6', flexDirection: 'row', alignItems: 'center', gap: 4 },
   roleText: { fontSize: 11, fontWeight: '700', color: '#6b7280' },
-  roleMenu: { position: 'absolute', top: 30, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', zIndex: 10, width: 100 },
-  roleMenuItem: { paddingVertical: 8, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  roleMenuItemText: { fontSize: 12, color: '#374151' },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   dotActive: { backgroundColor: '#16a34a' },
   dotBanned: { backgroundColor: '#ef4444' },
@@ -407,7 +573,7 @@ const styles = StyleSheet.create({
   retryBtn: { backgroundColor: '#16a34a', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
   retryText: { color: '#fff', fontWeight: '700' },
   emptyBox: { padding: 40, alignItems: 'center', gap: 10 },
-  emptyText: { color: '#9ca3af', fontSize: 14 },
+  emptyText: { color: '#9ca3af', fontSize: 14, textAlign: 'center' },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 },
   backText: { color: '#16a34a', fontWeight: '600' },
   detailHeaderCard: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: '#fff', padding: 20, borderRadius: 16, marginBottom: 20, borderWidth: 1, borderColor: '#e5e7eb' },
@@ -427,5 +593,43 @@ const styles = StyleSheet.create({
   confirmBtnRed: { backgroundColor: '#ef4444' },
   confirmBtnOrange: { backgroundColor: '#f59e0b' },
   confirmText: { fontWeight: '700', color: '#fff' },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    backgroundColor: '#fff',
+    flexWrap: 'wrap',
+  },
+  pageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#f0fdf4',
+  },
+  pageButtonDisabled: {
+    backgroundColor: '#f3f4f6',
+    opacity: 0.6,
+  },
+  pageButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#16a34a',
+  },
+  pageButtonTextDisabled: {
+    color: '#9ca3af',
+  },
+  pageIndicator: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#374151',
+  },
 });
+
 export default UsersTab;

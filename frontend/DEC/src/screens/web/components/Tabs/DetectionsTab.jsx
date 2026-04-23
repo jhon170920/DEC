@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Image, Platform, Linking, ActivityIndicator, Alert, Modal
+  Image, Platform, Linking, ActivityIndicator, Alert, Modal, FlatList
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import api from '../../../../api/api';
+import { useDateFilter } from '../../../../hooks/useDateFilter';
 
 const DetectionsTab = () => {
   const [detections, setDetections] = useState([]);
@@ -15,17 +16,20 @@ const DetectionsTab = () => {
   const [error, setError] = useState(null);
   const [approvedCount, setApprovedCount] = useState(0);
 
-  // Estados para filtros de fecha
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  // Estados para exportación de dataset
+  // Fechas
+  const { startDate, endDate, setStartDate, setEndDate, clearDateFilters } = useDateFilter(30);
+
+  // Exportación
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportProgress, setExportProgress] = useState({ status: '', total: 0, processed: 0, message: '' });
   const [jobId, setJobId] = useState(null);
   let intervalId = null;
 
-  // Cargar detecciones reales desde el backend
+  // Cargar detecciones
   const fetchDetections = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -33,7 +37,6 @@ const DetectionsTab = () => {
       const res = await api.get('admin/get-detections');
       const detectionsData = res.data.detections || [];
       setDetections(detectionsData);
-      // Inicializar contador de aprobadas
       const approved = detectionsData.filter(d => d.approved === true).length;
       setApprovedCount(approved);
     } catch (err) {
@@ -48,25 +51,21 @@ const DetectionsTab = () => {
     fetchDetections();
   }, [fetchDetections]);
 
-  // Aplicar filtros de fecha y ordenamiento
+  // Aplicar filtros y ordenamiento
   useEffect(() => {
     let filtered = [...detections];
 
-    // Filtrar por fecha de inicio
     if (startDate) {
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
       filtered = filtered.filter(d => new Date(d.createdAt) >= start);
     }
-
-    // Filtrar por fecha de fin
     if (endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
       filtered = filtered.filter(d => new Date(d.createdAt) <= end);
     }
 
-    // Ordenar por confianza
     filtered.sort((a, b) => {
       const confA = a.confidence || 0;
       const confB = b.confidence || 0;
@@ -74,9 +73,25 @@ const DetectionsTab = () => {
     });
 
     setFilteredDetections(filtered);
+    setCurrentPage(1); // Reiniciar página al cambiar filtros
   }, [detections, startDate, endDate, sortOrder]);
 
-  // Eliminar detección
+  // Paginación: obtener elementos de la página actual
+  const getCurrentPageItems = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredDetections.slice(startIndex, endIndex);
+  };
+
+  const totalPages = Math.ceil(filteredDetections.length / itemsPerPage);
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+  const goToPrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  // Eliminar
   const handleDelete = async (id) => {
     if (Platform.OS === 'web') {
       if (!window.confirm('¿Eliminar esta detección permanentemente?')) return;
@@ -101,7 +116,7 @@ const DetectionsTab = () => {
     }
   };
 
-  // Alternar aprobación
+  // Aprobar
   const handleToggleApprove = async (detection) => {
     try {
       const res = await api.patch(`admin/toggle-approve/${detection._id}`);
@@ -112,38 +127,35 @@ const DetectionsTab = () => {
       if (selectedDetection?._id === detection._id) {
         setSelectedDetection({ ...selectedDetection, approved: res.data.approved });
       }
-      // Actualizar contador de aprobadas
       const newApprovedCount = updatedDetections.filter(d => d.approved === true).length;
       setApprovedCount(newApprovedCount);
     } catch (err) {
       Alert.alert('Error', 'No se pudo cambiar el estado de aprobación');
     }
   };
-  // Exportar dataset aprobado
-const handleExportDataset = async () => {
-  try {
-    setExportModalVisible(true);
-    setExportProgress({ status: 'starting', total: 0, processed: 0, message: 'Iniciando exportación...' });
-    
-    // Construir query params con las fechas actuales
-    let url = 'admin/export/start';
-    const params = new URLSearchParams();
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
-    if (params.toString()) url += `?${params.toString()}`;
-    
-    const res = await api.get(url);
-    const { jobId: newJobId } = res.data;
-    setJobId(newJobId);
-    if (intervalId) clearInterval(intervalId);
-    intervalId = setInterval(() => checkExportStatus(newJobId), 1000);
-  } catch (error) {
-    console.error(error);
-    Alert.alert('Error', 'No se pudo iniciar la exportación');
-    setExportModalVisible(false);
-  }
-};
-  // Consultar el estado del trabajo de exportación
+
+  // Exportación
+  const handleExportDataset = async () => {
+    try {
+      setExportModalVisible(true);
+      setExportProgress({ status: 'starting', total: 0, processed: 0, message: 'Iniciando exportación...' });
+      let url = 'admin/export/start';
+      const params = new URLSearchParams();
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      if (params.toString()) url += `?${params.toString()}`;
+      const res = await api.get(url);
+      const { jobId: newJobId } = res.data;
+      setJobId(newJobId);
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(() => checkExportStatus(newJobId), 1000);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'No se pudo iniciar la exportación');
+      setExportModalVisible(false);
+    }
+  };
+
   const checkExportStatus = async (jobId) => {
     try {
       const res = await api.get(`admin/export/status/${jobId}`);
@@ -151,7 +163,6 @@ const handleExportDataset = async () => {
       setExportProgress({ status, total, processed, message });
       if (status === 'completed') {
         clearInterval(intervalId);
-        // Descargar el archivo
         downloadExportFile(jobId);
       } else if (status === 'error') {
         clearInterval(intervalId);
@@ -165,12 +176,15 @@ const handleExportDataset = async () => {
       setExportModalVisible(false);
     }
   };
-  // Descargar el archivo exportado
+
   const downloadExportFile = async (jobId) => {
+    if (Platform.OS !== 'web') {
+      Alert.alert('Descarga solo disponible en versión web');
+      setExportModalVisible(false);
+      return;
+    }
     try {
-      const response = await api.get(`admin/export/download/${jobId}`, {
-        responseType: 'blob'
-      });
+      const response = await api.get(`admin/export/download/${jobId}`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -187,24 +201,13 @@ const handleExportDataset = async () => {
       setJobId(null);
     }
   };
-  // Limpiar el intervalo al desmontar el componente
+
   useEffect(() => {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
   }, []);
 
-  // Calcular porcentaje de progreso
-  const percent = exportProgress.total > 0 
-    ? (exportProgress.processed / exportProgress.total) * 100 
-    : 0;
-  // Limpiar filtros de fecha
-  const clearDateFilters = () => {
-    setStartDate('');
-    setEndDate('');
-  };
-
-  // Abrir mapa con coordenadas
   const openInMaps = (detection) => {
     let lat, lng;
     if (detection.location?.coordinates && detection.location.coordinates.length === 2) {
@@ -259,7 +262,7 @@ const handleExportDataset = async () => {
 
   return (
     <View style={styles.container}>
-      {/* CABECERA CON RESUMEN */}
+      {/* Cabecera */}
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Auditoría y Dataset</Text>
@@ -274,80 +277,53 @@ const handleExportDataset = async () => {
             <Feather name="download-cloud" size={18} color="#fff" />
             <Text style={styles.downloadText}>Exportar Dataset</Text>
           </TouchableOpacity>
-          <Modal
-  visible={exportModalVisible}
-  transparent
-  animationType="fade"
-  onRequestClose={() => {}}
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalCard}>
-      <Feather name="package" size={40} color="#16a34a" />
-      <Text style={styles.modalTitle}>Exportando dataset</Text>
-      <Text style={styles.modalMessage}>{exportProgress.message}</Text>
-      
-      {exportProgress.status === 'processing' && (
-        <>
-          <View style={styles.progressBarBg}>
-            <View 
-              style={[
-                styles.progressBarFill, 
-                { width: `${percent}%` }
-              ]} 
-            />
-          </View>
-          <Text style={styles.progressText}>
-            {exportProgress.processed} de {exportProgress.total} imágenes
-          </Text>
-          <Text style={styles.percentText}>{Math.round(percent)}% completado</Text>
-        </>
-      )}
-      
-      {exportProgress.status === 'completed' && (
-        <View style={styles.completedContainer}>
-          <Feather name="check-circle" size={32} color="#16a34a" />
-          <Text style={styles.completedText}>¡Completado! Descargando...</Text>
-        </View>
-      )}
-      
-      {exportProgress.status === 'error' && (
-        <>
-          <Feather name="alert-circle" size={32} color="#ef4444" />
-          <Text style={styles.errorText}>{exportProgress.message}</Text>
-          <TouchableOpacity 
-            style={styles.closeModalBtn} 
-            onPress={() => setExportModalVisible(false)}
-          >
-            <Text style={styles.closeModalText}>Cerrar</Text>
-          </TouchableOpacity>
-        </>
-      )}
-    </View>
-  </View>
-</Modal>
+          {/* Modal exportación (sin cambios) */}
+          <Modal visible={exportModalVisible} transparent animationType="fade">
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalCard}>
+                <Feather name="package" size={40} color="#16a34a" />
+                <Text style={styles.modalTitle}>Exportando dataset</Text>
+                <Text style={styles.modalMessage}>{exportProgress.message}</Text>
+                {exportProgress.status === 'processing' && (
+                  <>
+                    <View style={styles.progressBarBg}>
+                      <View style={[styles.progressBarFill, { width: `${(exportProgress.processed / exportProgress.total) * 100}%` }]} />
+                    </View>
+                    <Text style={styles.progressText}>{exportProgress.processed} de {exportProgress.total} imágenes</Text>
+                    <Text style={styles.percentText}>{Math.round((exportProgress.processed / exportProgress.total) * 100)}% completado</Text>
+                  </>
+                )}
+                {exportProgress.status === 'completed' && (
+                  <View style={styles.completedContainer}>
+                    <Feather name="check-circle" size={32} color="#16a34a" />
+                    <Text style={styles.completedText}>¡Completado! Descargando...</Text>
+                  </View>
+                )}
+                {exportProgress.status === 'error' && (
+                  <>
+                    <Feather name="alert-circle" size={32} color="#ef4444" />
+                    <Text style={styles.errorText}>{exportProgress.message}</Text>
+                    <TouchableOpacity style={styles.closeModalBtn} onPress={() => setExportModalVisible(false)}>
+                      <Text style={styles.closeModalText}>Cerrar</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </View>
+          </Modal>
         </View>
       </View>
 
-      {/* FILTROS DE FECHA */}
+      {/* Filtros de fecha */}
       <View style={styles.filterContainer}>
         <View style={styles.dateFilterRow}>
           <View style={styles.dateInputGroup}>
             <Text style={styles.filterLabel}>Fecha inicio</Text>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              style={styles.dateInput}
-            />
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={styles.dateInput} />
           </View>
           <View style={styles.dateInputGroup}>
             <Text style={styles.filterLabel}>Fecha fin</Text>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              style={styles.dateInput}
-            />
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={styles.dateInput} />
           </View>
           <TouchableOpacity style={styles.clearBtn} onPress={clearDateFilters}>
             <Feather name="x-circle" size={16} color="#6b7280" />
@@ -361,68 +337,87 @@ const handleExportDataset = async () => {
       </View>
 
       <View style={styles.mainLayout}>
-        {/* COLUMNA IZQUIERDA: LISTADO CON MINIATURAS */}
+        {/* Columna izquierda: lista paginada */}
         <View style={styles.listSide}>
           <View style={styles.listHeader}>
             <Text style={styles.listTitle}>Detecciones Recientes</Text>
-            <TouchableOpacity
-              style={styles.sortToggle}
-              onPress={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-            >
+            <TouchableOpacity style={styles.sortToggle} onPress={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}>
               <Feather name="bar-chart-2" size={14} color="#16a34a" />
-              <Text style={styles.sortToggleText}>
-                {sortOrder === 'desc' ? 'Confianza: Max' : 'Confianza: Min'}
-              </Text>
+              <Text style={styles.sortToggleText}>{sortOrder === 'desc' ? 'Confianza: Max' : 'Confianza: Min'}</Text>
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.scrollList}>
-            {filteredDetections.length === 0 ? (
+          {/* FlatList con datos paginados */}
+          <FlatList
+            data={getCurrentPageItems()}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[styles.row, selectedDetection?._id === item._id && styles.rowActive]}
+                onPress={() => setSelectedDetection(item)}
+              >
+                <Image source={{ uri: item.imageUrl }} style={styles.miniThumb} />
+                <View style={styles.rowMainInfo}>
+                  <Text style={styles.rowDate}>{new Date(item.createdAt).toLocaleString()}</Text>
+                  <View style={[styles.typeBadge, item.pathologyId?.name === 'Roya' ? styles.bgRoya : styles.bgMinador]}>
+                    <Text style={styles.typeText}>{item.pathologyId?.name || 'Desconocida'}</Text>
+                  </View>
+                </View>
+                <View style={styles.rowValueInfo}>
+                  <Text style={styles.confValue}>{Math.round((item.confidence || 0) * 100)}%</Text>
+                  <Text style={styles.confSub}>Confianza</Text>
+                  {item.approved && (
+                    <View style={styles.approvedBadge}>
+                      <Feather name="check" size={10} color="#fff" />
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
               <View style={styles.emptyList}>
                 <Text style={styles.emptyListText}>
-                  {detections.length === 0
-                    ? 'No hay detecciones registradas'
-                    : 'No hay detecciones en el rango de fechas seleccionado'}
+                  {detections.length === 0 ? 'No hay detecciones registradas' : 'No hay detecciones en el rango seleccionado'}
                 </Text>
               </View>
-            ) : (
-              filteredDetections.map((item) => (
-                <TouchableOpacity
-                  key={item._id}
-                  style={[styles.row, selectedDetection?._id === item._id && styles.rowActive]}
-                  onPress={() => setSelectedDetection(item)}
-                >
-                  <Image source={{ uri: item.imageUrl }} style={styles.miniThumb} />
-                  <View style={styles.rowMainInfo}>
-                    <Text style={styles.rowDate}>{new Date(item.createdAt).toLocaleString()}</Text>
-                    <View style={[styles.typeBadge, item.pathologyId?.name === 'Roya' ? styles.bgRoya : styles.bgMinador]}>
-                      <Text style={styles.typeText}>{item.pathologyId?.name || 'Desconocida'}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.rowValueInfo}>
-                    <Text style={styles.confValue}>{Math.round((item.confidence || 0) * 100)}%</Text>
-                    <Text style={styles.confSub}>Confianza</Text>
-                    {item.approved && (
-                      <View style={styles.approvedBadge}>
-                        <Feather name="check" size={10} color="#fff" />
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              ))
-            )}
-          </ScrollView>
+            }
+            style={styles.scrollList}
+            showsVerticalScrollIndicator
+          />
+
+          {/* Controles de paginación */}
+          {filteredDetections.length > itemsPerPage && (
+            <View style={styles.paginationContainer}>
+              <TouchableOpacity
+                style={[styles.pageButton, currentPage === 1 && styles.pageButtonDisabled]}
+                onPress={goToPrevPage}
+                disabled={currentPage === 1}
+              >
+                <Feather name="chevron-left" size={18} color={currentPage === 1 ? '#cbd5e1' : '#16a34a'} />
+                <Text style={[styles.pageButtonText, currentPage === 1 && styles.pageButtonTextDisabled]}>Anterior</Text>
+              </TouchableOpacity>
+              <Text style={styles.pageIndicator}>
+                Página {currentPage} de {totalPages}
+              </Text>
+              <TouchableOpacity
+                style={[styles.pageButton, currentPage === totalPages && styles.pageButtonDisabled]}
+                onPress={goToNextPage}
+                disabled={currentPage === totalPages}
+              >
+                <Text style={[styles.pageButtonText, currentPage === totalPages && styles.pageButtonTextDisabled]}>Siguiente</Text>
+                <Feather name="chevron-right" size={18} color={currentPage === totalPages ? '#cbd5e1' : '#16a34a'} />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
-        {/* COLUMNA DERECHA: INSPECTOR DE IMAGEN Y MAPA */}
+        {/* Columna derecha: inspector */}
         <View style={styles.inspectorSide}>
           {selectedDetection ? (
             <ScrollView contentContainerStyle={styles.inspectorContent}>
               <View style={styles.mainImageWrapper}>
                 <Image source={{ uri: selectedDetection.imageUrl }} style={styles.fullImage} />
-                <View style={styles.iaTag}>
-                  <Text style={styles.iaTagText}>Detección IA</Text>
-                </View>
+                <View style={styles.iaTag}><Text style={styles.iaTagText}>Detección IA</Text></View>
                 {selectedDetection.approved && (
                   <View style={styles.approvedOverlay}>
                     <Feather name="check-circle" size={40} color="#16a34a" />
@@ -432,9 +427,7 @@ const handleExportDataset = async () => {
               </View>
 
               <TouchableOpacity style={styles.mapCard} onPress={() => openInMaps(selectedDetection)}>
-                <View style={styles.mapIconCircle}>
-                  <Feather name="map-pin" size={20} color="#ef4444" />
-                </View>
+                <View style={styles.mapIconCircle}><Feather name="map-pin" size={20} color="#ef4444" /></View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.mapLabel}>Ubicación (Abrir Mapa)</Text>
                   <Text style={styles.mapValue}>{formatLocation(selectedDetection)}</Text>
@@ -449,9 +442,7 @@ const handleExportDataset = async () => {
                 </View>
                 <View style={styles.dataItem}>
                   <Text style={styles.dataLabel}>Precisión</Text>
-                  <Text style={[styles.dataValue, { color: '#16a34a' }]}>
-                    {Math.round((selectedDetection.confidence || 0) * 100)}%
-                  </Text>
+                  <Text style={[styles.dataValue, { color: '#16a34a' }]}>{Math.round((selectedDetection.confidence || 0) * 100)}%</Text>
                 </View>
               </View>
 
@@ -461,9 +452,7 @@ const handleExportDataset = async () => {
                   onPress={() => handleToggleApprove(selectedDetection)}
                 >
                   <Feather name={selectedDetection.approved ? "x-circle" : "check-circle"} size={20} color="#fff" />
-                  <Text style={styles.approveActionText}>
-                    {selectedDetection.approved ? 'Desaprobar' : 'Aprobar para Dataset'}
-                  </Text>
+                  <Text style={styles.approveActionText}>{selectedDetection.approved ? 'Desaprobar' : 'Aprobar para Dataset'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.discardAction} onPress={() => handleDelete(selectedDetection._id)}>
                   <Feather name="trash-2" size={20} color="#ef4444" />
@@ -482,7 +471,7 @@ const handleExportDataset = async () => {
   );
 };
 
-// Estilos (añadir los nuevos)
+// Estilos (conservamos los originales, solo agregamos si falta alguno)
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9fafb' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingHorizontal: 20, paddingTop: 20 },
@@ -494,7 +483,6 @@ const styles = StyleSheet.create({
   downloadBtn: { backgroundColor: '#16a34a', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
   downloadText: { color: '#fff', fontWeight: '700', fontSize: 13 },
 
-  // Filtros de fecha
   filterContainer: { backgroundColor: '#fff', marginHorizontal: 20, marginBottom: 20, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#e5e7eb' },
   dateFilterRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' },
   dateInputGroup: { flex: 1, minWidth: 150 },
@@ -555,79 +543,54 @@ const styles = StyleSheet.create({
   errorText: { marginTop: 12, color: '#ef4444', textAlign: 'center' },
   retryBtn: { marginTop: 20, backgroundColor: '#16a34a', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
   retryText: { color: '#fff', fontWeight: '700' },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  modalCard: {
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
+  modalCard: { backgroundColor: '#fff', borderRadius: 24, padding: 30, width: '90%', maxWidth: 400, alignItems: 'center' },
+  modalTitle: { fontSize: 20, fontWeight: '800', marginTop: 16, marginBottom: 8, color: '#1f2937' },
+  modalMessage: { fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 20 },
+  progressBarBg: { width: '100%', height: 10, backgroundColor: '#e5e7eb', borderRadius: 5, overflow: 'hidden', marginVertical: 16 },
+  progressBarFill: { height: '100%', backgroundColor: '#16a34a', borderRadius: 5 },
+  progressText: { fontSize: 13, color: '#374151', fontWeight: '500' },
+  percentText: { fontSize: 16, fontWeight: '700', color: '#16a34a', marginTop: 8, textAlign: 'center' },
+  completedContainer: { alignItems: 'center', marginTop: 10 },
+  completedText: { fontSize: 14, color: '#16a34a', fontWeight: '600', marginTop: 16 },
+  closeModalBtn: { marginTop: 20, backgroundColor: '#f3f4f6', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
+  closeModalText: { color: '#374151', fontWeight: '600' },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
     backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 30,
-    width: '90%',
-    maxWidth: 400,
-    alignItems: 'center'
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    marginTop: 16,
-    marginBottom: 8,
-    color: '#1f2937'
+  pageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#f0fdf4',
   },
-  modalMessage: {
-    fontSize: 14,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: 20
+  pageButtonDisabled: {
+    backgroundColor: '#f3f4f6',
+    opacity: 0.6,
   },
-  progressBarBg: {
-    width: '100%',
-    height: 10,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 5,
-    overflow: 'hidden',
-    marginVertical: 16
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#16a34a',
-    borderRadius: 5
-  },
-  progressText: {
+  pageButtonText: {
     fontSize: 13,
-    color: '#374151',
-    fontWeight: '500'
-  },
-  completedText: {
-    fontSize: 14,
-    color: '#16a34a',
     fontWeight: '600',
-    marginTop: 16
+    color: '#16a34a',
   },
-  percentText: {
-  fontSize: 16,
-  fontWeight: '700',
-  color: '#16a34a',
-  marginTop: 8,
-  textAlign: 'center'
-},
-completedContainer: {
-  alignItems: 'center',
-  marginTop: 10
-},
-closeModalBtn: {
-  marginTop: 20,
-  backgroundColor: '#f3f4f6',
-  paddingHorizontal: 20,
-  paddingVertical: 10,
-  borderRadius: 8
-},
-closeModalText: {
-  color: '#374151',
-  fontWeight: '600'
-},
+  pageButtonTextDisabled: {
+    color: '#9ca3af',
+  },
+  pageIndicator: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#374151',
+  },
 });
 
 export default DetectionsTab;

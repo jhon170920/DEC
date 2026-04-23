@@ -126,7 +126,7 @@ export default function Result() {
 
         {/* IMAGEN */}
         <View style={styles.imageCard}>
-          <Image source={{ uri: imagenResultado }} style={styles.image} resizeMode="contain" />
+          <Image source={{ uri: imagenResultado }} style={styles.image} resizeMode="cover" />
         </View>
 
         {/* TÍTULO */}

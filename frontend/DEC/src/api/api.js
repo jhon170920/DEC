@@ -29,6 +29,28 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+// INTERCEPTOR DE TOKEN ESPIRADO
+api.interceptors.response.use(
+  response => response,
+  async error => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      // Limpiar token y redirigir al login
+      if (Platform.OS === 'web') {
+        localStorage.removeItem('userToken');
+        // Opcional: recargar la página o emitir evento
+        window.location.href = '/login';
+      } else {
+        await SecureStore.deleteItemAsync('userToken');
+        // Puedes usar un evento global o reiniciar la navegación
+        // Por simplicidad, lanzamos un error que el contexto manejará
+      }
+      return Promise.reject(error);
+    }
+    return Promise.reject(error);
+  }
+);
 
 // LOGIN DE USUARIO
 export const loginUser = async (email, password) => {
