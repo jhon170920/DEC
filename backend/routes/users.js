@@ -13,8 +13,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // ruta para iniciar/registrarse con facebook
 router.post('/auth/facebook', facebookAuth)
-// Ruta para eliminar la cuenta desde configuracion de faceboo
-router.post('/auth/deletion', facebookDeletionCallback);
+// Ruta para eliminar la cuenta desde configuracion de la APP propia de facebook
+router.post('/auth/facebook-deletion', facebookDeletionCallback);
 
 // ruta para iniciar/registrarse con google
 router.post('/auth/google', googleAuth)

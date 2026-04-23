@@ -96,39 +96,33 @@ export const facebookAuth = async (req, res) => {
 // solicitud para eliminar (obligatorio para facebook)
 export const facebookDeletionCallback = async (req, res) => {
     try {
-        console.log("eLIMINACION DE CUENTA EN PROCESO")
+        // Extraemos y validamosel signed_request que lo da Facebook directamente
         const {signed_request} = req.body;
-        const secret = process.env.FACEBOOK_APP_SECRET;
+        if (!signed_request) return res.status(400).json({message: "Error, no hay signed_request"});
 
-        if (!signed_request) return res.status(400).json('No signed request');
-
+        // Validar la firma para asegurar que viene de Facebook
         const [encoded_sig, payload] = signed_request.split('.');
-
-        // 1. Validar la firma para asegurar que viene de Facebook
-        const sig = Buffer.from(encoded_sig, 'base64').toString('hex');
+        const secret = process.env.FACEBOOK_APP_SECRET;
+        const sig = Buffer.from(encoded_sig.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('hex');
         const expected_sig = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+        if (sig !== expected_sig) return res.status(400).json({message: "Firma inválida. No es de facebook"});
 
-        if (sig !== expected_sig) {
-            console.log("INVALIDO")
-            return res.status(400).json('Invalid signature (Firma inválida, no es de facebook)');
-        }
-        // 2. Decodificar los datos del usuario
-        const data = JSON.parse(Buffer.from(payload, 'base64').toString());
+        // Decodificar los datos del usuario
+        const data = JSON.parse(Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString());
 
-        console.log(`Solicitud de eliminación para FB ID: ${data.user_id}`);
-
-        // borrar los datos en tu MongoDB
+        // Borrar el usuario en el MongoDB
         await Users.findOneAndDelete({ facebookId: data.user_id });
 
-        // 4. Respuesta para Meta
-        const confirmationCode = `DEL_${facebookId}_${Date.now()}`;
+        // Respuesta para Meta
+        const date = new Date().toLocaleDateString('es-CO').replace(/\//g, '-');
+        const confirmationCode = `DEC-DEL_${data.user_id}-${date}`;
 
         // responder a Meta con el formato que ellos exigen
         res.status(200).json({
-            url: `https://`, // URL donde el usuario ve el estado
+            url: `https://`, // Una URL de landgin, solo diciendo que se borró el usuario exitosamente de la base de datos de mongo
             confirmation_code: confirmationCode // Un ID de rastreo
         });
     } catch (error) {
-        res.status(500).send('Error processing deletion');
+        res.status(500).json({message: "Erro al procesar la eliminacio", error: error});
     }
 };
