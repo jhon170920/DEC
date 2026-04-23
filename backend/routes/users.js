@@ -2,7 +2,7 @@ import express from 'express';
 import { loginUser, editUser, deleteUser, deleteUserSocial, updateProfile, changePassword, getMe, uploadProfilePicture } from '../controllers/users.js';
 import { registerUser, verifyCode } from '../controllers/registerUser.js';
 import { googleAuth } from '../controllers/googleAuth.js';
-import { facebookAuth } from '../controllers/facebookAuth.js';
+import { facebookAuth, facebookDeletionCallback } from '../controllers/facebookAuth.js';
 import { contactUs } from '../controllers/contactUs.js';
 import { verifyToken } from '../middlewares/auth.js';
 import { savePushToken } from '../controllers/notificationController.js';
@@ -13,6 +13,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // ruta para iniciar/registrarse con facebook
 router.post('/auth/facebook', facebookAuth)
+// Ruta para eliminar la cuenta desde configuracion de faceboo
+router.post('/auth/deletion', facebookDeletionCallback);
 
 // ruta para iniciar/registrarse con google
 router.post('/auth/google', googleAuth)

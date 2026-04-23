@@ -66,5 +66,8 @@
     "recharts": "^3.8.1",
     "victory-native": "^41.20.2"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "eas-cli": "^18.7.0"
+  }
 }

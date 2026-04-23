@@ -7,6 +7,7 @@ dotenv.config();
 export const facebookAuth = async (req, res) => {
     try {
         const tokenHeader = req.headers.authorization; // traemos el token de facebook
+        console.log("iniciando sesion con facebook")
         // verificar que el header existe y empieza con "Bearer "
         if (!tokenHeader || !tokenHeader.startsWith('Bearer ')) return res.status(401).json({ message: "No hay token o no se proporcionó un token válido" });
         // obtenemos solo el string del token y quitamos la palabra 'Bearer'
@@ -95,31 +96,38 @@ export const facebookAuth = async (req, res) => {
 // solicitud para eliminar (obligatorio para facebook)
 export const facebookDeletionCallback = async (req, res) => {
     try {
+        console.log("eLIMINACION DE CUENTA EN PROCESO")
         const {signed_request} = req.body;
-        if (!signed_request) return res.status(400).send('No signed request');
-
-        const [encoded_sig, payload] = signed_request.split('.');
         const secret = process.env.FACEBOOK_APP_SECRET;
 
+        if (!signed_request) return res.status(400).json('No signed request');
+
+        const [encoded_sig, payload] = signed_request.split('.');
+
         // 1. Validar la firma para asegurar que viene de Facebook
-        const sig = Buffer.from(encoded_sig.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('hex');
+        const sig = Buffer.from(encoded_sig, 'base64').toString('hex');
         const expected_sig = crypto.createHmac('sha256', secret).update(payload).digest('hex');
 
-        if (sig !== expected_sig) return res.status(400).send('Invalid signature');
-
+        if (sig !== expected_sig) {
+            console.log("INVALIDO")
+            return res.status(400).json('Invalid signature (Firma inválida, no es de facebook)');
+        }
         // 2. Decodificar los datos del usuario
-        const data = JSON.parse(Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString());
+        const data = JSON.parse(Buffer.from(payload, 'base64').toString());
+
+        console.log(`Solicitud de eliminación para FB ID: ${data.user_id}`);
 
         // borrar los datos en tu MongoDB
         await Users.findOneAndDelete({ facebookId: data.user_id });
 
-        // 4. Responder a Meta con el formato que ellos exigen
-        const responseData = {
-            url: `https://tu-dominio.com/deletion-status?id=${data.user_id}`, // URL donde el usuario ve el estado
-            confirmation_code: data.user_id // Un ID de rastreo
-        };
+        // 4. Respuesta para Meta
+        const confirmationCode = `DEL_${facebookId}_${Date.now()}`;
 
-        res.status(200).json(responseData);
+        // responder a Meta con el formato que ellos exigen
+        res.status(200).json({
+            url: `https://`, // URL donde el usuario ve el estado
+            confirmation_code: confirmationCode // Un ID de rastreo
+        });
     } catch (error) {
         res.status(500).send('Error processing deletion');
     }
