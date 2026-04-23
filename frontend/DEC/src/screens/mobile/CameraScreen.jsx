@@ -1,27 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Dimensions } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useIsFocused } from '@react-navigation/native';
-// CAMBIO CLAVE: Importamos GLView y la clase de contexto
 import { GLView } from 'expo-gl';
-import Expo2DContext from 'expo-2d-context'; 
+import Expo2DContext from 'expo-2d-context';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { imageToTensor, processPrediction, runInference } from '../../services/aiServices';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const BOX_SIZE = 220;
 
 export default function CameraScreen({ navigation }) {
   const isFocused = useIsFocused();
   const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
-  
   const cameraRef = useRef(null);
-  const ctxRef = useRef(null); // Aquí guardaremos la INSTANCIA de la clase
+  const ctxRef = useRef(null);
 
-  useEffect(() => { // pregunta por permisos como el uso de la camara y procede a evaluar 
+  useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) {
       requestPermission();
     }
   }, [permission]);
 
-  // Precarga del modelo
   useEffect(() => {
     import('../../services/aiServices').then(({ loadModel }) => loadModel());
   }, []);
@@ -32,53 +33,69 @@ export default function CameraScreen({ navigation }) {
     if (cameraRef.current && ctxRef.current && !isProcessing) {
       try {
         setIsProcessing(true);
+
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
 
-        // 1. Procesar con IA
-        const inputData = await imageToTensor(photo.uri, ctxRef.current);
+        const originX = (screenWidth - BOX_SIZE) / 2;
+        const originY = (screenHeight - BOX_SIZE) / 2;
+        const scaleX = photo.width / screenWidth;
+        const scaleY = photo.height / screenHeight;
+
+        const cropped = await manipulateAsync(
+          photo.uri,
+          [{
+            crop: {
+              originX: originX * scaleX,
+              originY: originY * scaleY,
+              width: BOX_SIZE * scaleX,
+              height: BOX_SIZE * scaleY,
+            }
+          }],
+          { compress: 0.8, format: SaveFormat.JPEG }
+        );
+
+        const inputData = await imageToTensor(cropped.uri, ctxRef.current);
         const predictionData = await runInference(inputData);
-        const prediction = processPrediction(predictionData); 
+        const prediction = processPrediction(predictionData);
 
         if (prediction) {
-          // 2. Diccionario de Información (Base de conocimientos local)
           const infoMap = {
-        "Cercospora": {
-          cientifico: "Cercospora coffeicola",
-          desc: "Manchas circulares con centro claro. Afecta calidad del grano.",
-          saludable: false
-        },
-        "Minador de la hoja": {
-          cientifico: "Leucoptera coffeella",
-          desc: "Larva que crea galerías necróticas en las hojas.",
-          saludable: false
-        },
-        "Roya (Leaf Rust)": {
-          cientifico: "Hemileia vastatrix",
-          desc: "Polvillo naranja en el envés. La enfermedad más costosa del café.",
-          saludable: false
-        },
-        "Araña roja": {
-          cientifico: "Oligonychus ilicis",
-          desc: "Ácaro que broncea las hojas en épocas de sequía.",
-          saludable: false
-        }
-      };
+            "Cercospora": {
+              cientifico: "Cercospora coffeicola",
+              desc: "Manchas circulares con centro claro. Afecta calidad del grano.",
+              saludable: false
+            },
+            "Minador de la hoja": {
+              cientifico: "Leucoptera coffeella",
+              desc: "Larva que crea galerías necróticas en las hojas.",
+              saludable: false
+            },
+            "Roya (Leaf Rust)": {
+              cientifico: "Hemileia vastatrix",
+              desc: "Polvillo naranja en el envés. La enfermedad más costosa del café.",
+              saludable: false
+            },
+            "Araña roja": {
+              cientifico: "Oligonychus ilicis",
+              desc: "Ácaro que broncea las hojas en épocas de sequía.",
+              saludable: false
+            }
+          };
 
           const detalle = infoMap[prediction.disease] || {
-            cientifico: "No apllica",
+            cientifico: "No aplica",
             desc: "Detección fuera de rango. No se ha detectado ninguna enfermedad",
             saludable: true
           };
 
-          // 3. NAVEGACIÓN con el objeto 'data'
-          navigation.navigate('Result', { 
+          navigation.navigate('Result', {
             data: {
-              uri: photo.uri,
+              uri: cropped.uri,
               disease: prediction.disease,
               confidence: prediction.confidence,
               scientificName: detalle.cientifico,
               description: detalle.desc,
-              isHealthy: detalle.saludable  
+              isHealthy: detalle.saludable
             }
           });
         }
@@ -94,27 +111,29 @@ export default function CameraScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <CameraView style={styles.camera} ref={cameraRef} facing="back">
-        
-        {/* USAMOS GLVIEW PARA INICIALIZAR EL CONTEXTO 2D */}
+
         <View style={styles.canvasContainer}>
-          <GLView 
-            style={{ width: 640, height: 640 }} 
+          <GLView
+            style={{ width: 640, height: 640 }}
             onContextCreate={(gl) => {
-              // Si ya existe una instancia, no creamos otra para no fugar memoria
               if (!ctxRef.current) {
                 const ctx = new Expo2DContext(gl, {
                   renderWithOffscreenBuffer: true,
-                  maxInteractions: 100 // Límite para evitar el error de Shader que vimos antes
+                  maxInteractions: 100
                 });
                 ctxRef.current = ctx;
               }
-            }} 
+            }}
           />
         </View>
 
         <View style={styles.overlay}>
-          <View style={styles.guideContainer}>
+
+          <View style={styles.topSection}>
             <Text style={styles.guideText}>Ubica la hoja dentro del recuadro</Text>
+          </View>
+
+          <View style={styles.middleSection}>
             <View style={styles.reticle} />
           </View>
 
@@ -123,15 +142,20 @@ export default function CameraScreen({ navigation }) {
               <Text style={styles.backText}>Volver</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.captureButton, isProcessing && styles.buttonDisabled]} 
+            <TouchableOpacity
+              style={[styles.captureButton, isProcessing && styles.buttonDisabled]}
               onPress={handleCapture}
               disabled={isProcessing}
             >
-              {isProcessing ? <ActivityIndicator color="#fff" size="large" /> : <View style={styles.innerCircle} />}
+              {isProcessing
+                ? <ActivityIndicator color="#fff" size="large" />
+                : <View style={styles.innerCircle} />
+              }
             </TouchableOpacity>
-            <View style={{ width: 60 }} /> 
+
+            <View style={{ width: 60 }} />
           </View>
+
         </View>
       </CameraView>
     </View>
@@ -143,16 +167,52 @@ const styles = StyleSheet.create({
   camera: { flex: 1 },
   canvasContainer: {
     position: 'absolute',
-    left: -1000, // Invisible para el usuario
+    left: -1000,
     width: 640,
     height: 640,
   },
-  overlay: { flex: 1, justifyContent: 'space-between', padding: 20 },
-  guideContainer: { alignItems: 'center', marginTop: 50 },
-  guideText: { color: '#fff', fontSize: 14, backgroundColor: 'rgba(0,0,0,0.6)', padding: 10, borderRadius: 20 },
-  reticle: { width: '90%', height: '85%', borderWidth: 3, borderColor: '#16a34a', borderStyle: 'dashed', borderRadius: 25, marginTop: 5 },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40, marginTop: -50 },
-  captureButton: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', borderWidth: 5, borderColor: '#fff' },
+  overlay: {
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    padding: 20,
+  },
+  topSection: {
+    alignItems: 'center',
+    marginTop: 30,
+  },
+  guideText: {
+    color: '#fff',
+    fontSize: 14,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 10,
+    borderRadius: 20,
+  },
+  middleSection: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reticle: {
+    width: BOX_SIZE,
+    height: BOX_SIZE,
+    borderWidth: 3,
+    borderColor: '#16a34a',
+    borderStyle: 'dashed',
+    borderRadius: 16,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 40,
+  },
+  captureButton: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 5, borderColor: '#fff'
+  },
   innerCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#fff' },
   buttonDisabled: { opacity: 0.5 },
   backButton: { backgroundColor: 'rgb(28, 146, 18)', padding: 15, borderRadius: 30 },
