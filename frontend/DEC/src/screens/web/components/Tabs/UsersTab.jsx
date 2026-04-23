@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  TextInput, Platform, ActivityIndicator, Modal, FlatList, Alert
+  TextInput, Platform, ActivityIndicator, Modal, FlatList
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ReactDOM from 'react-dom';
@@ -20,9 +20,16 @@ const UsersTab = () => {
   const [growthData, setGrowthData] = useState([]);
   const [showGrowthChart, setShowGrowthChart] = useState(false);
 
+  // Modal para mensajes (éxito/error)
+  const [messageModal, setMessageModal] = useState({ visible: false, title: '', message: '', isError: false });
+
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const showMessage = (title, message, isError = false) => {
+    setMessageModal({ visible: true, title, message, isError });
+  };
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -80,18 +87,18 @@ const UsersTab = () => {
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      Alert.alert('Éxito', 'Archivo CSV exportado correctamente');
+      showMessage('Éxito', 'Archivo CSV exportado correctamente');
     } catch (err) {
-      Alert.alert('Error', 'No se pudo exportar');
+      showMessage('Error', 'No se pudo exportar el archivo', true);
     }
   };
 
   const handleResetPassword = async (user) => {
     try {
       await api.post('admin/reset-password', { userId: user._id });
-      Alert.alert('Éxito', `Se ha enviado un enlace a ${user.email} para restablecer su contraseña`);
+      showMessage('Éxito', `Se ha enviado un enlace de restablecimiento a ${user.email}`);
     } catch (err) {
-      Alert.alert('Error', 'No se pudo enviar el enlace');
+      showMessage('Error', err?.response?.data?.message || 'No se pudo enviar el enlace', true);
     }
   };
 
@@ -99,9 +106,9 @@ const UsersTab = () => {
     try {
       await api.patch(`admin/change-role/${user._id}`, { role: newRole });
       setUsers(prev => prev.map(u => u._id === user._id ? { ...u, role: newRole } : u));
-      Alert.alert('Éxito', `Rol cambiado a ${newRole}`);
+      showMessage('Éxito', `Rol cambiado a ${newRole}`);
     } catch (err) {
-      Alert.alert('Error', 'No se pudo cambiar el rol');
+      showMessage('Error', err?.response?.data?.message || 'No se pudo cambiar el rol', true);
     }
   };
 
@@ -110,8 +117,9 @@ const UsersTab = () => {
       await api.delete(`admin/delete-user/${user._id}`);
       setUsers(prev => prev.filter(u => u._id !== user._id));
       closeModal();
+      showMessage('Éxito', `Usuario ${user.name} eliminado`);
     } catch (err) {
-      Alert.alert('Error', err?.response?.data?.message || 'Error al eliminar');
+      showMessage('Error', err?.response?.data?.message || 'Error al eliminar', true);
     }
   };
 
@@ -120,8 +128,9 @@ const UsersTab = () => {
       const res = await api.patch(`admin/toggle-ban/${user._id}`);
       setUsers(prev => prev.map(u => u._id === user._id ? { ...u, active: res.data.active } : u));
       closeModal();
+      showMessage('Éxito', user.active === false ? 'Usuario habilitado' : 'Usuario inhabilitado');
     } catch (err) {
-      Alert.alert('Error', err?.response?.data?.message || 'Error al cambiar estado');
+      showMessage('Error', err?.response?.data?.message || 'Error al cambiar estado', true);
     }
   };
 
@@ -152,13 +161,29 @@ const UsersTab = () => {
   };
 
   if (selectedUser) {
-    return <UserDetailView user={selectedUser} onBack={() => setSelectedUser(null)} />;
+    return <UserDetailView user={selectedUser} onBack={() => setSelectedUser(null)} showMessage={showMessage} />;
   }
 
   return (
     <View style={styles.container}>
-      <ConfirmModal modal={modal} onClose={closeModal} onConfirmDelete={() => handleDelete(modal.user)} onConfirmBan={() => handleToggleBan(modal.user)} />
+      {/* Modal de confirmación (eliminar/inhabilitar) */}
+      <ConfirmModal modal={modal} onClose={closeModal} onConfirmDelete={handleDelete} onConfirmBan={handleToggleBan} />
 
+      {/* Modal de mensajes (éxito/error) */}
+      <Modal visible={messageModal.visible} transparent animationType="fade" onRequestClose={() => setMessageModal({ ...messageModal, visible: false })}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.messageModalCard, messageModal.isError && styles.errorModalCard]}>
+            <Feather name={messageModal.isError ? 'alert-triangle' : 'check-circle'} size={40} color={messageModal.isError ? '#ef4444' : '#16a34a'} />
+            <Text style={styles.messageModalTitle}>{messageModal.title}</Text>
+            <Text style={styles.messageModalBody}>{messageModal.message}</Text>
+            <TouchableOpacity style={styles.messageModalButton} onPress={() => setMessageModal({ ...messageModal, visible: false })}>
+              <Text style={styles.messageModalButtonText}>Aceptar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Cabecera y resto del contenido igual que antes */}
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.title}>Gestión de Usuarios</Text>
@@ -278,175 +303,91 @@ const UsersTab = () => {
   );
 };
 
-// ===================== USER ROW CON MENÚ CORREGIDO (Toggle + Outside Click) =====================
+// ------------------------------------------------------------
+// UserRow (con modal para roles como ya tienes)
+// ------------------------------------------------------------
 const UserRow = ({ user, isLast, onViewDetail, onDelete, onToggleBan, onChangeRole, onResetPassword }) => {
-  const [showRoleMenu, setShowRoleMenu] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
-  const buttonRef = useRef(null);
-  const menuRef = useRef(null);
+  const [modalVisible, setModalVisible] = useState(false);
   const isBanned = user.active === false;
   const isAdmin = user.role === 'admin';
+  const options = ['user', 'tecnico', 'admin'].filter(r => r !== user.role);
 
-  // Alternar menú (abrir/cerrar)
-  const toggleMenu = () => {
-    if (!showRoleMenu) {
-      // Calcular posición solo cuando se va a abrir
-      if (Platform.OS === 'web' && buttonRef.current) {
-        const rect = buttonRef.current.getBoundingClientRect();
-        setMenuPosition({
-          top: rect.bottom + window.scrollY,
-          left: rect.left + window.scrollX,
-        });
-      }
-      setShowRoleMenu(true);
-    } else {
-      setShowRoleMenu(false);
-    }
-  };
+  return (
+    <>
+      <View style={[styles.row, isLast && { borderBottomWidth: 0 }]}>
+        <View style={styles.colUser}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={[styles.avatar, isBanned && styles.avatarBanned]}>
+              <Text style={styles.avatarText}>{user.name?.charAt(0).toUpperCase()}</Text>
+            </View>
+            <View>
+              <Text style={[styles.uName, isBanned && styles.textMuted]}>{user.name}</Text>
+              <Text style={styles.uEmail}>{user.email}</Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.colRole}>
+          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.roleBadge}>
+            <Text style={styles.roleText}>{user.role || 'user'}</Text>
+            <Feather name="chevron-down" size={12} color="#6b7280" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.colStatus}>
+          <View style={[styles.statusDot, isBanned ? styles.dotBanned : styles.dotActive]} />
+        </View>
+        <View style={styles.colActions}>
+          <TouchableOpacity style={styles.iconBtn} onPress={onViewDetail}>
+            <Feather name="eye" size={15} color="#6b7280" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconBtn} onPress={onResetPassword}>
+            <Feather name="mail" size={15} color="#3b82f6" />
+          </TouchableOpacity>
+          {!isAdmin && (
+            <TouchableOpacity style={[styles.iconBtn, isBanned ? styles.iconBtnGreen : styles.iconBtnOrange]} onPress={onToggleBan}>
+              <Feather name={isBanned ? 'unlock' : 'lock'} size={15} color={isBanned ? '#16a34a' : '#f59e0b'} />
+            </TouchableOpacity>
+          )}
+          {!isAdmin && (
+            <TouchableOpacity style={[styles.iconBtn, styles.iconBtnRed]} onPress={onDelete}>
+              <Feather name="trash-2" size={15} color="#ef4444" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
 
-  const closeMenu = () => {
-    setShowRoleMenu(false);
-  };
-
-  // Cerrar al hacer clic fuera (solo web)
-  useEffect(() => {
-    if (!showRoleMenu || Platform.OS !== 'web') return;
-
-    const handleClickOutside = (e) => {
-      // Verificar si el clic ocurrió fuera del botón y fuera del menú
-      const isOutsideButton = buttonRef.current && !buttonRef.current.contains(e.target);
-      const isOutsideMenu = menuRef.current && !menuRef.current.contains(e.target);
-      if (isOutsideButton && isOutsideMenu) {
-        closeMenu();
-      }
-    };
-
-    // Añadir un pequeño retraso para evitar que el mismo clic que abrió el menú lo cierre
-    const timer = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside);
-    }, 0);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showRoleMenu]);
-
-  const renderRoleMenu = () => {
-    const options = ['user', 'tecnico', 'admin'].filter(r => r !== user.role);
-    if (Platform.OS === 'web') {
-      return ReactDOM.createPortal(
-        <div
-          ref={menuRef}
-          style={{
-            position: 'absolute',
-            top: menuPosition.top,
-            left: menuPosition.left,
-            backgroundColor: '#fff',
-            borderRadius: 8,
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-            zIndex: 9999,
-            minWidth: 100,
-          }}
-          // Detener propagación para que el clic dentro del menú no cierre el menú
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          {options.map(role => (
-            <div
-              key={role}
-              style={{
-                padding: '8px 16px',
-                cursor: 'pointer',
-                borderBottom: '1px solid #f3f4f6',
-                fontSize: 14,
-                color: '#374151',
-              }}
-              onClick={() => {
-                onChangeRole(role);
-                closeMenu();
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              {role.charAt(0).toUpperCase() + role.slice(1)}
-            </div>
-          ))}
-        </div>,
-        document.body
-      );
-    }
-    // Móvil: modal
-    return (
-      <Modal visible={showRoleMenu} transparent animationType="fade" onRequestClose={closeMenu}>
-        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }} activeOpacity={1} onPress={closeMenu}>
-          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, minWidth: 200 }}>
+      {/* Modal para cambiar rol */}
+      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setModalVisible(false)}>
+          <View style={styles.roleModalCard}>
+            <Text style={styles.roleModalTitle}>Cambiar rol de {user.name}</Text>
             {options.map(role => (
               <TouchableOpacity
                 key={role}
-                style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' }}
+                style={styles.roleModalOption}
                 onPress={() => {
                   onChangeRole(role);
-                  closeMenu();
+                  setModalVisible(false);
                 }}
               >
-                <Text style={{ fontSize: 16, color: '#374151', textAlign: 'center' }}>
+                <Text style={styles.roleModalOptionText}>
                   {role.charAt(0).toUpperCase() + role.slice(1)}
                 </Text>
               </TouchableOpacity>
             ))}
+            <TouchableOpacity style={styles.roleModalCancel} onPress={() => setModalVisible(false)}>
+              <Text style={styles.roleModalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
-    );
-  };
-
-  return (
-    <View style={[styles.row, isLast && { borderBottomWidth: 0 }]}>
-      <View style={styles.colUser}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={[styles.avatar, isBanned && styles.avatarBanned]}>
-            <Text style={styles.avatarText}>{user.name?.charAt(0).toUpperCase()}</Text>
-          </View>
-          <View>
-            <Text style={[styles.uName, isBanned && styles.textMuted]}>{user.name}</Text>
-            <Text style={styles.uEmail}>{user.email}</Text>
-          </View>
-        </View>
-      </View>
-      <View style={styles.colRole}>
-        <TouchableOpacity ref={buttonRef} onPress={toggleMenu} style={styles.roleBadge}>
-          <Text style={styles.roleText}>{user.role || 'user'}</Text>
-          <Feather name="chevron-down" size={12} color="#6b7280" />
-        </TouchableOpacity>
-        {renderRoleMenu()}
-      </View>
-      <View style={styles.colStatus}>
-        <View style={[styles.statusDot, isBanned ? styles.dotBanned : styles.dotActive]} />
-      </View>
-      <View style={styles.colActions}>
-        <TouchableOpacity style={styles.iconBtn} onPress={onViewDetail}>
-          <Feather name="eye" size={15} color="#6b7280" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconBtn} onPress={onResetPassword}>
-          <Feather name="mail" size={15} color="#3b82f6" />
-        </TouchableOpacity>
-        {!isAdmin && (
-          <TouchableOpacity style={[styles.iconBtn, isBanned ? styles.iconBtnGreen : styles.iconBtnOrange]} onPress={onToggleBan}>
-            <Feather name={isBanned ? 'unlock' : 'lock'} size={15} color={isBanned ? '#16a34a' : '#f59e0b'} />
-          </TouchableOpacity>
-        )}
-        {!isAdmin && (
-          <TouchableOpacity style={[styles.iconBtn, styles.iconBtnRed]} onPress={onDelete}>
-            <Feather name="trash-2" size={15} color="#ef4444" />
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
+    </>
   );
 };
 
-// ===================== USER DETAIL VIEW =====================
-const UserDetailView = ({ user, onBack }) => {
+// ------------------------------------------------------------
+// UserDetailView (también mostramos mensajes con modal)
+// ------------------------------------------------------------
+const UserDetailView = ({ user, onBack, showMessage }) => {
   const [detections, setDetections] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -493,7 +434,9 @@ const UserDetailView = ({ user, onBack }) => {
   );
 };
 
-// ===================== CONFIRM MODAL =====================
+// ------------------------------------------------------------
+// ConfirmModal (sin cambios, solo mantiene la estructura)
+// ------------------------------------------------------------
 const ConfirmModal = ({ modal, onClose, onConfirmDelete, onConfirmBan }) => {
   if (!modal.visible || !modal.user) return null;
   const isDelete = modal.type === 'delete';
@@ -504,7 +447,7 @@ const ConfirmModal = ({ modal, onClose, onConfirmDelete, onConfirmBan }) => {
         <View style={styles.modalCard}>
           <Feather name={isDelete ? 'trash-2' : (isBanned ? 'unlock' : 'lock')} size={28} color={isDelete ? '#ef4444' : '#f59e0b'} />
           <Text style={styles.modalTitle}>{isDelete ? 'Eliminar usuario' : (isBanned ? 'Habilitar' : 'Inhabilitar')}</Text>
-          <Text style={styles.modalBody}>{isDelete ? `Eliminar a ${modal.user.name}?` : (isBanned ? `Habilitar a ${modal.user.name}` : `Inhabilitar a ${modal.user.name}`)}</Text>
+          <Text style={styles.modalBody}>{isDelete ? `¿Eliminar a ${modal.user.name}?` : (isBanned ? `Habilitar a ${modal.user.name}` : `Inhabilitar a ${modal.user.name}`)}</Text>
           <View style={styles.modalActions}>
             <TouchableOpacity onPress={onClose} style={styles.cancelBtn}><Text style={styles.cancelText}>Cancelar</Text></TouchableOpacity>
             <TouchableOpacity onPress={isDelete ? onConfirmDelete : onConfirmBan} style={[styles.confirmBtn, isDelete ? styles.confirmBtnRed : styles.confirmBtnOrange]}>
@@ -629,6 +572,105 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: '#374151',
+  },
+  roleMenuLocal: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    zIndex: 1000,
+    minWidth: 100,
+    marginTop: 4,
+    ...Platform.select({
+      web: { boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' },
+      default: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 5 }
+    })
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  roleModalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    maxWidth: 320,
+    ...Platform.select({
+      web: { boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' },
+      default: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 }
+    })
+  },
+  roleModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1f2937',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  roleModalOption: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  roleModalOptionText: {
+    fontSize: 16,
+    color: '#374151',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  roleModalCancel: {
+    marginTop: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+  },
+  roleModalCancelText: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  messageModalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 32,
+    width: '90%',
+    maxWidth: 380,
+    alignItems: 'center',
+    gap: 16,
+  },
+  errorModalCard: {
+    borderWidth: 1,
+    borderColor: '#fee2e2',
+  },
+  messageModalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1f2937',
+  },
+  messageModalBody: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  messageModalButton: {
+    backgroundColor: '#16a34a',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 30,
+    marginTop: 8,
+  },
+  messageModalButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
   },
 });
 

@@ -2,12 +2,80 @@ import Users from "../models/users.js"; // Importar el modelo de usuario (no olv
 import Detections from "../models/Detection.js"; // Importar las detecciones de los usuarios
 import Pathology from "../models/pathologies.js" // Importamos nuestras patologías, (cuando la tengamos)
 import { uploadToCloudinary } from './cloudinary.js';
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
 
 const expressions = {
     name: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,15}(?:\s[a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,15})?$/,
     email: /^[a-zA-Z0-9._%+-]+@gmail\.(com|co)$/,
     pass: /^[a-zA-Z0-9]{8,14}$/
 }
+
+// services/admin.js
+dotenv.config();
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+
+// Correo 
+export const sendCustomEmail = async (req, res) => {
+    try {
+      const { recipients, subject, htmlContent } = req.body; // recipients puede ser 'all' o array de emails
+      if (!subject || !htmlContent) {
+        return res.status(400).json({ message: 'Faltan asunto o contenido' });
+      }
+  
+      let emailsToSend = [];
+      if (recipients === 'all') {
+        const users = await Users.find({}, 'email');
+        emailsToSend = users.map(u => u.email);
+      } else if (Array.isArray(recipients)) {
+        emailsToSend = recipients;
+      } else {
+        return res.status(400).json({ message: 'Destinatarios no válidos' });
+      }
+  
+      if (emailsToSend.length === 0) {
+        return res.status(400).json({ message: 'No hay destinatarios' });
+      }
+  
+      // Enviar correos en paralelo (con Promise.allSettled para no fallar por uno)
+      const emailPromises = emailsToSend.map(email => {
+        const mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: email,
+          subject: subject,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 16px;">
+              <div style="text-align: center; margin-bottom: 20px;">
+                <span style="font-size: 24px; font-weight: 800; color: #16a34a;">DEC</span>
+                <p style="font-size: 12px; color: #6b7280;">Detección de Enfermedades en Café</p>
+              </div>
+              <div>${htmlContent}</div>
+              <hr style="margin: 20px 0;" />
+              <p style="font-size: 12px; color: #9ca3af; text-align: center;">Este es un mensaje automático del panel administrativo DEC.</p>
+            </div>
+          `,
+        };
+        return transporter.sendMail(mailOptions);
+      });
+  
+      const results = await Promise.allSettled(emailPromises);
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+  
+      res.json({ message: `Correos enviados: ${succeeded} exitosos, ${failed} fallidos.` });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: error.message });
+    }
+  };
 
 // obtener todos los usuarios de la base de datos, la ruta ya está validada para solamente usuarios.
 export const getAllUsers = async (req, res) => {
@@ -207,3 +275,41 @@ export const toggleApproveDetection = async (req, res) => {
         res.status(500).json({ message: "Error al cambiar estado de aprobación", error: error.message });
     }
 };
+// Cambiar rol de un usuario
+export const changeUserRole = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+  
+      // Validar que el rol sea válido
+      const validRoles = ['user', 'tecnico', 'admin'];
+      if (!role || !validRoles.includes(role)) {
+        return res.status(400).json({ message: 'Rol no válido' });
+      }
+  
+      // Buscar usuario
+      const user = await Users.findById(id);
+      if (!user) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+  
+      // Opcional: evitar que un admin se cambie a sí mismo a un rol menor
+      const requestingUserId = req.user.id || req.user._id;
+      if (requestingUserId.toString() === id && role !== 'admin') {
+        return res.status(403).json({ message: 'No puedes cambiar tu propio rol de administrador' });
+      }
+  
+      // Actualizar rol
+      user.role = role;
+      await user.save();
+  
+      // Responder sin enviar la contraseña
+      const userResponse = user.toObject();
+      delete userResponse.password;
+  
+      res.json({ message: 'Rol actualizado correctamente', user: userResponse });
+    } catch (error) {
+      console.error('Error en changeUserRole:', error);
+      res.status(500).json({ message: error.message });
+    }
+  };

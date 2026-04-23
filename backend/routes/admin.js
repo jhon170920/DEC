@@ -17,7 +17,9 @@ import {
     getAllPathologies,
     editPathology,
     toggleBanUser,
-    toggleApproveDetection
+    toggleApproveDetection,
+    changeUserRole,
+    sendCustomEmail,
 } from '../services/admin.js';
 
 const router = express.Router();
@@ -60,3 +62,9 @@ router.get('/export/download/:jobId', verifyToken, onlyAdmin, downloadExport);
 // Enviar notificación a todos los usuarios
 router.post('/send-notification', verifyToken, onlyAdmin, sendNotificationToAll);
 export default router
+
+// Cambiar rol de usuario
+router.patch('/change-role/:id', verifyToken, onlyAdmin, changeUserRole);
+
+// Reset Password por admin
+router.post('/sendCustomEmail', verifyToken, onlyAdmin, sendCustomEmail);
