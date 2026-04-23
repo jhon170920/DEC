@@ -9,12 +9,12 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { Colors } from "../../constants/colors";
 import { ProfileStyles as styles } from "../../styles/Profilestyles";
 import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
-import api, { deleteUserAccount } from "../../api/api";
+import api, { deleteUserAccount, deleteUserAccountSocial } from "../../api/api";
 import { AuthContext } from "../../context/AuthContext";
 
 export default function Profile() {
   const navigation = useNavigation();
-  const { logout } = useContext(AuthContext);
+  const { logout, RevokeAccessSocial } = useContext(AuthContext);
   const { sp, hPad, logoRingS, logoImgS, iconS, btnH, headlineS, sublineS, brandS } = useResponsiveLayout();
   
   const [notificaciones, setNotificaciones] = useState(true);
@@ -99,6 +99,23 @@ export default function Profile() {
       setDeletePassword("");
     }
   };
+  // Eliminar cuenta si inició sesión con Google/Facebook
+  const confirmDeleteAccountSocial = async () => {
+    try {
+      // Borrar la cuenta vinculada a fb o google 
+      await RevokeAccessSocial(); // se remueven los permisos de fb/google
+      await deleteUserAccountSocial(); // se elimina el registro de la cuenta en mongo
+      Alert.alert("Cuenta eliminada", "Tu cuenta ha sido eliminada permanentemente");
+      logout(); // Esto limpiará el token y redirigirá al login automáticamente
+    } catch (error) {
+      const msg = error.message || "Error al eliminar la cuenta";
+      Alert.alert("Error", msg);
+    } finally{
+      setDeleting(false);
+      setModalVisible(false);
+      setDeletePassword("");
+    }
+  }
 
   if (loading) {
     return (
@@ -272,16 +289,22 @@ export default function Profile() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Eliminar cuenta</Text>
-            <Text style={styles.modalSubtitle}>Ingresa tu contraseña para confirmar</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Contraseña"
-              placeholderTextColor={Colors.textMuted}
-              value={deletePassword}
-              onChangeText={setDeletePassword}
-              secureTextEntry
-            />
-            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: "#dc2626" }]} activeOpacity={0.85} onPress={confirmDeleteAccount} disabled={deleting}>
+            {userData.provider.includes('local') && 
+              (
+                <>
+                  <Text style={styles.modalSubtitle}>Ingresa tu contraseña para confirmar</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Contraseña"
+                    placeholderTextColor={Colors.textMuted}
+                    value={deletePassword}
+                    onChangeText={setDeletePassword}
+                    secureTextEntry
+                  />
+                </>
+              )
+            }
+            <TouchableOpacity style={styles.modalBtn} activeOpacity={0.85} onPress={userData.provider.includes('local') ? confirmDeleteAccount : confirmDeleteAccountSocial} disabled={deleting}>
               <LinearGradient colors={["#dc2626", "#b91c1c"]} style={styles.modalBtnGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
                 <Text style={styles.modalBtnText}>{deleting ? "Eliminando..." : "Eliminar"}</Text>
               </LinearGradient>
