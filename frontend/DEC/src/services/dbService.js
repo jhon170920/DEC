@@ -41,22 +41,6 @@ export const initDatabase = () => {
     );
   `);
 
-  // Tabla de notas de tratamiento (seguimiento del usuario)
-  db.execSync(`
-    CREATE TABLE IF NOT EXISTS treatment_notes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      detection_id TEXT NOT NULL,
-      disease_name TEXT,
-      product_name TEXT,
-      dose TEXT,
-      application_date TEXT,
-      notes TEXT,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (detection_id) REFERENCES remote_detections(id) ON DELETE CASCADE
-    );
-  `);
-
   // Tabla de alarmas programadas localmente
   db.execSync(`
     CREATE TABLE IF NOT EXISTS alarms (
@@ -64,36 +48,41 @@ export const initDatabase = () => {
       detection_id TEXT NOT NULL,
       title TEXT,
       message TEXT,
-      trigger_date TEXT,    -- Fecha ISO
+      trigger_date TEXT,
       active INTEGER DEFAULT 1,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (detection_id) REFERENCES remote_detections(id) ON DELETE CASCADE
     );
   `);
-  db.execSync(`
-  CREATE TABLE IF NOT EXISTS treatment_products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    treatment_log_id INTEGER NOT NULL,
-    product_name TEXT NOT NULL,
-    dose TEXT,
-    application_date TEXT,
-    notes TEXT,
-    FOREIGN KEY (treatment_log_id) REFERENCES treatment_logs(id) ON DELETE CASCADE
-  );
-`);
 
-// Tabla de seguimientos (logs de tratamiento)
-db.execSync(`
-  CREATE TABLE IF NOT EXISTS treatment_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    disease_name TEXT NOT NULL,
-    general_notes TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    detection_id TEXT, -- opcional, referencia a remote_detections.id
-    FOREIGN KEY (detection_id) REFERENCES remote_detections(id) ON DELETE SET NULL
-  );
-`);
+  // Tablas de bitácora (seguimientos con múltiples productos)
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS treatment_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      disease_name TEXT NOT NULL,
+      general_notes TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      detection_id TEXT,
+      FOREIGN KEY (detection_id) REFERENCES remote_detections(id) ON DELETE SET NULL
+    );
+  `);
+
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS treatment_products (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      treatment_log_id INTEGER NOT NULL,
+      product_name TEXT NOT NULL,
+      dose TEXT,
+      application_date TEXT,
+      notes TEXT,
+      FOREIGN KEY (treatment_log_id) REFERENCES treatment_logs(id) ON DELETE CASCADE
+    );
+  `);
+
+  // NOTA: La tabla treatment_notes ha sido eliminada/descontinuada.
+  // Si existía en versiones anteriores, puedes ejecutar la siguiente línea una sola vez:
+  // db.execSync('DROP TABLE IF EXISTS treatment_notes');
 };
 
 // --- Detecciones pendientes (local → servidor) ---
@@ -154,36 +143,6 @@ export const getRemoteDetectionsPaginated = (limit, offset) =>
 export const getRemoteDetectionsCount = () => db.getFirstSync('SELECT COUNT(*) as total FROM remote_detections')?.total || 0;
 export const clearRemoteDetections = () => db.runSync('DELETE FROM remote_detections');
 
-// --- Notas de tratamiento ---
-export const saveTreatmentNote = (note) => {
-  try {
-    const { detection_id, disease_name, product_name, dose, application_date, notes } = note;
-    const existing = db.getFirstSync('SELECT id FROM treatment_notes WHERE detection_id = ?', [detection_id]);
-    if (existing) {
-      db.runSync(
-        `UPDATE treatment_notes SET 
-          disease_name = ?, product_name = ?, dose = ?, application_date = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
-         WHERE detection_id = ?`,
-        [disease_name, product_name, dose, application_date, notes, detection_id]
-      );
-    } else {
-      db.runSync(
-        `INSERT INTO treatment_notes 
-         (detection_id, disease_name, product_name, dose, application_date, notes)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [detection_id, disease_name, product_name, dose, application_date, notes]
-      );
-    }
-  } catch (error) {
-    console.error("Error guardando nota de tratamiento:", error);
-  }
-};
-export const getTreatmentNoteByDetectionId = (detection_id) =>
-  db.getFirstSync('SELECT * FROM treatment_notes WHERE detection_id = ?', [detection_id]);
-export const deleteTreatmentNote = (detection_id) =>
-  db.runSync('DELETE FROM treatment_notes WHERE detection_id = ?', [detection_id]);
-export const getAllTreatmentNotes = () => db.getAllSync('SELECT * FROM treatment_notes ORDER BY application_date DESC');
-
 // --- Alarmas locales ---
 export const saveAlarm = (alarm) => {
   try {
@@ -198,16 +157,12 @@ export const saveAlarm = (alarm) => {
     console.error("Error guardando alarma:", error);
   }
 };
-// Obtener alarmas activas para una detección específica
 export const getAlarmsByDetection = (detection_id) =>
   db.getAllSync('SELECT * FROM alarms WHERE detection_id = ? AND active = 1 ORDER BY trigger_date ASC', [detection_id]);
-// Obtener todas las alarmas activas (para reprogramar al iniciar la app)
 export const getAllActiveAlarms = () =>
   db.getAllSync('SELECT * FROM alarms WHERE active = 1 ORDER BY trigger_date ASC');
-// Desactivar alarma (sin eliminar, para mantener historial)
 export const deactivateAlarm = (alarmId) =>
   db.runSync('UPDATE alarms SET active = 0 WHERE id = ?', [alarmId]);
-// Eliminar alarma completamente
 export const deleteAlarm = (alarmId) => {
   try {
     db.runSync('DELETE FROM alarms WHERE id = ?', [alarmId]);
@@ -216,7 +171,8 @@ export const deleteAlarm = (alarmId) => {
     console.error("Error eliminando alarma:", error);
   }
 };
-// Obtener una detección remota por su ID (para detalle)
+
+// --- Detección individual (para detalle) ---
 export const getRemoteDetectionById = (id) => {
   try {
     return db.getFirstSync('SELECT * FROM remote_detections WHERE id = ?', [id]);
@@ -225,7 +181,8 @@ export const getRemoteDetectionById = (id) => {
     return null;
   }
 };
-// Tratamientos (seguimientos)
+
+// --- Seguimientos (bitácora) ---
 export const saveTreatmentLog = async (log) => {
   const { disease_name, general_notes, detection_id, products } = log;
   const now = new Date().toISOString();
@@ -236,7 +193,6 @@ export const saveTreatmentLog = async (log) => {
       [disease_name, general_notes, detection_id || null, now, now]
     );
     const logId = result.lastInsertRowId;
-    // Guardar productos asociados
     if (products && products.length) {
       for (const prod of products) {
         db.runSync(
@@ -262,7 +218,6 @@ export const updateTreatmentLog = async (id, log) => {
        WHERE id = ?`,
       [disease_name, general_notes, detection_id || null, now, id]
     );
-    // Eliminar productos antiguos y volver a insertar
     db.runSync('DELETE FROM treatment_products WHERE treatment_log_id = ?', [id]);
     if (products && products.length) {
       for (const prod of products) {
@@ -298,22 +253,50 @@ export const deleteTreatmentLog = (id) => {
   db.runSync('DELETE FROM treatment_logs WHERE id = ?', [id]);
 };
 
+// --- Obtener seguimiento asociado a una detección (el más reciente) ---
+export const getTreatmentLogByDetectionId = (detectionId) => {
+  try {
+    const log = db.getFirstSync('SELECT * FROM treatment_logs WHERE detection_id = ? ORDER BY created_at DESC LIMIT 1', [detectionId]);
+    if (log) {
+      const products = db.getAllSync('SELECT * FROM treatment_products WHERE treatment_log_id = ?', [log.id]);
+      log.products = products;
+    }
+    return log;
+  } catch (error) {
+    console.error("Error obteniendo seguimiento por detección:", error);
+    return null;
+  }
+};
+
+// --- Selector de detecciones (para formulario) ---
+export const getAllDetectionsForSelector = () => {
+  try {
+    return db.getAllSync('SELECT id, disease_name, image_url, created_at FROM remote_detections ORDER BY created_at DESC');
+  } catch (error) {
+    console.error("Error obteniendo detecciones", error);
+    return [];
+  }
+};
+
 // --- Utilidades ---
 export const debugCheckDatabase = () => {
   try {
     const allDetections = db.getAllSync('SELECT * FROM detections');
     const allPathologies = db.getAllSync('SELECT * FROM pathologies');
     const allRemote = db.getAllSync('SELECT * FROM remote_detections');
-    const allNotes = db.getAllSync('SELECT * FROM treatment_notes');
     const allAlarms = db.getAllSync('SELECT * FROM alarms');
+    const allLogs = db.getAllSync('SELECT * FROM treatment_logs');
+    const allProducts = db.getAllSync('SELECT * FROM treatment_products');
     console.log("--- HISTORIAL PENDIENTE ---", JSON.stringify(allDetections, null, 2));
     console.log("--- CATÁLOGO ---", JSON.stringify(allPathologies, null, 2));
     console.log("--- DETECCIONES DESCARGADAS ---", JSON.stringify(allRemote, null, 2));
-    console.log("--- NOTAS DE TRATAMIENTO ---", JSON.stringify(allNotes, null, 2));
     console.log("--- ALARMAS ---", JSON.stringify(allAlarms, null, 2));
+    console.log("--- BITÁCORA (LOGS) ---", JSON.stringify(allLogs, null, 2));
+    console.log("--- PRODUCTOS ---", JSON.stringify(allProducts, null, 2));
   } catch (error) {
     console.error("Error en debug:", error);
   }
 };
+
 
 

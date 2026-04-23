@@ -14,7 +14,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { AuthContext } from "../../context/AuthContext";
 import { Colors } from "../../constants/colors";
@@ -23,19 +23,12 @@ import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 import { debugCheckDatabase } from "../../services/dbService";
 import api from "../../api/api";
 
-// ─── PANTALLA PRINCIPAL ────────────────────────────────────
 export default function MainApp() {
   const {
     sp,
-    hPad,
     logoRingS,
     logoImgS,
     headlineS,
-    sublineS,
-    fieldH,
-    btnH,
-    ghostH,
-    socialH,
     iconS,
   } = useResponsiveLayout();
 
@@ -46,12 +39,10 @@ export default function MainApp() {
   const [loadingUser, setLoadingUser] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // Verificar base de datos (solo para móvil)
   useEffect(() => {
     debugCheckDatabase();
   }, []);
 
-  // Obtener datos del usuario si hay token
   const fetchUserData = async () => {
     if (!userToken) {
       setUserData(null);
@@ -69,7 +60,6 @@ export default function MainApp() {
     }
   };
 
-  // Refrescar datos cuando la pantalla recibe foco (útil después de editar perfil)
   useFocusEffect(
     useCallback(() => {
       fetchUserData();
@@ -89,7 +79,14 @@ export default function MainApp() {
     navigation.navigate("Login");
   };
 
-  // Obtener iniciales del nombre
+  const checkAuthAndNavigate = (screenName) => {
+    if (userToken && !isGuest) {
+      navigation.navigate(screenName);
+    } else {
+      setShowLoginModal(true);
+    }
+  };
+
   const getUserInitials = () => {
     if (userData?.name) {
       return userData.name.charAt(0).toUpperCase();
@@ -97,7 +94,6 @@ export default function MainApp() {
     return "?";
   };
 
-  // Renderizar avatar (foto, iniciales o ícono)
   const renderAvatar = () => {
     if (loadingUser) {
       return <ActivityIndicator size="small" color={Colors.primary} />;
@@ -147,7 +143,6 @@ export default function MainApp() {
   return (
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
-
       <LinearGradient
         colors={["#e8f5ec", "#f4faf5", "#f4faf5"]}
         style={StyleSheet.absoluteFill}
@@ -155,13 +150,9 @@ export default function MainApp() {
         end={{ x: 1, y: 1 }}
       />
 
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── HEADER ── */}
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* HEADER */}
         <View style={styles.header}>
-          {/* Logo */}
           <View style={[styles.logoRow, { marginBottom: sp(0.00028) }]}>
             <View style={[styles.logoMark, { borderRadius: logoRingS / 2 }]}>
               <LinearGradient
@@ -178,26 +169,20 @@ export default function MainApp() {
             </View>
           </View>
 
-          {/* Avatar (sin dropdown) */}
           <View style={styles.avatarWrapper}>
             <TouchableOpacity
               onPress={handleAvatarPress}
               activeOpacity={0.75}
               style={styles.avatarTouchable}
             >
-              <View
-                style={[
-                  styles.avatarInner,
-                  { backgroundColor: "transparent", borderWidth: 0 },
-                ]}
-              >
+              <View style={[styles.avatarInner, { backgroundColor: "transparent", borderWidth: 0 }]}>
                 {renderAvatar()}
               </View>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* ── GREETING ── */}
+        {/* GREETING */}
         <View style={styles.greetingBlock}>
           <Text style={styles.greeting}>
             Bienvenido,{"\n"}
@@ -208,16 +193,14 @@ export default function MainApp() {
           </Text>
         </View>
 
-        {/* ── IMAGEN PRINCIPAL ── */}
+        {/* IMAGEN PRINCIPAL */}
         <View style={styles.imageCard}>
           <View style={styles.imageBadge}>
             <View style={styles.badgeDot} />
             <Text style={styles.badgeText}>Detección activa</Text>
           </View>
           <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6",
-            }}
+            source={{ uri: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6" }}
             style={[styles.image, { width: width - 56 }]}
           />
           <LinearGradient
@@ -228,7 +211,7 @@ export default function MainApp() {
           />
         </View>
 
-        {/* ── BOTÓN SCAN ── */}
+        {/* BOTÓN SCAN */}
         <TouchableOpacity
           style={styles.scanBtn}
           activeOpacity={0.85}
@@ -247,17 +230,18 @@ export default function MainApp() {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* ── ACCIONES ── */}
+        {/* ACCIONES */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionLabel}>ACCIONES</Text>
           <View style={styles.sectionLine} />
         </View>
 
         <View style={styles.menuList}>
+          {/* Mis Análisis (restringido) */}
           <TouchableOpacity
             style={styles.menuCard}
             activeOpacity={0.75}
-            onPress={() => navigation.navigate("History")}
+            onPress={() => checkAuthAndNavigate("History")}
           >
             <View style={styles.menuIconWrap}>
               <Feather name="search" size={24} color={Colors.primary} />
@@ -269,10 +253,11 @@ export default function MainApp() {
             <Feather name="chevron-right" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
 
+          {/* Bitácora de cultivo (restringido) */}
           <TouchableOpacity
             style={styles.menuCard}
             activeOpacity={0.75}
-            onPress={() => navigation.navigate("TreatmentLog")}
+            onPress={() => checkAuthAndNavigate("TreatmentLog")}
           >
             <View style={styles.menuIconWrap}>
               <Feather name="book" size={24} color={Colors.primary} />
@@ -284,10 +269,11 @@ export default function MainApp() {
             <Feather name="chevron-right" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
 
+          {/* Contáctanos (restringido) */}
           <TouchableOpacity
             style={styles.menuCard}
             activeOpacity={0.75}
-            onPress={() => navigation.navigate("Contact")}
+            onPress={() => checkAuthAndNavigate("Contact")}
           >
             <View style={styles.menuIconWrap}>
               <Feather name="message-circle" size={24} color={Colors.primary} />
@@ -313,8 +299,7 @@ export default function MainApp() {
             <Ionicons name="log-in-outline" size={48} color={Colors.primary} />
             <Text style={styles.modalTitle}>Inicia sesión</Text>
             <Text style={styles.modalSubtitle}>
-              Para acceder a tu perfil y guardar tus análisis, inicia sesión o
-              regístrate.
+              Para acceder a tu perfil y guardar tus análisis, inicia sesión o regístrate.
             </Text>
             <TouchableOpacity
               style={styles.modalBtn}

@@ -6,14 +6,15 @@ import {
     TouchableOpacity,
     Image,
     StyleSheet,
-    Alert,
     ActivityIndicator,
     Animated,
     KeyboardAvoidingView,
     Platform,
     StatusBar,
+    Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { loginUser } from '../../api/api';
 
@@ -27,18 +28,17 @@ import BtnLoginGoogle from '../../components/BtnLoginGoogle.jsx';
 //COMPONENTE REUTILIZABLE
 import FloatingInput from '../../components/FloatingInput.jsx';
 
-// ─── PANTALLA PRINCIPAL ────────────────────────────────────
 export default function Login() {
-
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalTitle, setModalTitle] = useState('');
+    const [modalMessage, setModalMessage] = useState('');
 
-  const navigation = useNavigation();
-  const { enterAsGuest, login } = useContext(AuthContext);
+    const navigation = useNavigation();
+    const { enterAsGuest, login } = useContext(AuthContext);
 
-
-    // ----RESPONSIVE LAYOUT
     const {
         sp,
         hPad,
@@ -53,7 +53,6 @@ export default function Login() {
         iconS
     } = useResponsiveLayout();
 
-    //ANIMACIONES ENTRADA Y CAMBIO DE PANALLAS
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(20)).current;
 
@@ -64,41 +63,36 @@ export default function Login() {
         ]).start();
     }, []);
 
+    const showErrorModal = (message) => {
+        setModalTitle('Error');
+        setModalMessage(message);
+        setModalVisible(true);
+    };
 
-  // ── Lógica original intacta ───────────────────────────────
-  const handleLogin = async () => {
-  if (!email || !password) {
-    Alert.alert("Error", "Por favor, completa todos los campos");
-    return;
-  }
+    const handleLogin = async () => {
+        if (!email || !password) {
+            showErrorModal('Por favor, completa todos los campos');
+            return;
+        }
 
-  setLoading(true);
+        setLoading(true);
 
-  try {
-    const data = await loginUser(email.toLowerCase().trim(), password);
+        try {
+            const data = await loginUser(email.toLowerCase().trim(), password);
+            if (data.token) {
+                await login(data.token);
+                // El navegador redirigirá automáticamente a MainApp
+            }
+        } catch (error) {
+            console.error("Login Error:", error);
+            const message = error.message || "No se pudo conectar con el servidor";
+            showErrorModal(message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    if (data.token) {
-      // ✅ ESTE ES EL CAMBIO:
-      // Invocamos la función centralizada que:
-      // - Guarda el token en SecureStore
-      // - Actualiza el estado global (setUserToken)
-      // - Descarga el catálogo de tratamientos para el modo OFFLINE
-      await login(data.token); 
-      
-      // No necesitas hacer nada más, AppNavigator detectará el cambio
-      // y te enviará a MainApp automáticamente.
-    }
-    
-  } catch (error) {
-    console.error("Login Error:", error);
-    const message = error.message || "No se pudo conectar con el servidor";
-    Alert.alert("Error de acceso", message);
-  } finally {
-    setLoading(false);
-  }
-};
-
-  const handleGuestEntry = () => enterAsGuest(true);
+    const handleGuestEntry = () => enterAsGuest(true);
 
     return (
         <View style={styles.root}>
@@ -121,26 +115,21 @@ export default function Login() {
                         { paddingHorizontal: hPad, opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
                     ]}
                 >
+                    {/* LOGO */}
+                    <View style={[styles.logoContainer, { marginBottom: sp(0.028) }]}>
+                        <View style={[
+                            styles.logoRing,
+                            { width: logoRingS, height: logoRingS, borderRadius: logoRingS / 2, marginBottom: 8 },
+                        ]}>
+                            <Image
+                                source={require("../../../assets/image/logo.png")}
+                                style={{ width: logoImgS, height: logoImgS }}
+                                resizeMode="contain"
+                            />
+                        </View>
+                    </View>
 
-          {/* ── LOGO ── */}
-          <View style={[styles.logoContainer, { marginBottom: sp(0.028) }]}>
-            <View style={[
-              styles.logoRing,
-              { width: logoRingS, 
-                height: logoRingS, 
-                borderRadius: logoRingS / 2, 
-                marginBottom: 8 },
-            ]}>
-              {/* LOGO */}
-              <Image
-                source={require("../../../assets/image/logo.png")}
-                style={{ width: logoImgS, height: logoImgS }}
-                resizeMode="contain"
-              />
-            </View>
-          </View>
-
-                    {/* ── TITULAR ── */}
+                    {/* TITULAR */}
                     <View style={{ marginBottom: sp(0.030) }}>
                         <Text style={[styles.headline, { fontSize: headlineS, lineHeight: headlineS * 1.18 }]}>
                             Hola, bienvenido{'\n'}
@@ -151,7 +140,7 @@ export default function Login() {
                         </Text>
                     </View>
 
-                    {/* ── CAMPOS ── */}
+                    {/* CAMPOS */}
                     <View style={{ gap: sp(0.014) }}>
                         <FloatingInput
                             label="Correo electrónico"
@@ -170,17 +159,17 @@ export default function Login() {
                         />
                     </View>
 
-                    {/* ── OLVIDÉ CONTRASEÑA ── */}
+                    {/* OLVIDÉ CONTRASEÑA */}
                     <View style={[styles.metaRow, { marginVertical: sp(0.016) }]}>
                         <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
                             <Text style={styles.forgotText}>
                                 ¿Olvidaste tu contraseña?{' '}
-                                <Text style={styles.forgotLink}>Recuperala</Text>
+                                <Text style={styles.forgotLink}>Recupérala</Text>
                             </Text>
                         </TouchableOpacity>
                     </View>
 
-                    {/* ── BOTÓN INGRESAR ── */}
+                    {/* BOTÓN INGRESAR */}
                     <TouchableOpacity
                         style={[styles.btnPrimary, { marginBottom: sp(0.014) }, loading && { opacity: 0.72 }]}
                         onPress={handleLogin}
@@ -200,7 +189,7 @@ export default function Login() {
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    {/* ── BOTÓN INVITADO ── */}
+                    {/* BOTÓN INVITADO */}
                     <TouchableOpacity
                         style={[styles.btnGhost, { height: ghostH, marginBottom: sp(0.024) }]}
                         onPress={handleGuestEntry}
@@ -209,30 +198,109 @@ export default function Login() {
                         <Text style={styles.btnGhostText}>Continuar como Invitado</Text>
                     </TouchableOpacity>
 
-                    {/* ── DIVISOR ── */}
+                    {/* DIVISOR */}
                     <View style={[styles.divider, { marginBottom: sp(0.022) }]}>
                         <View style={styles.divLine} />
                         <Text style={styles.divText}>o ingresa con</Text>
                         <View style={styles.divLine} />
                     </View>
 
-                    {/* ── SOCIAL ── */}
+                    {/* SOCIAL */}
                     <View style={[styles.socialRow, { marginBottom: sp(0.024) }]}>
-                      <BtnLoginGoogle/>
-                      <BtnLoginFacebook/>
+                        <BtnLoginGoogle />
+                        <BtnLoginFacebook />
                     </View>
 
-                    {/* ── FOOTER ── */}
+                    {/* FOOTER */}
                     <TouchableOpacity style={styles.registerRow} onPress={() => navigation.navigate('Register')}>
                         <Text style={styles.registerText}>
                             ¿No tienes una cuenta?{' '}
                             <Text style={styles.registerLink}>Regístrate</Text>
                         </Text>
                     </TouchableOpacity>
-
                 </Animated.View>
             </KeyboardAvoidingView>
+
+            {/* MODAL DE ERROR PERSONALIZADO */}
+            <Modal
+                transparent
+                animationType="fade"
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View style={modalStyles.overlay}>
+                    <View style={modalStyles.modalBox}>
+                        <Feather name="alert-circle" size={48} color="#dc2626" style={{ alignSelf: 'center', marginBottom: 12 }} />
+                        <Text style={modalStyles.title}>{modalTitle}</Text>
+                        <Text style={modalStyles.message}>{modalMessage}</Text>
+                        <TouchableOpacity
+                            style={modalStyles.button}
+                            onPress={() => setModalVisible(false)}
+                            activeOpacity={0.85}
+                        >
+                            <LinearGradient
+                                colors={['#22c55e', '#16a34a']}
+                                style={modalStyles.buttonGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Text style={modalStyles.buttonText}>Entendido</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
+
+// Estilos específicos para el modal (pueden ir en LoginStyles si se prefiere)
+const modalStyles = StyleSheet.create({
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalBox: {
+        width: '80%',
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        padding: 24,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    title: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#1e293b',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    message: {
+        fontSize: 15,
+        color: '#475569',
+        textAlign: 'center',
+        marginBottom: 24,
+        lineHeight: 22,
+    },
+    button: {
+        width: '100%',
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    buttonGradient: {
+        paddingVertical: 12,
+        alignItems: 'center',
+    },
+    buttonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+});
 

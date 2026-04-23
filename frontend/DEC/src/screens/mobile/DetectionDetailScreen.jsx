@@ -10,7 +10,7 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import * as Notifications from 'expo-notifications';
 import { Colors } from '../../constants/colors';
 import {
-  getTreatmentNoteByDetectionId,
+  getTreatmentLogByDetectionId,
   saveAlarm,
   getAlarmsByDetection,
   deleteAlarm as deleteAlarmFromDB,
@@ -24,7 +24,7 @@ export default function DetectionDetail() {
 
   const [detectionData, setDetectionData] = useState(detection || null);
   const [loading, setLoading] = useState(!detection);
-  const [noteData, setNoteData] = useState(null);
+  const [logData, setLogData] = useState(null);
   const [alarms, setAlarms] = useState([]);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -47,16 +47,18 @@ export default function DetectionDetail() {
     fetchDetection();
   }, []);
 
+  // Una vez que tenemos los datos de la detección, cargar seguimiento y alarmas
   useEffect(() => {
     if (detectionData) {
-      loadNoteAndAlarms();
+      loadLogAndAlarms();
     }
   }, [detectionData]);
 
-  const loadNoteAndAlarms = async () => {
-    const note = await getTreatmentNoteByDetectionId(detectionData._id);
-    if (isMounted.current) setNoteData(note);
-    const alarmList = await getAlarmsByDetection(detectionData._id);
+  const loadLogAndAlarms = async () => {
+    const detId = detectionData._id || detectionData.id; // normalizar ID
+    const log = await getTreatmentLogByDetectionId(detId);
+    if (isMounted.current) setLogData(log);
+    const alarmList = await getAlarmsByDetection(detId);
     if (isMounted.current) setAlarms(alarmList);
   };
 
@@ -68,18 +70,18 @@ export default function DetectionDetail() {
     );
   }
 
-  // Datos de la detección
-  const diseaseName = detectionData.disease_name || 'Planta Sana';
+  // Normalizar ID para usarlo en todas las funciones
+  const normalizedDetectionId = detectionData._id || detectionData.id;
+
+  // Extraer nombre de enfermedad (desde SQLite o MongoDB)
+  const diseaseName = detectionData.disease_name || detectionData.pathologyId?.name || 'Planta Sana';
   const confidence = detectionData.confidence ?? 0;
   const imageUrl = detectionData.image_url || detectionData.imageUrl || '';
-  const date = detectionData.created_at;
+  const date = detectionData.created_at || detectionData.createdAt;
   const lat = detectionData.lat || 0;
   const lng = detectionData.lng || 0;
   const isDiseased = diseaseName !== 'Planta Sana';
-  const mainColor = isDiseased ? '#E67E22' : '#27AE60';
-
-  // (Resto del código igual: formatDate, openMaps, scheduleReminder, handleDeleteAlarm, etc.)
-  // Asegúrate de usar detectionData._id en lugar de detection._id
+  const mainColor = isDiseased ? Colors.warning : Colors.success;
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -107,7 +109,7 @@ export default function DetectionDetail() {
     try {
       const triggerDate = date.toISOString();
       const alarmId = await saveAlarm({
-        detection_id: detectionData._id,
+        detection_id: normalizedDetectionId,
         title: '📢 Recordatorio de seguimiento',
         message: `Revisa la evolución de "${diseaseName}"`,
         trigger_date: triggerDate,
@@ -117,12 +119,12 @@ export default function DetectionDetail() {
         content: {
           title: '📢 Seguimiento de enfermedad',
           body: `Revisa la evolución de "${diseaseName}"`,
-          data: { detectionId: detectionData._id, screen: 'DetectionDetail' },
+          data: { detectionId: normalizedDetectionId, screen: 'DetectionDetail' },
         },
         trigger: { type: 'date', date: date },
       });
       Alert.alert('Éxito', 'Recordatorio programado correctamente');
-      loadNoteAndAlarms();
+      loadLogAndAlarms();
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'No se pudo programar el recordatorio');
@@ -142,7 +144,7 @@ export default function DetectionDetail() {
             try {
               await Notifications.cancelScheduledNotificationAsync(notificationId);
               await deleteAlarmFromDB(alarmId);
-              loadNoteAndAlarms();
+              loadLogAndAlarms();
               Alert.alert('Éxito', 'Recordatorio eliminado');
             } catch (error) {
               console.error(error);
@@ -164,8 +166,6 @@ export default function DetectionDetail() {
     }
   };
 
-  // El resto del JSX permanece igual, solo cambia detectionData._id donde corresponda
-  // (enlaces a TreatmentNote, etc.)
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
@@ -197,28 +197,40 @@ export default function DetectionDetail() {
             <Text style={styles.confidenceText}>{(confidence * 100).toFixed(1)}%</Text>
           </View>
 
-          {/* Nota: aquí no mostramos descripción ni tratamiento porque no están en remote_detections, solo en pathologies. Opcional: podrías consultar la tabla pathologies por diseaseName si lo deseas. Por simplicidad, lo omitimos o mostramos un mensaje. */}
           <View style={styles.divider} />
           <View style={styles.sectionHeader}>
             <Feather name="edit-3" size={20} color={Colors.primary} />
             <Text style={styles.sectionTitle}>Mi seguimiento</Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.followUpButton}
-            onPress={() => navigation.navigate('TreatmentNote', { detectionId: detectionData._id, initialDiseaseName: diseaseName })}
-          >
-            <Feather name="calendar" size={20} color="#fff" />
-            <Text style={styles.followUpButtonText}>Agregar / Editar tratamiento</Text>
-          </TouchableOpacity>
-
-          {noteData && (
+          {logData ? (
             <View style={styles.notePreview}>
-              <Text style={styles.noteProduct}>🧪 {noteData.product_name}</Text>
-              <Text style={styles.noteDose}>💊 Dosis: {noteData.dose}</Text>
-              <Text style={styles.noteDate}>📅 Aplicado: {noteData.application_date}</Text>
-              {noteData.notes ? <Text style={styles.noteText}>📝 {noteData.notes}</Text> : null}
+              <Text style={styles.noteProduct}>🧪 Productos: {logData.products?.length || 0}</Text>
+              <Text style={styles.noteDate}>
+                📅 Último seguimiento: {new Date(logData.created_at).toLocaleDateString()}
+              </Text>
+              {logData.general_notes ? (
+                <Text style={styles.noteText} numberOfLines={2}>
+                  📝 {logData.general_notes}
+                </Text>
+              ) : null}
+              <TouchableOpacity
+                onPress={() => navigation.navigate('TreatmentForm', { logId: logData.id })}
+              >
+                <Text style={styles.linkText}>Ver / Editar bitácora completa</Text>
+              </TouchableOpacity>
             </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.followUpButton}
+              onPress={() => navigation.navigate('TreatmentForm', {
+                detectionId: normalizedDetectionId,
+                initialDiseaseName: diseaseName
+              })}
+            >
+              <Feather name="calendar" size={20} color="#fff" />
+              <Text style={styles.followUpButtonText}>Crear seguimiento en bitácora</Text>
+            </TouchableOpacity>
           )}
 
           {/* Sección de recordatorios */}
@@ -314,8 +326,6 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: '#E0E0E0', marginVertical: 20 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#2C3E50', marginBottom: 8 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  description: { fontSize: 15, color: '#555', lineHeight: 22, marginBottom: 15 },
-  treatment: { fontSize: 15, color: '#27AE60', fontWeight: '500', marginBottom: 10 },
   followUpButton: {
     flexDirection: 'row',
     backgroundColor: Colors.primary,
@@ -328,9 +338,9 @@ const styles = StyleSheet.create({
   followUpButtonText: { color: '#fff', fontWeight: 'bold', marginLeft: 8 },
   notePreview: { backgroundColor: '#f0fdf4', padding: 12, borderRadius: 10, marginTop: 10 },
   noteProduct: { fontSize: 16, fontWeight: 'bold', color: '#2C3E50' },
-  noteDose: { fontSize: 14, color: '#555' },
   noteDate: { fontSize: 12, color: '#7F8C8D', marginTop: 4 },
   noteText: { fontSize: 14, color: '#333', marginTop: 6, fontStyle: 'italic' },
+  linkText: { fontSize: 13, color: Colors.primary, marginTop: 8, textDecorationLine: 'underline' },
   reminderButton: {
     flexDirection: 'row',
     backgroundColor: '#3b82f6',

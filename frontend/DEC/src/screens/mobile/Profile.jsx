@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useContext } from "react";
 import {
   View, Text, TouchableOpacity, StatusBar, ScrollView, Switch,
-  StyleSheet, Image, Platform, ActivityIndicator, Alert, Modal, TextInput
+  StyleSheet, Image, Platform, ActivityIndicator, Modal, TextInput
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
@@ -22,8 +22,15 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ plantas: 0, analisis: 0, guardadas: 0 });
   
-  // Modal eliminar cuenta
-  const [modalVisible, setModalVisible] = useState(false);
+  // Estados para modales
+  const [modalLogoutVisible, setModalLogoutVisible] = useState(false);
+  const [modalDeleteConfirmVisible, setModalDeleteConfirmVisible] = useState(false);
+  const [modalPasswordVisible, setModalPasswordVisible] = useState(false);
+  const [modalErrorVisible, setModalErrorVisible] = useState(false);
+  const [modalSuccessVisible, setModalSuccessVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  
   const [deletePassword, setDeletePassword] = useState("");
   const [deleting, setDeleting] = useState(false);
 
@@ -33,7 +40,8 @@ export default function Profile() {
       setUserData(res.data.user);
     } catch (error) {
       console.error("Error fetching user:", error);
-      Alert.alert("Error", "No se pudo cargar la información del perfil");
+      setErrorMessage("No se pudo cargar la información del perfil");
+      setModalErrorVisible(true);
     } finally {
       setLoading(false);
     }
@@ -56,43 +64,38 @@ export default function Profile() {
   );
 
   const handleLogout = () => {
-    Alert.alert(
-      "Cerrar sesión",
-      "¿Estás seguro de que quieres cerrar sesión?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Cerrar sesión", style: "destructive", onPress: () => logout() }
-      ]
-    );
+    setModalLogoutVisible(false);
+    logout();
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      "Eliminar cuenta",
-      "⚠️ Esta acción es irreversible. Se eliminarán todos tus datos.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Continuar", style: "destructive", onPress: () => setModalVisible(true) }
-      ]
-    );
+    setModalDeleteConfirmVisible(false);
+    setModalPasswordVisible(true);
   };
 
   const confirmDeleteAccount = async () => {
     if (!deletePassword) {
-      Alert.alert("Error", "Ingresa tu contraseña para eliminar la cuenta");
+      setErrorMessage("Ingresa tu contraseña para eliminar la cuenta");
+      setModalErrorVisible(true);
       return;
     }
     setDeleting(true);
     try {
       await deleteUserAccount(deletePassword);
-      Alert.alert("Cuenta eliminada", "Tu cuenta ha sido eliminada permanentemente");
-      logout(); // Esto limpiará el token y redirigirá al login automáticamente
+      setSuccessMessage("Tu cuenta ha sido eliminada permanentemente");
+      setModalSuccessVisible(true);
+      // Esperar un momento para mostrar el modal antes de redirigir
+      setTimeout(() => {
+        setModalSuccessVisible(false);
+        logout();
+      }, 2000);
     } catch (error) {
       const msg = error.message || "Error al eliminar la cuenta";
-      Alert.alert("Error", msg);
+      setErrorMessage(msg);
+      setModalErrorVisible(true);
     } finally {
       setDeleting(false);
-      setModalVisible(false);
+      setModalPasswordVisible(false);
       setDeletePassword("");
     }
   };
@@ -215,7 +218,7 @@ export default function Profile() {
         </View>
 
         <View style={styles.groupCard}>
-          <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => {}}>
+          <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => navigation.navigate('Centro')}>
             <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: "#eff6ff" }]}>
               <Feather name="help-circle" size={iconS} color="#3b82f6" />
             </View>
@@ -223,7 +226,7 @@ export default function Profile() {
             <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
           </TouchableOpacity>
           <View style={styles.itemDivider} />
-          <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => {}}>
+          <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => navigation.navigate('Terminos')}>
             <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: Colors.surfaceAlt }]}>
               <Feather name="file-text" size={iconS} color={Colors.textMuted} />
             </View>
@@ -233,18 +236,56 @@ export default function Profile() {
         </View>
 
         {/* BOTONES */}
-        <TouchableOpacity style={[styles.btnDanger, { height: btnH }]} activeOpacity={0.75} onPress={handleLogout}>
+        <TouchableOpacity style={[styles.btnDanger, { height: btnH }]} activeOpacity={0.75} onPress={() => setModalLogoutVisible(true)}>
           <Text style={[styles.btnDangerText, { fontSize: brandS }]}>Cerrar sesión</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.btnDanger, { height: btnH }]} activeOpacity={0.75} onPress={handleDeleteAccount}>
+        <TouchableOpacity style={[styles.btnDanger, { height: btnH }]} activeOpacity={0.75} onPress={() => setModalDeleteConfirmVisible(true)}>
           <Text style={[styles.btnDangerText, { fontSize: brandS }]}>Eliminar cuenta</Text>
         </TouchableOpacity>
 
       </ScrollView>
 
-      {/* MODAL PARA ELIMINAR CUENTA */}
-      <Modal transparent animationType="fade" visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+      {/* Modal confirmar cierre de sesión */}
+      <Modal transparent animationType="fade" visible={modalLogoutVisible} onRequestClose={() => setModalLogoutVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Feather name="log-out" size={40} color={Colors.danger} style={{ alignSelf: 'center', marginBottom: 10 }} />
+            <Text style={styles.modalTitle}>Cerrar sesión</Text>
+            <Text style={styles.modalSubtitle}>¿Estás seguro de que quieres cerrar sesión?</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
+              <TouchableOpacity style={[styles.modalCancelBtn, { flex: 1, marginRight: 8 }]} onPress={() => setModalLogoutVisible(false)}>
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: Colors.danger, flex: 1, marginLeft: 8 }]} onPress={handleLogout}>
+                <Text style={styles.modalBtnText}>Cerrar sesión</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal confirmar eliminación de cuenta */}
+      <Modal transparent animationType="fade" visible={modalDeleteConfirmVisible} onRequestClose={() => setModalDeleteConfirmVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Feather name="alert-triangle" size={40} color="#dc2626" style={{ alignSelf: 'center', marginBottom: 10 }} />
+            <Text style={styles.modalTitle}>Eliminar cuenta</Text>
+            <Text style={styles.modalSubtitle}>⚠️ Esta acción es irreversible. Se eliminarán todos tus datos.</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
+              <TouchableOpacity style={[styles.modalCancelBtn, { flex: 1, marginRight: 8 }]} onPress={() => setModalDeleteConfirmVisible(false)}>
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: "#dc2626", flex: 1, marginLeft: 8 }]} onPress={handleDeleteAccount}>
+                <Text style={styles.modalBtnText}>Continuar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal para ingresar contraseña y eliminar cuenta */}
+      <Modal transparent animationType="fade" visible={modalPasswordVisible} onRequestClose={() => setModalPasswordVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Eliminar cuenta</Text>
@@ -268,9 +309,35 @@ export default function Profile() {
                 <Text style={styles.modalBtnText}>{deleting ? "Eliminando..." : "Eliminar"}</Text>
               </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalCancelBtn} activeOpacity={0.75} onPress={() => setModalVisible(false)}>
+            <TouchableOpacity style={styles.modalCancelBtn} activeOpacity={0.75} onPress={() => setModalPasswordVisible(false)}>
               <Text style={styles.modalCancelText}>Cancelar</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de error */}
+      <Modal transparent animationType="fade" visible={modalErrorVisible} onRequestClose={() => setModalErrorVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Feather name="alert-circle" size={40} color="#dc2626" style={{ alignSelf: 'center', marginBottom: 10 }} />
+            <Text style={[styles.modalTitle, { color: "#dc2626" }]}>Error</Text>
+            <Text style={styles.modalSubtitle}>{errorMessage}</Text>
+            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: "#dc2626" }]} onPress={() => setModalErrorVisible(false)}>
+              <Text style={styles.modalBtnText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de éxito */}
+      <Modal transparent animationType="fade" visible={modalSuccessVisible} onRequestClose={() => setModalSuccessVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Feather name="check-circle" size={40} color={Colors.primary} style={{ alignSelf: 'center', marginBottom: 10 }} />
+            <Text style={styles.modalTitle}>Cuenta eliminada</Text>
+            <Text style={styles.modalSubtitle}>{successMessage}</Text>
+            <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: 10 }} />
           </View>
         </View>
       </Modal>

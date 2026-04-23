@@ -126,10 +126,11 @@ backBtn: {
     right: 28,
     zIndex: 10,
     width: 55, height: 55,
-    borderRadius: 12,
+    borderRadius: 40,
     backgroundColor: Colors.surface,
     borderWidth: 1.5, borderColor: Colors.border,
     alignItems: "center", justifyContent: "center",
+    color: '#ee0a0a',
 },
 
 });

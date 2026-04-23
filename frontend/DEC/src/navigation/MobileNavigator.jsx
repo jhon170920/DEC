@@ -23,6 +23,8 @@ import DetectionDetail from '../screens/mobile/DetectionDetailScreen';
 import TreatmentNoteScreen from '../screens/mobile/TreatmentNoteScreen';
 import TreatmentLogScreen from '../screens/mobile/TreatmentLogScreen';
 import TreatmentFormScreen from '../screens/mobile/TreatmentFormScreen';
+import TermsScreen from '../screens/mobile/Terminos';
+import HelpCenterScreen from '../screens/mobile/Centro';
 
 // import ManualScreen from '../screens/ManualScreen';
 
@@ -57,6 +59,8 @@ export default function AppNavigator() {
           <Stack.Screen name='TreatmentNote' component={TreatmentNoteScreen}/>
           <Stack.Screen name='TreatmentLog' component={TreatmentLogScreen}/>
           <Stack.Screen name='TreatmentForm' component={TreatmentFormScreen}/>
+          <Stack.Screen name='Terminos' component={TermsScreen}/>
+          <Stack.Screen name='Centro' component={HelpCenterScreen}/>
         </>
       ) : (
         // --- STACK DE AUTENTICACIÓN ---

@@ -102,4 +102,48 @@ scanGradient: {
     height: 56, alignItems: "center", justifyContent: "center",
 },
 scanText: { color: "#fff", fontSize: 15, fontWeight: "700", letterSpacing: 0.4 },
+modalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(0,0,0,0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+modalContainer: {
+  width: '85%',
+  maxHeight: '70%',
+  backgroundColor: '#fff',
+  borderRadius: 20,
+  padding: 20,
+  elevation: 5,
+},
+modalTitle: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  marginBottom: 15,
+  textAlign: 'center',
+  color: Colors.text,
+},
+modalScroll: {
+  maxHeight: 400,
+},
+modalText: {
+  fontSize: 16,
+  color: '#333',
+  lineHeight: 24,
+  textAlign: 'justify',
+},
+modalCloseBtn: {
+  marginTop: 20,
+  backgroundColor: Colors.primary,
+  paddingVertical: 10,
+  borderRadius: 10,
+  alignItems: 'center',
+},
+modalCloseText: {
+  color: '#fff',
+  fontWeight: 'bold',
+},
+backButton: {
+  padding: 8,
+},
 });
