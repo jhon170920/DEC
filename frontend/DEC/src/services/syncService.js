@@ -1,5 +1,6 @@
 import api from '../api/api';
-import { getUnsyncedDetections, markAsSynced, getPathologyByName, saveRemoteDetections } from './dbService';
+import { getUnsyncedDetections, markAsSynced, getPathologyByName, saveRemoteDetections, getAllTreatmentLogsWithProducts,
+  saveRemoteTreatmentLog, clearAllTreatmentLogs } from './dbService';
 import { Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 
@@ -98,6 +99,66 @@ export const syncServerToLocal = async (token) => {
   }
 };
 
+// Sincronizar tratamientos (similar a detecciones, pero con su propia lógica)
+export const syncLocalTreatments = async () => {
+  const localLogs = getAllTreatmentLogsWithProducts();
+  for (const log of localLogs) {
+    try {
+      let response;
+      if (log._id) {
+        // Actualizar existente
+        response = await api.put(`treatments/${log._id}`, {
+          disease_name: log.disease_name,
+          general_notes: log.general_notes,
+          detection_id: log.detection_id,
+          products: log.products.map(p => ({
+            product_name: p.product_name,
+            dose: p.dose,
+            application_date: p.application_date,
+            notes: p.notes
+          }))
+        });
+      } else {
+        // Crear nuevo
+        response = await api.post('treatments', {
+          disease_name: log.disease_name,
+          general_notes: log.general_notes,
+          detection_id: log.detection_id,
+          products: log.products.map(p => ({
+            product_name: p.product_name,
+            dose: p.dose,
+            application_date: p.application_date,
+            notes: p.notes
+          }))
+        });
+        // Si el servidor devuelve el _id, actualizar localmente
+        if (response.data.treatment && response.data.treatment._id) {
+          db.runSync('UPDATE treatment_logs SET _id = ? WHERE id = ?', [response.data.treatment._id, log.id]);
+        }
+      }
+      console.log(`✅ Bitácora ${log.id} sincronizada`);
+    } catch (error) {
+      console.error(`Error sincronizando bitácora ${log.id}:`, error.message);
+    }
+  }
+};
+
+// Descargar bitácoras del servidor a SQLite
+export const syncRemoteTreatments = async (token) => {
+  try {
+    const response = await api.get('treatments');
+    const remoteLogs = response.data;
+    // Opcional: limpiar todas las bitácoras locales para empezar fresco
+    // await clearAllTreatmentLogs();
+    for (const log of remoteLogs) {
+      await saveRemoteTreatmentLog(log);
+    }
+    console.log(`✅ ${remoteLogs.length} bitácoras descargadas del servidor`);
+  } catch (error) {
+    console.error('Error descargando bitácoras:', error);
+  }
+};
+
 // Iniciar monitoreo de conectividad (llamar al iniciar la app, con el token)
 export const startAutoSync = (token) => {
   if (syncListener) return;
@@ -106,6 +167,8 @@ export const startAutoSync = (token) => {
       console.log('🌐 Internet detectado, sincronizando...');
       await syncDetections();
       if (token) await syncServerToLocal(token);
+      await syncLocalTreatments();
+      await syncRemoteTreatments(token);
     }
   });
 };
@@ -122,4 +185,6 @@ export const stopAutoSync = () => {
 export const forceSync = async (token) => {
   await syncDetections();
   if (token) await syncServerToLocal(token);
+  await syncLocalTreatments();
+  await syncRemoteTreatments(token);
 };

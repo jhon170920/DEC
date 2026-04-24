@@ -6,6 +6,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../../../../api/api';
+import { Linking } from 'react-native';
 
 const CatalogTab = () => {
   const [pathologies, setPathologies] = useState([]);
@@ -46,7 +47,7 @@ const CatalogTab = () => {
       setLoading(false);
     }
   }, []);
-
+  
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // Guardar cambios de la patología (incluyendo insumos)

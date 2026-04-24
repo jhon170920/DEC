@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 // 1. REGLA DE ORO: Usa tu IP privada (Ej: 192.168.1.XX) 
 // 'localhost' solo funciona dentro del emulador, no en tu celular físico.
-const BASE_URL = 'http://10.4.1.148:8089/api/'; 
+const BASE_URL = 'http://192.168.101.210:8089/api/'; 
 
 const api = axios.create({
     baseURL: BASE_URL,
@@ -28,6 +28,28 @@ api.interceptors.request.use(
       return config;
   },
   (error) => Promise.reject(error)
+);
+// INTERCEPTOR DE TOKEN ESPIRADO
+api.interceptors.response.use(
+  response => response,
+  async error => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      // Limpiar token y redirigir al login
+      if (Platform.OS === 'web') {
+        localStorage.removeItem('userToken');
+        // Opcional: recargar la página o emitir evento
+        window.location.href = '/login';
+      } else {
+        await SecureStore.deleteItemAsync('userToken');
+        // Puedes usar un evento global o reiniciar la navegación
+        // Por simplicidad, lanzamos un error que el contexto manejará
+      }
+      return Promise.reject(error);
+    }
+    return Promise.reject(error);
+  }
 );
 
 // LOGIN DE USUARIO
@@ -121,5 +143,13 @@ export const statsService = {
   getKPIs: (start, end) => 
       api.get(`/stats/kpis?startDate=${start}&endDate=${end}`)
 };
-
+// Enviar mensaje de contacto
+export const sendMessage = async (name, email, message) => {
+    try {
+        const response = await api.post('users/send-message', { name, email, message });
+        return response.data;
+    } catch (error) {
+        throw error.response ? error.response.data : new Error('Error de conexión');
+    }
+};
 export default api;

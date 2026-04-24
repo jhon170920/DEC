@@ -30,3 +30,6 @@ export const markAsSynced = (id) => {
 export const debugCheckDatabase = () => {
   console.log("🌐 Web: No hay base de datos local para depurar.");
 };
+export const saveRemoteDetections = () =>{
+  console.log("🌐 Web: no hay base de datos local por sincronizar")
+}

@@ -8,6 +8,7 @@ import {
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { saveDetectionLocal } from "../../services/dbService";
 import { syncDetections } from "../../services/syncService";
+import { getPathologyWithRecommendations } from "../../services/dbService";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { Colors } from "../../constants/colors";
@@ -23,7 +24,7 @@ export default function Result() {
   const saludable = data?.isHealthy ?? true;
   const nombreAfeccion = data?.disease || "Sin identificar";
   const nombreCientifico = data?.scientificName || "N/A";
-  const descripcion = data?.description || "No hay descripción disponible.";
+  const descripcionInicial = data?.description || "No hay descripción disponible.";
 
   const { userToken, logout } = useContext(AuthContext);
   
@@ -36,6 +37,10 @@ export default function Result() {
   const [successMessage, setSuccessMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Estado para tratamiento y recomendaciones
+  const [treatment, setTreatment] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
+
   // Redirección automática si es "Objeto no identificado"
   useEffect(() => {
     if (nombreAfeccion === "Objeto no identificado") {
@@ -45,6 +50,51 @@ export default function Result() {
       return () => clearTimeout(timer);
     }
   }, [nombreAfeccion]);
+
+  // Si el usuario está logueado, obtener el tratamiento y recomendaciones desde SQLite
+  useEffect(() => {
+    const fetchTreatment = async () => {
+      if (userToken && nombreAfeccion !== "Sin identificar" && nombreAfeccion !== "Objeto no identificado") {
+        const pathologyData = await getPathologyWithRecommendations(nombreAfeccion);
+        console.log("Patología encontrada:", pathologyData);
+        if (pathologyData) {
+          console.log("Recomendaciones:", pathologyData.recommendations);
+          setTreatment(pathologyData.treatment);
+          setRecommendations(pathologyData.recommendations || []);
+        } else {
+          setTreatment(null);
+          setRecommendations([]);
+        }
+      } else {
+        setTreatment(null);
+        setRecommendations([]);
+      }
+    };
+    fetchTreatment();
+  }, [userToken, nombreAfeccion]);
+
+  // Construir el texto completo para el modal
+  const getFullDescription = () => {
+    let fullText = descripcionInicial;
+    if (userToken && treatment && !saludable && nombreAfeccion !== "Objeto no identificado") {
+      fullText += `\n\n💊 Tratamiento recomendado:\n${treatment}`;
+      console.log("Recommendations en getFullDescription:", recommendations);
+      if (recommendations.length > 0) {
+        fullText += `\n\n📦 Productos sugeridos:\n`;
+        recommendations.forEach((rec, idx) => {
+          fullText += `\n${idx+1}. ${rec.productName}`;
+          if (rec.activeIngredient) fullText += ` (${rec.activeIngredient})`;
+          if (rec.dose) fullText += `\n   Dosis: ${rec.dose}`;
+          if (rec.price) fullText += `\n   Precio: ${rec.price}`;
+          if (rec.supplier) fullText += `\n   Proveedor: ${rec.supplier}`;
+          if (rec.link) fullText += `\n   Más info: ${rec.link}`;
+        });
+      }
+    } else if (userToken && !treatment && !saludable) {
+      fullText += `\n\n⚠️ No hay información de tratamiento registrada para esta enfermedad en tu catálogo local. Por favor, consulta a un especialista.`;
+    }
+    return fullText;
+  };
 
   const handleSave = async () => {
     if (!userToken) {
@@ -69,14 +119,11 @@ export default function Result() {
       setSuccessMessage("Análisis guardado localmente con GPS.");
       setModalSuccessVisible(true);
 
-      // Sincronizar automáticamente si hay internet
       const netState = await NetInfo.fetch();
       if (netState.isConnected) {
-        // Ejecutar sincronización en segundo plano (no esperar)
         syncDetections().catch(err => console.warn("Sync error:", err));
       }
 
-      // Redirigir después de 1.5 segundos
       setTimeout(() => {
         setModalSuccessVisible(false);
         navigation.navigate("MainApp");
@@ -92,7 +139,7 @@ export default function Result() {
 
   const handleGoToLogin = () => {
     setModalLoginVisible(false);
-    logout(); // Limpia sesión y redirige al login (según tu AuthContext)
+    logout();
   };
 
   const handleErrorClose = () => {
@@ -159,14 +206,18 @@ export default function Result() {
             </View>
           </View>
 
-          {/* Descripción con modal */}
-          <TouchableOpacity style={styles.menuCard} activeOpacity={0.75} onPress={() => setModalDescripcionVisible(true)}>
+          {/* Descripción con modal (incluye tratamiento y recomendaciones si está logueado) */}
+          <TouchableOpacity 
+            style={styles.menuCard} 
+            activeOpacity={0.75} 
+            onPress={() => setModalDescripcionVisible(true)}
+          >
             <View style={styles.menuIconWrap}>
               <Feather name="book-open" size={24} color={Colors.primary} />
             </View>
             <View style={styles.menuTexts}>
               <Text style={styles.menuTitle}>Descripción</Text>
-              <Text style={styles.menuSub} numberOfLines={2}>{descripcion}</Text>
+              <Text style={styles.menuSub} numberOfLines={2}>{descripcionInicial}</Text>
             </View>
             <Feather name="chevron-right" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
@@ -189,7 +240,7 @@ export default function Result() {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Modal para descripción completa */}
+      {/* Modal de descripción + tratamiento + recomendaciones */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -198,9 +249,9 @@ export default function Result() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Descripción completa</Text>
+            <Text style={styles.modalTitle}>Información completa</Text>
             <ScrollView style={styles.modalScroll}>
-              <Text style={styles.modalText}>{descripcion}</Text>
+              <Text style={styles.modalText}>{getFullDescription()}</Text>
             </ScrollView>
             <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setModalDescripcionVisible(false)}>
               <Text style={styles.modalCloseText}>Cerrar</Text>
@@ -209,7 +260,7 @@ export default function Result() {
         </View>
       </Modal>
 
-      {/* Modal para solicitar inicio de sesión */}
+      {/* Modal de sesión requerida */}
       <Modal
         animationType="fade"
         transparent={true}

@@ -20,6 +20,7 @@ import { useNavigation } from "@react-navigation/native";
 import { Colors } from "../../constants/colors";
 import { ContactStyles as styles } from "../../styles/Contacstyles";
 import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
+import { sendMessage } from "../../api/api"; // Importar la función real
 
 export default function Contact() {
   const navigation = useNavigation();
@@ -47,7 +48,7 @@ export default function Contact() {
     return regex.test(email);
   };
 
-  const handleEnviar = () => {
+  const handleEnviar = async () => {
     if (!nombre.trim()) {
       setErrorMessage("Por favor ingresa tu nombre.");
       setErrorModalVisible(true);
@@ -70,10 +71,21 @@ export default function Contact() {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      // Llamar a la API real
+      await sendMessage(nombre.trim(), correo.trim(), mensaje.trim());
       setModalVisible(true);
-    }, 2000);
+      // Limpiar campos si se desea
+      setNombre("");
+      setCorreo("");
+      setMensaje("");
+    } catch (error) {
+      const msg = error.message || "Ocurrió un error al enviar el mensaje";
+      setErrorMessage(msg);
+      setErrorModalVisible(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -96,13 +108,13 @@ export default function Contact() {
           <ScrollView
             contentContainerStyle={[
               styles.scroll,
-              { 
+              {
                 paddingHorizontal: hPad,
-                paddingBottom: Platform.OS === "ios" ? 40 : 30, // espacio extra inferior
+                paddingBottom: Platform.OS === "ios" ? 40 : 30,
               }
             ]}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled" // permite cerrar teclado al tocar fuera
+            keyboardShouldPersistTaps="handled"
           >
             {/* ── BACK ── */}
             <TouchableOpacity style={styles.backBtn} activeOpacity={0.75} onPress={() => navigation.goBack()}>
@@ -184,7 +196,7 @@ export default function Contact() {
               </LinearGradient>
             </TouchableOpacity>
 
-            {/* ── MODALES (sin cambios) ── */}
+            {/* Modal de éxito */}
             <Modal transparent animationType="fade" visible={modalVisible}>
               <View style={styles.modalOverlay}>
                 <View style={styles.modalBox}>
@@ -201,6 +213,7 @@ export default function Contact() {
               </View>
             </Modal>
 
+            {/* Modal de error */}
             <Modal transparent animationType="fade" visible={errorModalVisible}>
               <View style={styles.modalOverlay}>
                 <View style={styles.modalBox}>

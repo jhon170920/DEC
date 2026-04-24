@@ -20,10 +20,26 @@ export const initDatabase = () => {
   // Tabla de catálogo de enfermedades (offline)
   db.execSync(`
     CREATE TABLE IF NOT EXISTS pathologies (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id TEXT PRIMARY KEY,
       name TEXT UNIQUE,
       description TEXT,
-      treatment TEXT
+      treatment TEXT,
+      imageUrl TEXT
+    );
+  `);
+
+  // Tabla de recomendaciones (insumos) por patología
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS pathology_recommendations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pathology_id TEXT NOT NULL,
+      productName TEXT NOT NULL,
+      activeIngredient TEXT,
+      dose TEXT NOT NULL,
+      price TEXT,
+      supplier TEXT,
+      link TEXT,
+      FOREIGN KEY (pathology_id) REFERENCES pathologies(id) ON DELETE CASCADE
     );
   `);
 
@@ -59,6 +75,7 @@ export const initDatabase = () => {
   db.execSync(`
     CREATE TABLE IF NOT EXISTS treatment_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      _id TEXT,
       disease_name TEXT NOT NULL,
       general_notes TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -79,10 +96,6 @@ export const initDatabase = () => {
       FOREIGN KEY (treatment_log_id) REFERENCES treatment_logs(id) ON DELETE CASCADE
     );
   `);
-
-  // NOTA: La tabla treatment_notes ha sido eliminada/descontinuada.
-  // Si existía en versiones anteriores, puedes ejecutar la siguiente línea una sola vez:
-  // db.execSync('DROP TABLE IF EXISTS treatment_notes');
 };
 
 // --- Detecciones pendientes (local → servidor) ---
@@ -97,21 +110,56 @@ export const saveDetectionLocal = (disease, confidence, imageUri, lat, lng) => {
 export const getUnsyncedDetections = () => db.getAllSync('SELECT * FROM detections WHERE synced = 0');
 export const markAsSynced = (id) => db.runSync('UPDATE detections SET synced = 1 WHERE id = ?', [id]);
 
-// --- Catálogo offline ---
+// --- Catálogo offline (con recomendaciones) ---
 export const syncPathologiesLocal = (pathologyList) => {
   try {
     db.withTransactionSync(() => {
       pathologyList.forEach(p => {
-        db.runSync('INSERT OR REPLACE INTO pathologies (name, description, treatment) VALUES (?, ?, ?)',
-          [p.name, p.description, p.treatment]);
+        // Insertar o reemplazar la patología
+        db.runSync(
+          'INSERT OR REPLACE INTO pathologies (id, name, description, treatment, imageUrl) VALUES (?, ?, ?, ?, ?)',
+          [p._id, p.name, p.description, p.treatment, p.imageUrl || '']
+        );
+        // Eliminar recomendaciones antiguas
+        db.runSync('DELETE FROM pathology_recommendations WHERE pathology_id = ?', [p._id]);
+        // Insertar nuevas recomendaciones
+        if (p.recommendations && p.recommendations.length) {
+          for (const rec of p.recommendations) {
+            db.runSync(
+              `INSERT INTO pathology_recommendations 
+               (pathology_id, productName, activeIngredient, dose, price, supplier, link)
+               VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              [p._id, rec.productName, rec.activeIngredient, rec.dose, rec.price, rec.supplier, rec.link]
+            );
+          }
+        }
       });
     });
-    console.log("✅ Catálogo SQLite actualizado");
+    console.log("✅ Catálogo SQLite actualizado con recomendaciones");
   } catch (error) {
     console.error("Error sincronizando catálogo local:", error);
   }
 };
-export const getPathologyByName = (name) => db.getFirstSync('SELECT * FROM pathologies WHERE name = ?', [name]);
+
+// Obtener patología básica por nombre (sin recomendaciones)
+export const getPathologyByName = (name) => {
+  return db.getFirstSync('SELECT * FROM pathologies WHERE name = ?', [name]);
+};
+
+// Obtener patología completa con recomendaciones
+export const getPathologyWithRecommendations = (name) => {
+  try {
+    const pathology = db.getFirstSync('SELECT * FROM pathologies WHERE name = ?', [name]);
+    if (pathology) {
+      const recommendations = db.getAllSync('SELECT * FROM pathology_recommendations WHERE pathology_id = ?', [pathology.id]);
+      pathology.recommendations = recommendations;
+    }
+    return pathology;
+  } catch (error) {
+    console.error("Error obteniendo patología con recomendaciones:", error);
+    return null;
+  }
+};
 
 // --- Detecciones descargadas (servidor → local) ---
 export const saveRemoteDetections = (detections) => {
@@ -137,6 +185,7 @@ export const saveRemoteDetections = (detections) => {
     console.error("Error guardando detecciones remotas:", error);
   }
 };
+
 export const getAllRemoteDetections = () => db.getAllSync('SELECT * FROM remote_detections ORDER BY created_at DESC');
 export const getRemoteDetectionsPaginated = (limit, offset) =>
   db.getAllSync('SELECT * FROM remote_detections ORDER BY created_at DESC LIMIT ? OFFSET ?', [limit, offset]);
@@ -157,12 +206,16 @@ export const saveAlarm = (alarm) => {
     console.error("Error guardando alarma:", error);
   }
 };
+
 export const getAlarmsByDetection = (detection_id) =>
   db.getAllSync('SELECT * FROM alarms WHERE detection_id = ? AND active = 1 ORDER BY trigger_date ASC', [detection_id]);
+
 export const getAllActiveAlarms = () =>
   db.getAllSync('SELECT * FROM alarms WHERE active = 1 ORDER BY trigger_date ASC');
+
 export const deactivateAlarm = (alarmId) =>
   db.runSync('UPDATE alarms SET active = 0 WHERE id = ?', [alarmId]);
+
 export const deleteAlarm = (alarmId) => {
   try {
     db.runSync('DELETE FROM alarms WHERE id = ?', [alarmId]);
@@ -277,22 +330,91 @@ export const getAllDetectionsForSelector = () => {
     return [];
   }
 };
+// --- Resetear base de datos (para desarrollo) ---
+export const resetDatabase = () => {
+  try {
+    // Lista de todas las tablas creadas por la app
+    const tables = [
+      'detections',
+      'pathologies',
+      'pathology_recommendations',
+      'remote_detections',
+      'alarms',
+      'treatment_logs',
+      'treatment_products'
+    ];
+    
+    for (const table of tables) {
+      db.runSync(`DROP TABLE IF EXISTS ${table}`);
+    }
+    
+    // Recrear la estructura de la base de datos
+    initDatabase();
+    console.log("🗑️ Base de datos local eliminada y recreada correctamente");
+  } catch (error) {
+    console.error("Error al resetear la base de datos:", error);
+  }
+};
+
+// --- Obtener todas las bitácoras con sus productos (para listado) ---
+export const getAllTreatmentLogsWithProducts = () => {
+  const logs = db.getAllSync('SELECT * FROM treatment_logs ORDER BY id ASC');
+  for (const log of logs) {
+    const products = db.getAllSync('SELECT * FROM treatment_products WHERE treatment_log_id = ?', [log.id]);
+    log.products = products;
+  }
+  return logs;
+};
+
+// Guardar un log descargado desde el servidor (reemplazar o insertar según _id)
+export const saveRemoteTreatmentLog = (log) => {
+  // Verificar si ya existe localmente por su _id (de MongoDB)
+  const existing = db.getFirstSync('SELECT id FROM treatment_logs WHERE _id = ?', [log._id]);
+  if (existing) {
+    // Actualizar
+    db.runSync(
+      `UPDATE treatment_logs SET disease_name = ?, general_notes = ?, detection_id = ?, updated_at = ? WHERE id = ?`,
+      [log.disease_name, log.general_notes, log.detection_id, log.updatedAt, existing.id]
+    );
+    const logId = existing.id;
+    // Reemplazar productos
+    db.runSync('DELETE FROM treatment_products WHERE treatment_log_id = ?', [logId]);
+    for (const prod of log.products) {
+      db.runSync(
+        `INSERT INTO treatment_products (treatment_log_id, product_name, dose, application_date, notes) VALUES (?, ?, ?, ?, ?)`,
+        [logId, prod.product_name, prod.dose, prod.application_date, prod.notes]
+      );
+    }
+  } else {
+    // Insertar nuevo
+    const result = db.runSync(
+      `INSERT INTO treatment_logs (_id, disease_name, general_notes, detection_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [log._id, log.disease_name, log.general_notes, log.detection_id, log.createdAt, log.updatedAt]
+    );
+    const logId = result.lastInsertRowId;
+    for (const prod of log.products) {
+      db.runSync(
+        `INSERT INTO treatment_products (treatment_log_id, product_name, dose, application_date, notes) VALUES (?, ?, ?, ?, ?)`,
+        [logId, prod.product_name, prod.dose, prod.application_date, prod.notes]
+      );
+    }
+  }
+};
+
+// Limpiar todas las bitácoras locales (usar con precaución)
+export const clearAllTreatmentLogs = () => {
+  db.runSync('DELETE FROM treatment_products');
+  db.runSync('DELETE FROM treatment_logs');
+};
 
 // --- Utilidades ---
 export const debugCheckDatabase = () => {
   try {
-    const allDetections = db.getAllSync('SELECT * FROM detections');
     const allPathologies = db.getAllSync('SELECT * FROM pathologies');
-    const allRemote = db.getAllSync('SELECT * FROM remote_detections');
-    const allAlarms = db.getAllSync('SELECT * FROM alarms');
-    const allLogs = db.getAllSync('SELECT * FROM treatment_logs');
-    const allProducts = db.getAllSync('SELECT * FROM treatment_products');
-    console.log("--- HISTORIAL PENDIENTE ---", JSON.stringify(allDetections, null, 2));
+    const allRecs = db.getAllSync('SELECT * FROM pathology_recommendations');
     console.log("--- CATÁLOGO ---", JSON.stringify(allPathologies, null, 2));
-    console.log("--- DETECCIONES DESCARGADAS ---", JSON.stringify(allRemote, null, 2));
-    console.log("--- ALARMAS ---", JSON.stringify(allAlarms, null, 2));
-    console.log("--- BITÁCORA (LOGS) ---", JSON.stringify(allLogs, null, 2));
-    console.log("--- PRODUCTOS ---", JSON.stringify(allProducts, null, 2));
+    console.log("--- RECOMENDACIONES ---", JSON.stringify(allRecs, null, 2));
+    // ... otros logs
   } catch (error) {
     console.error("Error en debug:", error);
   }

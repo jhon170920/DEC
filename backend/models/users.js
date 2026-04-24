@@ -24,7 +24,7 @@ const UserSchema = new mongoose.Schema({
     // ORIGEN DE REGISTRO
     provider: [{ type: String, enum: ['local', 'google', 'facebook', 'unknow']}],
     
-    role: { type: String, enum: ['user', 'guest', 'admin'], default: 'user' },
+    role: { type: String, enum: ['user', 'guest', 'admin', 'tecnico'], default: 'user' },
     active: { type: Boolean, default: true },
     pushTokens: { type: [String], default: [] },
     lastSync: { type: Date, default: Date.now },
