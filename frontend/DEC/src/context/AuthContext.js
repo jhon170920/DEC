@@ -135,6 +135,8 @@ export const AuthProvider = ({ children }) => {
           console.log("✅ Catálogo SQLite actualizado (Móvil)");
           await syncDetections();
           await syncServerToLocal(token);
+          await syncLocalTreatments();
+          await syncRemoteTreatments(token);
         } else {
           console.log("✅ Datos recibidos en Web (Sin usar SQLite)");
         }

@@ -14,6 +14,8 @@ import adminRoutes from './routes/admin.js'
 import statsRoutes from './routes/statsRoutes.js';
 // ruta de mensajes
 import messageRoutes from './routes/messages.js';
+// ruta de tratamientos
+import treatmentRoutes from './routes/treatments.js';
 
 
 
@@ -36,6 +38,9 @@ app.use('/api/stats', statsRoutes);
 
 // ruta para mensajes
 app.use('/api/messages', messageRoutes);
+
+// ruta para tratamientos
+app.use('/api/treatments', treatmentRoutes);
 
 app.get("/", (req, res) => {
   res.send(" Servidor funcionando correctamente");

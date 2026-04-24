@@ -75,6 +75,7 @@ export const initDatabase = () => {
   db.execSync(`
     CREATE TABLE IF NOT EXISTS treatment_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      _id TEXT,
       disease_name TEXT NOT NULL,
       general_notes TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -353,6 +354,57 @@ export const resetDatabase = () => {
   } catch (error) {
     console.error("Error al resetear la base de datos:", error);
   }
+};
+
+// --- Obtener todas las bitácoras con sus productos (para listado) ---
+export const getAllTreatmentLogsWithProducts = () => {
+  const logs = db.getAllSync('SELECT * FROM treatment_logs ORDER BY id ASC');
+  for (const log of logs) {
+    const products = db.getAllSync('SELECT * FROM treatment_products WHERE treatment_log_id = ?', [log.id]);
+    log.products = products;
+  }
+  return logs;
+};
+
+// Guardar un log descargado desde el servidor (reemplazar o insertar según _id)
+export const saveRemoteTreatmentLog = (log) => {
+  // Verificar si ya existe localmente por su _id (de MongoDB)
+  const existing = db.getFirstSync('SELECT id FROM treatment_logs WHERE _id = ?', [log._id]);
+  if (existing) {
+    // Actualizar
+    db.runSync(
+      `UPDATE treatment_logs SET disease_name = ?, general_notes = ?, detection_id = ?, updated_at = ? WHERE id = ?`,
+      [log.disease_name, log.general_notes, log.detection_id, log.updatedAt, existing.id]
+    );
+    const logId = existing.id;
+    // Reemplazar productos
+    db.runSync('DELETE FROM treatment_products WHERE treatment_log_id = ?', [logId]);
+    for (const prod of log.products) {
+      db.runSync(
+        `INSERT INTO treatment_products (treatment_log_id, product_name, dose, application_date, notes) VALUES (?, ?, ?, ?, ?)`,
+        [logId, prod.product_name, prod.dose, prod.application_date, prod.notes]
+      );
+    }
+  } else {
+    // Insertar nuevo
+    const result = db.runSync(
+      `INSERT INTO treatment_logs (_id, disease_name, general_notes, detection_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [log._id, log.disease_name, log.general_notes, log.detection_id, log.createdAt, log.updatedAt]
+    );
+    const logId = result.lastInsertRowId;
+    for (const prod of log.products) {
+      db.runSync(
+        `INSERT INTO treatment_products (treatment_log_id, product_name, dose, application_date, notes) VALUES (?, ?, ?, ?, ?)`,
+        [logId, prod.product_name, prod.dose, prod.application_date, prod.notes]
+      );
+    }
+  }
+};
+
+// Limpiar todas las bitácoras locales (usar con precaución)
+export const clearAllTreatmentLogs = () => {
+  db.runSync('DELETE FROM treatment_products');
+  db.runSync('DELETE FROM treatment_logs');
 };
 
 // --- Utilidades ---
