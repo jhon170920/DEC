@@ -37,6 +37,9 @@ export default function Register() {
     const [modalMessage, setModalMessage] = useState('');
     const [modalType, setModalType] = useState('error');
 
+    // Estado para aceptación de términos
+    const [termsAccepted, setTermsAccepted] = useState(false);
+
     const {
         sp,
         hPad,
@@ -64,6 +67,12 @@ export default function Register() {
     };
 
     const handleRegister = async () => {
+        // Validar términos
+        if (!termsAccepted) {
+            showModal("Aceptación requerida", "Debes aceptar los términos y condiciones para registrarte.");
+            return;
+        }
+
         if (!name || !email || !password || !confirmPassword) {
             showModal("Error", "Por favor completa todos los campos");
             return;
@@ -195,23 +204,48 @@ export default function Register() {
                                     isPassword={true}
                                     fieldHeight={fieldH}
                                 />
-
-                                <TouchableOpacity
-                                    style={[styles.btnPrimary, { marginBottom: sp(0.014) }, loading && { opacity: 0.72 }]}
-                                    onPress={handleRegister}
-                                    disabled={loading}
-                                    activeOpacity={0.85}
-                                >
-                                    <LinearGradient
-                                        colors={['#22c55e', '#16a34a', '#15803d']}
-                                        style={[styles.btnPrimaryGradient, { height: btnH }]}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                    >
-                                        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnPrimaryText}>Registrarse</Text>}
-                                    </LinearGradient>
-                                </TouchableOpacity>
                             </View>
+
+                            {/* Aceptación de términos y condiciones */}
+                            <View style={termsStyles.container}>
+                                <TouchableOpacity
+                                    style={termsStyles.checkbox}
+                                    onPress={() => setTermsAccepted(!termsAccepted)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Feather
+                                        name={termsAccepted ? "check-square" : "square"}
+                                        size={20}
+                                        color={termsAccepted ? Colors.primary : "#9ca3af"}
+                                    />
+                                </TouchableOpacity>
+                                <Text style={termsStyles.termsText}>
+                                    Acepto los{" "}
+                                    <Text
+                                        style={termsStyles.link}
+                                        onPress={() => navigation.navigate('Terminos')}
+                                    >
+                                        Términos y Condiciones
+                                    </Text>
+                                </Text>
+                            </View>
+
+                            {/* Botón Registrar */}
+                            <TouchableOpacity
+                                style={[styles.btnPrimary, { marginBottom: sp(0.014) }, (loading || !termsAccepted) && { opacity: 0.72 }]}
+                                onPress={handleRegister}
+                                disabled={loading || !termsAccepted}
+                                activeOpacity={0.85}
+                            >
+                                <LinearGradient
+                                    colors={['#22c55e', '#16a34a', '#15803d']}
+                                    style={[styles.btnPrimaryGradient, { height: btnH }]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                >
+                                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnPrimaryText}>Registrarse</Text>}
+                                </LinearGradient>
+                            </TouchableOpacity>
 
                             {/* Divisor */}
                             <View style={[styles.divider, { marginBottom: sp(0.022) }]}>
@@ -221,9 +255,34 @@ export default function Register() {
                             </View>
 
                             {/* Redes Sociales */}
-                            <View style={[styles.socialRow, { marginBottom: sp(0.024) }]}>
-                                <BtnLoginGoogle />
-                                <BtnLoginFacebook />
+                            <View style={[styles.socialRow, { marginBottom: sp(0.024) }, {justifyContent: 'space-around'}]}>
+                                <TouchableOpacity
+                                activeOpacity={1}
+                                onPress={() => {
+                                    if (!termsAccepted) {
+                                    showModal("Aceptación requerida", "Debes aceptar los términos y condiciones para continuar.");
+                                    }
+                                }}
+                                style={{ width: '40%', }}
+                                >
+                                <View pointerEvents={termsAccepted ? 'auto' : 'none'}>
+                                    <BtnLoginGoogle />
+                                </View>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                activeOpacity={1}
+                                onPress={() => {
+                                    if (!termsAccepted) {
+                                    showModal("Aceptación requerida", "Debes aceptar los términos y condiciones para continuar.");
+                                    }
+                                }}
+                                style={{ width: '40%' }}
+                                >
+                                <View pointerEvents={termsAccepted ? 'auto' : 'none'}>
+                                    <BtnLoginFacebook />
+                                </View>
+                                </TouchableOpacity>
+                                
                             </View>
 
                             {/* Footer navegación al Login */}
@@ -267,6 +326,32 @@ export default function Register() {
     );
 }
 
+// Estilos específicos para la aceptación de términos
+const termsStyles = StyleSheet.create({
+    container: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 12,
+        marginTop: 16,
+    },
+    checkbox: {
+        padding: 4,
+        marginRight: 8,
+    },
+    termsText: {
+        fontSize: 14,
+        color: Colors.textMuted,
+        flex: 1,
+        flexWrap: 'wrap',
+    },
+    link: {
+        color: Colors.primary,
+        fontWeight: '600',
+        textDecorationLine: 'underline',
+    },
+});
+
+// Estilos modales (igual que antes)
 const modalStyles = StyleSheet.create({
     overlay: {
         flex: 1,

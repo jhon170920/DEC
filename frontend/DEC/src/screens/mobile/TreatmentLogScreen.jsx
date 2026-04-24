@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../constants/colors';
-import { getAllTreatmentLogs, deleteTreatmentLog } from '../../services/dbService';
+import { getAllTreatmentLogs, deleteTreatmentLog, updateTreatmentLog } from '../../services/dbService';
 
 export default function TreatmentLogScreen() {
   const navigation = useNavigation();
@@ -45,6 +45,32 @@ export default function TreatmentLogScreen() {
     );
   };
 
+  // Nueva función para desasociar la detección
+  const handleRemoveDetection = (logId, diseaseName) => {
+    Alert.alert(
+      'Desasociar detección',
+      `¿Eliminar la relación de este seguimiento con la detección asociada?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Desasociar',
+          style: 'destructive',
+          onPress: async () => {
+            // Actualizar el log, poniendo detection_id = null
+            await updateTreatmentLog(logId, {
+              disease_name: diseaseName,
+              general_notes: logs.find(l => l.id === logId)?.general_notes || '',
+              detection_id: null,
+              products: logs.find(l => l.id === logId)?.products || []
+            });
+            loadLogs();
+            Alert.alert('Éxito', 'Detección desasociada correctamente');
+          }
+        }
+      ]
+    );
+  };
+
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
@@ -62,13 +88,22 @@ export default function TreatmentLogScreen() {
         <Text style={styles.notes} numberOfLines={2}>{item.general_notes}</Text>
       ) : null}
       {item.detection_id ? (
-        <TouchableOpacity
-          style={styles.linkDetection}
-          onPress={() => navigation.navigate('DetectionDetail', { detectionId: item.detection_id })}
-        >
-          <Feather name="link" size={14} color={Colors.primary} />
-          <Text style={styles.linkText}>Ver detección asociada</Text>
-        </TouchableOpacity>
+        <View style={styles.detectionActions}>
+          <TouchableOpacity
+            style={styles.linkDetection}
+            onPress={() => navigation.navigate('DetectionDetail', { detectionId: item.detection_id })}
+          >
+            <Feather name="link" size={14} color={Colors.primary} />
+            <Text style={styles.linkText}>Ver detección asociada</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.unlinkButton}
+            onPress={() => handleRemoveDetection(item.id, item.disease_name)}
+          >
+            <Feather name="x-circle" size={14} color="#dc2626" />
+            <Text style={styles.unlinkText}>Desasociar</Text>
+          </TouchableOpacity>
+        </View>
       ) : null}
     </TouchableOpacity>
   );
@@ -176,4 +211,34 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 16, color: Colors.textMuted, marginTop: 16, textAlign: 'center' },
   emptyBtn: { marginTop: 20, backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 25 },
   emptyBtnText: { color: '#fff', fontWeight: 'bold' },
+  detectionActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  linkDetection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  linkText: {
+    fontSize: 12,
+    color: Colors.primary,
+    marginLeft: 5,
+    textDecorationLine: 'underline',
+  },
+  unlinkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fee2e2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  unlinkText: {
+    fontSize: 11,
+    color: '#dc2626',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
 });

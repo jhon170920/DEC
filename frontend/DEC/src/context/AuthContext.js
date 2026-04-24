@@ -158,34 +158,36 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
-    try {
-      if (Platform.OS === 'web') {
-        localStorage.removeItem('userToken');
-      } else {
-        // Cerrar sesiones sociales solo en móvil
-        if (LoginManager && AccessToken) {
-          const fbToken = await AccessToken.getCurrentAccessToken();
-          if (fbToken) {
-            await LoginManager.logOut();
-            console.log("Facebook Session Closed");
-          }
+const logout = async () => {
+  try {
+    if (Platform.OS === 'web') {
+      localStorage.removeItem('userToken');
+    } else {
+      // Cerrar sesiones sociales (Facebook, Google)
+      if (LoginManager && AccessToken) {
+        const fbToken = await AccessToken.getCurrentAccessToken();
+        if (fbToken) {
+          await LoginManager.logOut();
         }
-        if (GoogleSignin) {
-          const hasGoogle = await GoogleSignin.hasPreviousSignIn();
-          if (hasGoogle) {
-            await GoogleSignin.signOut();
-            console.log("Google Session Closed");
-          }
-        }
-        await SecureStore.deleteItemAsync('userToken');
       }
-      setUserToken(null);
-      setIsGuest(false);
-    } catch (error) {
-      console.error("Error durante logout:", error);
+      if (GoogleSignin) {
+        const hasGoogle = await GoogleSignin.hasPreviousSignIn();
+        if (hasGoogle) {
+          await GoogleSignin.signOut();
+        }
+      }
+      await SecureStore.deleteItemAsync('userToken');
+      
+      // Limpiar la base de datos local
+      const { resetDatabase } = require('../services/dbService');
+      resetDatabase();
     }
-  };
+    setUserToken(null);
+    setIsGuest(false);
+  } catch (error) {
+    console.error("Error durante logout:", error);
+  }
+};
   // Elmininar permisos si se  si se creó con fb/google
   const RevokeAccessSocial = async () => {
     try {

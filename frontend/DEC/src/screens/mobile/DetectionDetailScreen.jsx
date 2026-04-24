@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, Image, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, Linking, Alert, ActivityIndicator
+  StatusBar, Linking, Alert, ActivityIndicator, Modal, FlatList
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
@@ -14,7 +14,8 @@ import {
   saveAlarm,
   getAlarmsByDetection,
   deleteAlarm as deleteAlarmFromDB,
-  getRemoteDetectionById
+  getRemoteDetectionById,
+  getPathologyWithRecommendations
 } from '../../services/dbService';
 
 export default function DetectionDetail() {
@@ -28,6 +29,8 @@ export default function DetectionDetail() {
   const [alarms, setAlarms] = useState([]);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [recommendations, setRecommendations] = useState([]);
+  const [modalRecommendationsVisible, setModalRecommendationsVisible] = useState(false);
 
   const isMounted = useRef(true);
 
@@ -47,19 +50,34 @@ export default function DetectionDetail() {
     fetchDetection();
   }, []);
 
-  // Una vez que tenemos los datos de la detección, cargar seguimiento y alarmas
+  // Una vez que tenemos los datos de la detección, cargar seguimiento, alarmas y recomendaciones
   useEffect(() => {
     if (detectionData) {
       loadLogAndAlarms();
+      loadRecommendations();
     }
   }, [detectionData]);
 
   const loadLogAndAlarms = async () => {
-    const detId = detectionData._id || detectionData.id; // normalizar ID
+    const detId = detectionData._id || detectionData.id;
     const log = await getTreatmentLogByDetectionId(detId);
     if (isMounted.current) setLogData(log);
     const alarmList = await getAlarmsByDetection(detId);
     if (isMounted.current) setAlarms(alarmList);
+  };
+
+  const loadRecommendations = async () => {
+    const diseaseName = detectionData.disease_name || detectionData.pathologyId?.name || 'Planta Sana';
+    if (diseaseName !== 'Planta Sana' && diseaseName !== 'Objeto no identificado') {
+      const pathology = await getPathologyWithRecommendations(diseaseName);
+      if (pathology && pathology.recommendations && pathology.recommendations.length > 0) {
+        setRecommendations(pathology.recommendations);
+      } else {
+        setRecommendations([]);
+      }
+    } else {
+      setRecommendations([]);
+    }
   };
 
   if (loading || !detectionData) {
@@ -70,10 +88,7 @@ export default function DetectionDetail() {
     );
   }
 
-  // Normalizar ID para usarlo en todas las funciones
   const normalizedDetectionId = detectionData._id || detectionData.id;
-
-  // Extraer nombre de enfermedad (desde SQLite o MongoDB)
   const diseaseName = detectionData.disease_name || detectionData.pathologyId?.name || 'Planta Sana';
   const confidence = detectionData.confidence ?? 0;
   const imageUrl = detectionData.image_url || detectionData.imageUrl || '';
@@ -166,6 +181,21 @@ export default function DetectionDetail() {
     }
   };
 
+  const renderRecommendationItem = ({ item }) => (
+    <View style={styles.recommendationCard}>
+      <Text style={styles.recommendationProduct}>{item.productName}</Text>
+      {item.activeIngredient ? <Text style={styles.recommendationDetail}>🧪 Ingrediente activo: {item.activeIngredient}</Text> : null}
+      {item.dose ? <Text style={styles.recommendationDetail}>💊 Dosis: {item.dose}</Text> : null}
+      {item.price ? <Text style={styles.recommendationDetail}>💰 Precio: {item.price}</Text> : null}
+      {item.supplier ? <Text style={styles.recommendationDetail}>🏭 Proveedor: {item.supplier}</Text> : null}
+      {item.link ? (
+        <TouchableOpacity onPress={() => Linking.openURL(item.link)}>
+          <Text style={styles.recommendationLink}>🔗 Ver más información</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
@@ -233,6 +263,24 @@ export default function DetectionDetail() {
             </TouchableOpacity>
           )}
 
+          {/* Botón para mostrar productos sugeridos */}
+          {isDiseased && recommendations.length > 0 && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.sectionHeader}>
+                <Feather name="package" size={20} color={Colors.primary} />
+                <Text style={styles.sectionTitle}>Productos sugeridos</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.productsButton}
+                onPress={() => setModalRecommendationsVisible(true)}
+              >
+                <Feather name="shopping-bag" size={18} color="#fff" />
+                <Text style={styles.productsButtonText}>Ver {recommendations.length} productos recomendados</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
           {/* Sección de recordatorios */}
           <View style={styles.sectionHeader}>
             <Feather name="bell" size={20} color={Colors.primary} />
@@ -283,6 +331,32 @@ export default function DetectionDetail() {
           )}
         </View>
       </ScrollView>
+
+      {/* Modal de productos sugeridos */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalRecommendationsVisible}
+        onRequestClose={() => setModalRecommendationsVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Productos sugeridos para {diseaseName}</Text>
+            <FlatList
+              data={recommendations}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={renderRecommendationItem}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            />
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setModalRecommendationsVisible(false)}
+            >
+              <Text style={styles.modalCloseText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -373,4 +447,75 @@ const styles = StyleSheet.create({
   },
   mapButtonText: { color: '#fff', fontWeight: 'bold', marginLeft: 8 },
   coords: { fontSize: 12, color: '#7F8C8D', textAlign: 'center', marginTop: 5 },
+  productsButton: {
+    flexDirection: 'row',
+    backgroundColor: Colors.primary,
+    paddingVertical: 12,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  productsButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '85%',
+    maxHeight: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+    color: Colors.text,
+  },
+  modalCloseBtn: {
+    marginTop: 15,
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  recommendationCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  recommendationProduct: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.primary,
+    marginBottom: 6,
+  },
+  recommendationDetail: {
+    fontSize: 13,
+    color: '#475569',
+    marginTop: 2,
+  },
+  recommendationLink: {
+    fontSize: 13,
+    color: Colors.primary,
+    marginTop: 6,
+    textDecorationLine: 'underline',
+  },
 });

@@ -12,6 +12,8 @@ import pathologyRoutes from './routes/pathologyRoutes.js';
 // ruta de admin 
 import adminRoutes from './routes/admin.js'
 import statsRoutes from './routes/statsRoutes.js';
+// ruta de mensajes
+import messageRoutes from './routes/messages.js';
 
 
 
@@ -31,6 +33,9 @@ app.use("/api/pathologies", pathologyRoutes) // ruta para obtener las patología
 // ruta principal de admin
 app.use("/api/admin", adminRoutes);
 app.use('/api/stats', statsRoutes);
+
+// ruta para mensajes
+app.use('/api/messages', messageRoutes);
 
 app.get("/", (req, res) => {
   res.send(" Servidor funcionando correctamente");

@@ -6,6 +6,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import ReactDOM from 'react-dom';
 import api from '../../../../api/api';
+import { Colors } from '../../../../constants/colors';
 
 const UsersTab = () => {
   const [users, setUsers] = useState([]);
@@ -19,16 +20,57 @@ const UsersTab = () => {
   const [modal, setModal] = useState({ visible: false, type: null, user: null });
   const [growthData, setGrowthData] = useState([]);
   const [showGrowthChart, setShowGrowthChart] = useState(false);
-
-  // Modal para mensajes (éxito/error)
   const [messageModal, setMessageModal] = useState({ visible: false, title: '', message: '', isError: false });
+  const [emailModal, setEmailModal] = useState({ visible: false, user: null, subject: '', message: '', sending: false });
+  const [messagesModal, setMessagesModal] = useState({
+    visible: false,
+    userId: null,
+    userName: '',
+    messages: [],
+    loading: false
+  }); // Nuevo estado para el modal de mensajes
 
-  // Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   const showMessage = (title, message, isError = false) => {
     setMessageModal({ visible: true, title, message, isError });
+  };
+
+  // Obtener mensajes de un usuario
+  const fetchUserMessages = async (userId, userName) => {
+    setMessagesModal({
+      visible: true,
+      userId,
+      userName,
+      messages: [],
+      loading: true
+    });
+    try {
+      const res = await api.get(`messages/user/${userId}`);
+      setMessagesModal(prev => ({
+        ...prev,
+        messages: res.data,
+        loading: false
+      }));
+    } catch (err) {
+      showMessage('Error', 'No se pudieron cargar los mensajes', true);
+      setMessagesModal(prev => ({ ...prev, visible: false, loading: false }));
+    }
+  };
+
+  // Eliminar un mensaje
+  const deleteUserMessage = async (messageId) => {
+    try {
+      await api.delete(`messages/${messageId}`);
+      setMessagesModal(prev => ({
+        ...prev,
+        messages: prev.messages.filter(m => m._id !== messageId)
+      }));
+      showMessage('Éxito', 'Mensaje eliminado');
+    } catch (err) {
+      showMessage('Error', 'No se pudo eliminar el mensaje', true);
+    }
   };
 
   const fetchUsers = useCallback(async () => {
@@ -78,8 +120,8 @@ const UsersTab = () => {
         u.lastSync ? new Date(u.lastSync).toLocaleDateString() : '—'
       ]);
       const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-      const csvBlob = new Blob([csvContent], { type: 'text/csv' });
-      const url = URL.createObjectURL(csvBlob);
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `usuarios_${new Date().toISOString().slice(0, 10)}.csv`);
@@ -90,15 +132,6 @@ const UsersTab = () => {
       showMessage('Éxito', 'Archivo CSV exportado correctamente');
     } catch (err) {
       showMessage('Error', 'No se pudo exportar el archivo', true);
-    }
-  };
-
-  const handleResetPassword = async (user) => {
-    try {
-      await api.post('admin/reset-password', { userId: user._id });
-      showMessage('Éxito', `Se ha enviado un enlace de restablecimiento a ${user.email}`);
-    } catch (err) {
-      showMessage('Error', err?.response?.data?.message || 'No se pudo enviar el enlace', true);
     }
   };
 
@@ -134,10 +167,30 @@ const UsersTab = () => {
     }
   };
 
+  const sendEmailToUser = async () => {
+    const { user, subject, message } = emailModal;
+    if (!subject.trim() || !message.trim()) {
+      showMessage('Campos incompletos', 'Debes escribir asunto y mensaje', true);
+      return;
+    }
+    setEmailModal(prev => ({ ...prev, sending: true }));
+    try {
+      await api.post('admin/send-email', {
+        subject,
+        message,
+        emails: [user.email]
+      });
+      showMessage('Correo enviado', `Se ha enviado un correo a ${user.email}`);
+      setEmailModal({ visible: false, user: null, subject: '', message: '', sending: false });
+    } catch (err) {
+      showMessage('Error', err.response?.data?.message || 'No se pudo enviar el correo', true);
+      setEmailModal(prev => ({ ...prev, sending: false }));
+    }
+  };
+
   const openModal = (type, user) => setModal({ visible: true, type, user });
   const closeModal = () => setModal({ visible: false, type: null, user: null });
 
-  // Filtros
   useEffect(() => {
     const q = search.toLowerCase();
     let result = users.filter(u => {
@@ -166,11 +219,9 @@ const UsersTab = () => {
 
   return (
     <View style={styles.container}>
-      {/* Modal de confirmación (eliminar/inhabilitar) */}
       <ConfirmModal modal={modal} onClose={closeModal} onConfirmDelete={handleDelete} onConfirmBan={handleToggleBan} />
 
-      {/* Modal de mensajes (éxito/error) */}
-      <Modal visible={messageModal.visible} transparent animationType="fade" onRequestClose={() => setMessageModal({ ...messageModal, visible: false })}>
+      <Modal visible={messageModal.visible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.messageModalCard, messageModal.isError && styles.errorModalCard]}>
             <Feather name={messageModal.isError ? 'alert-triangle' : 'check-circle'} size={40} color={messageModal.isError ? '#ef4444' : '#16a34a'} />
@@ -183,7 +234,67 @@ const UsersTab = () => {
         </View>
       </Modal>
 
-      {/* Cabecera y resto del contenido igual que antes */}
+      <Modal visible={emailModal.visible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.emailModalCard}>
+            <Text style={styles.modalTitle}>Enviar correo a {emailModal.user?.name}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Asunto"
+              value={emailModal.subject}
+              onChangeText={(text) => setEmailModal(prev => ({ ...prev, subject: text }))}
+            />
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Mensaje"
+              multiline
+              numberOfLines={5}
+              value={emailModal.message}
+              onChangeText={(text) => setEmailModal(prev => ({ ...prev, message: text }))}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity onPress={() => setEmailModal({ visible: false, user: null, subject: '', message: '', sending: false })} style={styles.cancelBtn}>
+                <Text style={styles.cancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={sendEmailToUser} disabled={emailModal.sending} style={[styles.confirmBtn, { backgroundColor: '#16a34a' }]}>
+                {emailModal.sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.confirmText}>Enviar</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de mensajes de usuario */}
+      <Modal visible={messagesModal.visible} animationType="slide" onRequestClose={() => setMessagesModal(prev => ({ ...prev, visible: false }))}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Mensajes de {messagesModal.userName}</Text>
+            <TouchableOpacity onPress={() => setMessagesModal(prev => ({ ...prev, visible: false }))}>
+              <Feather name="x" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+          {messagesModal.loading ? (
+            <ActivityIndicator size="large" color="#16a34a" />
+          ) : messagesModal.messages.length === 0 ? (
+            <Text style={styles.noMessages}>No hay mensajes</Text>
+          ) : (
+            <FlatList
+              data={messagesModal.messages}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item }) => (
+                <View style={styles.messageCard}>
+                  <Text style={styles.messageDate}>{new Date(item.createdAt).toLocaleString()}</Text>
+                  <Text style={styles.messageText}>{item.message}</Text>
+                  <TouchableOpacity onPress={() => deleteUserMessage(item._id)} style={styles.deleteMsgBtn}>
+                    <Feather name="trash-2" size={18} color="#dc2626" />
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
+          )}
+        </View>
+      </Modal>
+
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.title}>Gestión de Usuarios</Text>
@@ -273,7 +384,8 @@ const UsersTab = () => {
                 onDelete={() => openModal('delete', item)}
                 onToggleBan={() => openModal('ban', item)}
                 onChangeRole={(role) => handleChangeRole(item, role)}
-                onResetPassword={() => handleResetPassword(item)}
+                onSendEmail={() => setEmailModal({ visible: true, user: item, subject: '', message: '', sending: false })}
+                onViewMessages={() => fetchUserMessages(item._id, item.name)}
               />
             )}
             ListEmptyComponent={
@@ -303,10 +415,8 @@ const UsersTab = () => {
   );
 };
 
-// ------------------------------------------------------------
-// UserRow (con modal para roles como ya tienes)
-// ------------------------------------------------------------
-const UserRow = ({ user, isLast, onViewDetail, onDelete, onToggleBan, onChangeRole, onResetPassword }) => {
+// ===================== UserRow modificado =====================
+const UserRow = ({ user, isLast, onViewDetail, onDelete, onToggleBan, onChangeRole, onSendEmail, onViewMessages }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const isBanned = user.active === false;
   const isAdmin = user.role === 'admin';
@@ -339,8 +449,12 @@ const UserRow = ({ user, isLast, onViewDetail, onDelete, onToggleBan, onChangeRo
           <TouchableOpacity style={styles.iconBtn} onPress={onViewDetail}>
             <Feather name="eye" size={15} color="#6b7280" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn} onPress={onResetPassword}>
+          <TouchableOpacity style={styles.iconBtn} onPress={onSendEmail}>
             <Feather name="mail" size={15} color="#3b82f6" />
+          </TouchableOpacity>
+          {/* Botón para ver mensajes del usuario */}
+          <TouchableOpacity style={styles.iconBtn} onPress={onViewMessages}>
+            <Feather name="message-circle" size={15} color="#3b82f6" />
           </TouchableOpacity>
           {!isAdmin && (
             <TouchableOpacity style={[styles.iconBtn, isBanned ? styles.iconBtnGreen : styles.iconBtnOrange]} onPress={onToggleBan}>
@@ -355,7 +469,6 @@ const UserRow = ({ user, isLast, onViewDetail, onDelete, onToggleBan, onChangeRo
         </View>
       </View>
 
-      {/* Modal para cambiar rol */}
       <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setModalVisible(false)}>
           <View style={styles.roleModalCard}>
@@ -384,9 +497,7 @@ const UserRow = ({ user, isLast, onViewDetail, onDelete, onToggleBan, onChangeRo
   );
 };
 
-// ------------------------------------------------------------
-// UserDetailView (también mostramos mensajes con modal)
-// ------------------------------------------------------------
+// ===================== UserDetailView =====================
 const UserDetailView = ({ user, onBack, showMessage }) => {
   const [detections, setDetections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -434,9 +545,7 @@ const UserDetailView = ({ user, onBack, showMessage }) => {
   );
 };
 
-// ------------------------------------------------------------
-// ConfirmModal (sin cambios, solo mantiene la estructura)
-// ------------------------------------------------------------
+// ===================== ConfirmModal =====================
 const ConfirmModal = ({ modal, onClose, onConfirmDelete, onConfirmBan }) => {
   if (!modal.visible || !modal.user) return null;
   const isDelete = modal.type === 'delete';
@@ -530,8 +639,8 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: '800', color: '#111827', textAlign: 'center' },
   modalBody: { fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 20 },
   modalActions: { flexDirection: 'row', gap: 12, marginTop: 8, width: '100%' },
-  cancelBtn: { flex: 1, padding: 14, borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb', alignItems: 'center' },
-  cancelText: { fontWeight: '700', color: '#6b7280' },
+  cancelBtn: { flex: 1, padding: 14, borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb', alignItems: 'center', backgroundColor: Colors.danger },
+  cancelText: { fontWeight: '700', color: Colors.surface },
   confirmBtn: { flex: 1, padding: 14, borderRadius: 10, alignItems: 'center' },
   confirmBtnRed: { backgroundColor: '#ef4444' },
   confirmBtnOrange: { backgroundColor: '#f59e0b' },
@@ -589,12 +698,6 @@ const styles = StyleSheet.create({
       default: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 5 }
     })
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   roleModalCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
@@ -628,11 +731,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: Colors.danger,
   },
   roleModalCancelText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: Colors.surface,
     textAlign: 'center',
     fontWeight: '600',
   },
@@ -671,6 +774,62 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 15,
+  },
+  emailModalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    width: '90%',
+    maxWidth: 450,
+    gap: 16,
+  },
+  textArea: { minHeight: 100, textAlignVertical: 'top' },
+  input: {
+    width: '100%',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: 8,
+    padding: 12,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 20,
+    marginTop: 50,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  messageCard: {
+    backgroundColor: '#f8fafc',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  messageDate: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  messageText: {
+    fontSize: 15,
+    color: '#1e293b',
+  },
+  deleteMsgBtn: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
+  },
+  noMessages: {
+    textAlign: 'center',
+    marginTop: 40,
+    fontSize: 16,
+    color: '#94a3b8',
   },
 });
 

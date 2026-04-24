@@ -59,7 +59,6 @@ export default function AppNavigator() {
           <Stack.Screen name='TreatmentNote' component={TreatmentNoteScreen}/>
           <Stack.Screen name='TreatmentLog' component={TreatmentLogScreen}/>
           <Stack.Screen name='TreatmentForm' component={TreatmentFormScreen}/>
-          <Stack.Screen name='Terminos' component={TermsScreen}/>
           <Stack.Screen name='Centro' component={HelpCenterScreen}/>
         </>
       ) : (
@@ -70,7 +69,7 @@ export default function AppNavigator() {
           <Stack.Screen name='VerifyCode' component={VerifyCodeScreen} />
           <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
           <Stack.Screen name='ResetPassword' component={ResetPassword} />
-          {/* <Stack.Screen name="ResetPassword" component={ResetPassword} /> */}
+          <Stack.Screen name='Terminos' component={TermsScreen}/>
         </>
       )}
     </Stack.Navigator>

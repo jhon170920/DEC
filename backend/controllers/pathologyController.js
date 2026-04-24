@@ -3,7 +3,7 @@ import Pathology from '../models/pathologies.js'; // Tu modelo definido anterior
 export const getAllPathologies = async (req, res) => {
     try {
         // Obtenemos todas las patologías guardadas en MongoDB
-        const pathologies = await Pathology.find({}, 'name description treatment');
+        const pathologies = await Pathology.find({}, 'name description treatment imageUrl recommendations');
         
         // Respondemos con el JSON que SQLite espera
         res.status(200).json(pathologies);
