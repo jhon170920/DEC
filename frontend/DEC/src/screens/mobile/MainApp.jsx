@@ -34,7 +34,7 @@ export default function MainApp() {
 
   const { width } = useWindowDimensions();
   const navigation = useNavigation();
-  const { userToken, isGuest } = useContext(AuthContext);
+  const { userToken, isGuest, logout } = useContext(AuthContext); // 👈 añadir logout
   const [userData, setUserData] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -74,9 +74,12 @@ export default function MainApp() {
     }
   };
 
-  const handleGoToLogin = () => {
+  const handleGoToLogin = async () => {
     setShowLoginModal(false);
-    navigation.navigate("Login");
+    // 👇 Limpiar estado de invitado antes de ir al login.
+    // Esto hace que el navigator re-renderice al stack de autenticación
+    // automáticamente, sin necesidad de navigate("Login").
+    await logout();
   };
 
   const checkAuthAndNavigate = (screenName) => {
@@ -237,7 +240,6 @@ export default function MainApp() {
         </View>
 
         <View style={styles.menuList}>
-          {/* Mis Análisis (restringido) */}
           <TouchableOpacity
             style={styles.menuCard}
             activeOpacity={0.75}
@@ -253,7 +255,6 @@ export default function MainApp() {
             <Feather name="chevron-right" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
 
-          {/* Bitácora de cultivo (restringido) */}
           <TouchableOpacity
             style={styles.menuCard}
             activeOpacity={0.75}
@@ -269,7 +270,6 @@ export default function MainApp() {
             <Feather name="chevron-right" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
 
-          {/* Contáctanos (restringido) */}
           <TouchableOpacity
             style={styles.menuCard}
             activeOpacity={0.75}

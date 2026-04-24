@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Modal, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../api/api';
+import { AuthContext } from '../../context/AuthContext';
 
 const C = {
   bg: '#f4faf5',
@@ -16,6 +17,7 @@ const C = {
 
 export default function LoginAdmin() {
   const navigation = useNavigation();
+  const { login } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -73,8 +75,8 @@ export default function LoginAdmin() {
         return;
       }
 
-      localStorage.setItem('userToken', token);
-      navigation.navigate('AdminDashboard');
+      await login(token);
+      navigation.navigate('AdminDashboard')
 
     } catch (error) {
       let errorMessage = "Error al iniciar sesión. Verifica tus credenciales.";

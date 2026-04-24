@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, 
-  useWindowDimensions, Platform, Alert 
+  useWindowDimensions, Platform, Modal
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -31,22 +31,21 @@ export default function AdminDashboard() {
   const { logout } = useContext(AuthContext);
   
   const [activeTab, setActiveTab] = useState('Dashboard');
+  // 👇 AÑADIDO: estado para controlar el modal de confirmación (reemplaza Alert.alert)
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const handleLogout = async () => {
-    Alert.alert("Cerrar sesión", "¿Estás seguro?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Cerrar sesión",
-        style: "destructive",
-        onPress: async () => {
-          await logout();
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'LoginAdmin' }],
-          });
-        }
-      }
-    ]);
+  const handleLogout = () => {
+    // 👇 CORREGIDO: en web Alert.alert no funciona; abrimos nuestro propio modal
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
+    await logout();
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Home' }],
+    });
   };
 
   return (
@@ -85,7 +84,6 @@ export default function AdminDashboard() {
             active={activeTab === 'Heatmap'} 
             onPress={() => setActiveTab('Heatmap')} 
           />
-          {/* Botón de cerrar sesión */}
           <SidebarItem 
             icon="log-out" 
             label="Cerrar sesión" 
@@ -118,6 +116,36 @@ export default function AdminDashboard() {
           <Text style={styles.mobileLogoutText}>Cerrar sesión</Text>
         </TouchableOpacity>
       )}
+
+      {/* 👇 AÑADIDO: Modal de confirmación compatible con web */}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={showLogoutModal}
+        onRequestClose={() => setShowLogoutModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Feather name="log-out" size={40} color={COLORS.danger} style={styles.modalIcon} />
+            <Text style={styles.modalTitle}>Cerrar sesión</Text>
+            <Text style={styles.modalMessage}>¿Estás seguro de que quieres cerrar sesión?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnCancel]}
+                onPress={() => setShowLogoutModal(false)}
+              >
+                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnDanger]}
+                onPress={confirmLogout}
+              >
+                <Text style={styles.modalBtnDangerText}>Cerrar sesión</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -217,5 +245,67 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     marginLeft: 8,
+  },
+  // Estilos del modal de confirmación
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 32,
+    alignItems: 'center',
+    width: 340,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  modalIcon: {
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 28,
+    lineHeight: 22,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalBtnCancel: {
+    backgroundColor: '#f3f4f6',
+  },
+  modalBtnCancelText: {
+    color: '#374151',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  modalBtnDanger: {
+    backgroundColor: COLORS.danger,
+  },
+  modalBtnDangerText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
   },
 });

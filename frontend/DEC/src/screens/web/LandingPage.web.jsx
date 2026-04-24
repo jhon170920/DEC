@@ -312,10 +312,7 @@ const phoneStyles = StyleSheet.create({
   },
   scanBar: {
     position: 'absolute', left: 0, right: 0, height: 2,
-    ...Platform.select({
-      web: { background: 'linear-gradient(90deg, transparent, rgba(116,250,158,0.8), transparent)' },
-      default: { backgroundColor: 'rgba(116,250,158,0.8)' },
-    }),
+    backgroundColor: 'rgba(116,250,158,0.8)',
   },
   scanRing: {
     width: 100, height: 100, borderRadius: 50,
@@ -475,6 +472,7 @@ export default function LandingPage({ navigation }) {
                     <Animated.View style={[phoneStyles.scanBar, {
                       transform: [{ translateY: scanBarAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 280] }) }],
                       opacity: scanBarAnim.interpolate({ inputRange: [0, 0.1, 0.9, 1], outputRange: [0, 1, 1, 0] }),
+                      ...(Platform.OS === 'web' && { background: 'linear-gradient(90deg, transparent, rgba(116,250,158,0.8), transparent)' }),
                     }]} />
                     <Animated.View style={[phoneStyles.scanRing, {
                       opacity: scanPulseAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.6, 1, 0.6] }),

@@ -17,7 +17,7 @@ api.interceptors.request.use(
       let token;
       // 👈 Validación híbrida para evitar el error en Web
       if (Platform.OS === 'web') {
-          token = localStorage.getItem('userToken');
+          token = sessionStorage.getItem('userToken');
       } else {
           token = await SecureStore.getItemAsync('userToken');
       }
@@ -38,7 +38,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       // Limpiar token y redirigir al login
       if (Platform.OS === 'web') {
-        localStorage.removeItem('userToken');
+        sessionStorage.removeItem('userToken');
         // Opcional: recargar la página o emitir evento
         window.location.href = '/login';
       } else {
