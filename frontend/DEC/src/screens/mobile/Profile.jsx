@@ -105,15 +105,20 @@ export default function Profile() {
       // Borrar la cuenta vinculada a fb o google 
       await RevokeAccessSocial(); // se remueven los permisos de fb/google
       await deleteUserAccountSocial(); // se elimina el registro de la cuenta en mongo
-      Alert.alert("Cuenta eliminada", "Tu cuenta ha sido eliminada permanentemente");
-      logout(); // Esto limpiará el token y redirigirá al login automáticamente
+      setSuccessMessage("Tu cuenta ha sido eliminada permanentemente");
+      setModalSuccessVisible(true);
+      // Esperar un momento para mostrar el modal antes de redirigir
+      setTimeout(() => {
+        setModalSuccessVisible(false);
+        logout();
+      }, 2000);
     } catch (error) {
       const msg = error.message || "Error al eliminar la cuenta";
-      Alert.alert("Error", msg);
+      setErrorMessage(msg);
+      setModalErrorVisible(true);
     } finally{
       setDeleting(false);
-      setModalVisible(false);
-      setDeletePassword("");
+      setModalPasswordVisible(false);
     }
   }
 
@@ -304,14 +309,16 @@ export default function Profile() {
                 </>
               )
             }
-            <TouchableOpacity style={styles.modalBtn} activeOpacity={0.85} onPress={userData.provider.includes('local') ? confirmDeleteAccount : confirmDeleteAccountSocial} disabled={deleting}>
-              <LinearGradient colors={["#dc2626", "#b91c1c"]} style={styles.modalBtnGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                <Text style={styles.modalBtnText}>{deleting ? "Eliminando..." : "Eliminar"}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.modalCancelBtn} activeOpacity={0.75} onPress={() => setModalPasswordVisible(false)}>
-              <Text style={styles.modalCancelText}>Cancelar</Text>
-            </TouchableOpacity>
+            <View style={{ justifyContent: 'space-between', marginTop: 20, width: '100%' }}>
+              <TouchableOpacity style={styles.modalConfirmBtn} activeOpacity={0.85} onPress={userData.provider.includes('local') ? confirmDeleteAccount : confirmDeleteAccountSocial} disabled={deleting}>
+                <LinearGradient colors={["#dc2626", "#b91c1c"]} style={styles.modalBtnGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                  <Text style={styles.modalBtnText}>{deleting ? "Eliminando..." : "Eliminar"}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalCancelBtn} activeOpacity={0.75} onPress={() => setModalPasswordVisible(false)}>
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

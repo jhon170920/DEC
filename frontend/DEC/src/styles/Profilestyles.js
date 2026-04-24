@@ -170,9 +170,16 @@ modalBtn: {
     backgroundColor: Colors.primary,
     borderRadius: 12,
 },
+modalConfirmBtn: {
+  alignItems: 'center',
+  borderRadius: 12,
+},
 modalBtnGradient: {
-    paddingVertical: 14,
+    width: '100%',
+    padding: 14,
     alignItems: 'center',
+    borderRadius: 12,
+    marginBottom: 20,
 },
 modalBtnText: {
     color: '#fff',
