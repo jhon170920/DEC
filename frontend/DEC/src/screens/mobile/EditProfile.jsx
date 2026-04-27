@@ -201,7 +201,7 @@ export default function EditProfile() {
             {/* HEADER */}
             <View style={styles.header}>
               <TouchableOpacity style={styles.backBtn} activeOpacity={0.75} onPress={() => navigation.goBack()}>
-                <Feather name="arrow-left" size={iconS} color={Colors.text} />
+                <Feather name="arrow-left" size={iconS} color={Colors.primary} />
               </TouchableOpacity>
               <Text style={styles.headerTitle}>Editar Perfil</Text>
               <View style={{ width: 40 }} />
