@@ -154,7 +154,7 @@ export default function Profile() {
           <Image source={require("../../../assets/image/logo.png")} style={{ width: 40, height: 40 }} resizeMode="contain" />
           </View>
           <TouchableOpacity style={[styles.backBtn, { width: 50, height: 50, borderRadius: 25 }]} activeOpacity={0.75} onPress={() => navigation.goBack()}>
-            <Feather name="arrow-left" size={iconS} color={Colors.text} />
+            <Feather name="arrow-left" size={iconS} color={Colors.primary} />
           </TouchableOpacity>
         </View>
 
