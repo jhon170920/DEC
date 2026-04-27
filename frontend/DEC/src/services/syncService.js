@@ -188,3 +188,18 @@ export const forceSync = async (token) => {
   await syncLocalTreatments();
   await syncRemoteTreatments(token);
 };
+
+// Sincronizacion de notificaciones
+
+export const syncNotifications = async () =>{
+try {
+  const res = await api.get('notifications/my');
+  const notifications = res.data
+  // Guardar en SQLite local (tabla notifications)
+  await dbService.saveNotifications(notifications);
+  return notifications;
+} catch (error) {
+  console.error('Error sincronizando notificaciones', error);
+  return[];
+}
+}

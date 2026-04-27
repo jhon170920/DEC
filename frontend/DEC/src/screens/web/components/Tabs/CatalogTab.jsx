@@ -173,15 +173,18 @@ const pickImage = async () => {
   // Enviar alerta push
   const handleSendAlert = async (location, message) => {
     try {
-      await api.post('/admin/send-notification', {
+      await api.post('/admin/create', {
         title: `🚨 Alerta: ${selectedPathology.name}`,
         body: `${message}\n📍 Ubicación: ${location}`,
-        data: { pathologyId: selectedPathology._id, location }
+        type: 'alert',
+        pathologyId: selectedPathology._id,
+        location: location,
+        targetRoles: ['user', 'tecnico']
       });
-      Alert.alert('Alerta enviada', 'Notificación enviada a todos los usuarios');
+      Alert.alert('Alerta creada', 'Notificación guardada y estar disponible para los usuarios en su proxima sincronizacion');
       setModalVisible(false);
     } catch (error) {
-      Alert.alert('Error', 'No se pudo enviar la alerta');
+      Alert.alert('Error', 'No se crear la notificacion');
     }
   };
 

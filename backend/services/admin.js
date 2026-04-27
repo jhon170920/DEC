@@ -1,6 +1,7 @@
 import Users from "../models/users.js"; // Importar el modelo de usuario (no olvidar al importar el archivo su extensión .js)
 import Detections from "../models/Detection.js"; // Importar las detecciones de los usuarios
 import Pathology from "../models/pathologies.js" // Importamos nuestras patologías, (cuando la tengamos)
+import Notifications from "../models/Notifications.js"; // Importamos el modelo de Notificaciones
 import { uploadToCloudinary } from './cloudinary.js';
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
@@ -313,3 +314,26 @@ export const changeUserRole = async (req, res) => {
       res.status(500).json({ message: error.message });
     }
   };
+// Crear una notificacion por el admin
+export const createNotification = async (req, res) => {
+  try {
+    const {title, body, type, pathologyId, location, targetRoles, expiresAt} = req.body;
+    if(!title || !body){
+      return res.status(400).json({message: 'Falatan titulo o cuerpo'});
+    }
+    const newNotification = new Notification({
+      title,
+      body,
+      type: type || 'info',
+      pathologyId, 
+      location,
+      targetRoles: targetRoles || ['user', 'tecnico', 'admin'],
+      expiresAt: expiresAt || null,
+    })
+    await newNotification.save();
+    res.status(201).json({message: 'Notificacion creada', notification: newNotification});
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({message: error.message}); 
+  }
+};
