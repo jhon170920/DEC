@@ -59,6 +59,7 @@ export default function AppNavigator() {
           <Stack.Screen name='TreatmentLog' component={TreatmentLogScreen}/>
           <Stack.Screen name='TreatmentForm' component={TreatmentFormScreen}/>
           <Stack.Screen name='Centro' component={HelpCenterScreen}/>
+          <Stack.Screen name='Terminos' component={TermsScreen}/>
         </>
       ) : (
         // --- STACK DE AUTENTICACIÓN ---

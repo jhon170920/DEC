@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, View, StyleSheet, Alert } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { AuthProvider } from './src/context/AuthContext';
