@@ -608,6 +608,9 @@ export default function LandingPage({ navigation }) {
               </View>
             </View>
             <Text style={styles.footerText}>© {new Date().getFullYear()} Proyecto DEC - SENA Regional Huila. Tecnología al servicio del campo colombiano.</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Legal')}>
+              <Text style={styles.footerTerms}>Terminos y Política de Privacidad.</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -713,5 +716,6 @@ const styles = StyleSheet.create({
   footerLogoText: { color: '#fff', fontWeight: '700', fontSize: 18 },
   socialIcons: { flexDirection: 'row', gap: 16 },
   socialIcon:  { backgroundColor: 'rgba(255,255,255,0.1)', padding: 10, borderRadius: 40 },
-  footerText:  { color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center' },
+  footerText:  { color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center', marginBottom: 5 },
+  footerTerms:  { color: 'rgb(255, 255, 255)', fontSize: 13, textAlign: 'center' },
 });
