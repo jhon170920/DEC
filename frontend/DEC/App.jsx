@@ -1,11 +1,14 @@
-import React, { useEffect } from 'react';
-import { Platform, View, StyleSheet, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Platform, View, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { initDatabase, getAllActiveAlarms, deactivateAlarm } from './src/services/dbService';
 import * as RootNavigation from './src/navigation/RootNavigation';
 import { SyncManager } from './src/components/SyncManager';
+import OnboardingScreen from './src/components/OnboardingScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -76,6 +79,25 @@ export default function App() {
       responseListener.remove();
     };
   }, []);
+
+  // Lógica para mostrar onboarding solo la primera vez
+  const [isFirstLaunch, setIsFirstLaunch] = useState(null);
+
+  useEffect(() => {
+    const checkFirstLaunch = async () => {
+      const hasSeen = await AsyncStorage.getItem('@hasSeenOnboarding');
+      setIsFirstLaunch(hasSeen === null);
+    };
+    checkFirstLaunch();
+  }, []);
+
+  if (isFirstLaunch === null) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" /></View>;
+  }
+
+  if (isFirstLaunch) {
+    return <OnboardingScreen onDone={() => setIsFirstLaunch(false)} />;
+  }
 
   return (
     <View style={styles.container}>
