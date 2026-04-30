@@ -1,14 +1,33 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 
 export const dashboardTabStyles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#f9fafb' },
     content: { padding: 20, paddingBottom: 40 },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     loadingText: { marginTop: 12, color: '#6b7280' },
+    //FILTER BARS
+    filterBarResponsiveSmall:{
+      width: '40%',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignSelf: 'center',
+      marginLeft: -12,
+
+    },
     filterBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 20, flexWrap: 'wrap', gap: 12 },
     dateFilterRow: { flexDirection: 'row', gap: 16, flexWrap: 'wrap' },
+    dateFilterRowResposiveSmall:{
+      justifyContent: 'center',
+      alignItems: 'center',
+
+    },
     filterLabel: { fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6 },
     dateInput: { padding: 10, borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, fontSize: 14, backgroundColor: '#fff' },
+    exportBtnResponsiveSmall:{
+      alignContent: 'center',
+      alignItems: 'center',
+      marginLeft: '-90%',
+    },
     exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#16a34a', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
     exportBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
     kpiRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 24, gap: 12 },
@@ -18,6 +37,19 @@ export const dashboardTabStyles = StyleSheet.create({
     kpiTitle: { fontSize: 13, color: '#6b7280', marginTop: 4 },
     trendBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, marginTop: 8 },
     trendText: { fontSize: 10, fontWeight: '600' },
+    // RESPONSIVE CARDS
+    chartRowResponsiveSmall:{
+      flexDirection: 'column'
+    },
+    chartCardResponsiveSmall:{
+      flex: 1,
+      width: '100%',
+      alignItems: 'center',
+    },
+    fullWidthCardResponsiveSmall:{
+      alignContent:'center',
+      width: '100%',
+    },
     chartsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginBottom: 24 },
     chartCard: { flex: 1, backgroundColor: '#fff', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#e5e7eb' },
     fullWidthCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 24 },
@@ -34,12 +66,12 @@ export const dashboardTabStyles = StyleSheet.create({
     weeklyLabel: { fontSize: 11, color: '#6b7280', marginBottom: 8 },
     weeklyBarBg: { width: 30, height: 120, backgroundColor: '#f3f4f6', borderRadius: 4, overflow: 'hidden', justifyContent: 'flex-end' },
     weeklyBarFill: { width: '100%', backgroundColor: '#16a34a', borderRadius: 4 },
-    weeklyValue: { fontSize: 11, fontWeight: '600', color: '#374151', marginTop: 6 },
+    weeklyValue: { fontSize: 11, fontWeight: '600', color: '#374151', marginTop: 6, },
     twoColumns: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginBottom: 24 },
     topItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
     topRank: { width: 30, fontSize: 14, fontWeight: '700', color: '#16a34a' },
     topName: { flex: 1, fontSize: 14, color: '#374151' },
-    topValue: { fontSize: 13, fontWeight: '600', color: '#6b7280' },
+    topValue: { fontSize: 13, fontWeight: '600', color: '#6b7280', marginLeft: '1%', },
     recentItem: { flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
     recentDate: { width: 90, fontSize: 12, color: '#9ca3af' },
     recentPathology: { flex: 1, fontSize: 13, fontWeight: '500', color: '#374151' },

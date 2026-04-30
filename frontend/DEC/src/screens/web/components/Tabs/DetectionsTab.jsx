@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  View, Text, Dimensions, TouchableOpacity, ScrollView,
   Image, Platform, Linking, ActivityIndicator, Alert, Modal, FlatList
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import api from '../../../../api/api';
 import { useDateFilter } from '../../../../hooks/useDateFilter';
 import { detectionTabStyles as styles } from '../styles/detectionTabStyles';
+
+const {width} = Dimensions.get('window')
 
 const DetectionsTab = () => {
   const [detections, setDetections] = useState([]);
@@ -262,21 +264,21 @@ const DetectionsTab = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, width < 480 && styles.containerSmall]}>
       {/* Cabecera */}
-      <View style={styles.header}>
+      <View style={[styles.header, width < 480 && styles.headerSmall]}>
         <View>
           <Text style={styles.title}>Auditoría y Dataset</Text>
           <Text style={styles.sub}>Curación de datos para mejora de YOLOv11</Text>
         </View>
-        <View style={styles.datasetStatsCard}>
+        <View style={[styles.datasetStatsCard, width < 480 && {width: '100%', alignItems: 'center'}]}>
           <View style={styles.datasetInfo}>
             <Text style={styles.datasetNumber}>{approvedCount}</Text>
             <Text style={styles.datasetSub}>Imágenes Aprobadas</Text>
           </View>
-          <TouchableOpacity style={styles.downloadBtn} onPress={handleExportDataset}>
+          <TouchableOpacity style={[styles.downloadBtn, width < 480 && {width: '45%', marginRight: -10}]} onPress={handleExportDataset}>
             <Feather name="download-cloud" size={18} color="#fff" />
-            <Text style={styles.downloadText}>Exportar Dataset</Text>
+            <Text style={styles.downloadText }>Exportar Dataset</Text>
           </TouchableOpacity>
           {/* Modal exportación (sin cambios) */}
           <Modal visible={exportModalVisible} transparent animationType="fade">

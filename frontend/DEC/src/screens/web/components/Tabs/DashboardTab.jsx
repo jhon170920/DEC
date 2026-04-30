@@ -329,8 +329,8 @@ const DashboardTab = () => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} id="dashboard-content">
       {/* Filtros y exportación */}
-      <View style={styles.filterBar}>
-        <View style={styles.dateFilterRow}>
+      <View style={[styles.filterBar, width < 480 && styles.filterBarResponsiveSmall]}>
+        <View style={[styles.dateFilterRow, width <480 && styles.dateFilterRowResposiveSmall]}>
           <div>
             <Text style={styles.filterLabel}>Fecha inicio</Text>
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="date-input" style={styles.dateInput} />
@@ -340,7 +340,7 @@ const DashboardTab = () => {
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="date-input" style={styles.dateInput} />
           </div>
         </View>
-        <TouchableOpacity style={styles.exportBtn} onPress={exportToPDF}>
+        <TouchableOpacity style={[styles.exportBtn, width < 480 && styles.exportBtnResponsiveSmall]} onPress={exportToPDF}>
           <Feather name="file-text" size={16} color="#fff" />
           <Text style={styles.exportBtnText}>Exportar PDF</Text>
         </TouchableOpacity>
@@ -355,9 +355,9 @@ const DashboardTab = () => {
       </View>
 
       {/* Gráficos */}
-      <View style={styles.chartsRow}>
+      <View style={[styles.chartsRow, width < 480 && styles.chartRowResponsiveSmall ]}>
         {/* Distribución */}
-        <View style={styles.chartCard}>
+        <View style={[styles.chartCard, width < 480 && styles.chartCardResponsiveSmall]}>
           <Text style={styles.chartTitle}>Distribución por Afección</Text>
           {pieData.length > 0 ? (
             pieData.map((item, idx) => (
@@ -416,7 +416,7 @@ const DashboardTab = () => {
 
       {/* Top patologías y últimas detecciones */}
       <View style={styles.twoColumns}>
-        <View style={styles.fullWidthCard}>
+        <View style={[styles.fullWidthCard, width < 480 && styles.fullWidthCardResponsiveSmall]}>
           <Text style={styles.chartTitle}>Top 5 Patologías</Text>
           {topPathologies.length > 0 ? (
             topPathologies.map((item, idx) => (

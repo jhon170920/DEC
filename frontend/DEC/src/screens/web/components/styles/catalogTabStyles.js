@@ -212,5 +212,39 @@ export const catalogTabStyles = StyleSheet.create({
       fontStyle: 'italic',
       textAlign: 'center',
       marginVertical: 20
-    }
+    },
+    //RESPONSIVE
+    headerSmall:{
+      flexDirection: 'column',
+      alignContent: 'center',
+    },
+    subSmall:{
+      marginBottom: 10,
+    },
+    mainLayoutResponsiveSmall:{
+      flexDirection: 'column'
+    },
+    listSideSmall:{
+      alignContent: 'center',
+      width: '100%'
+    },
+    editorSideSmall:{
+      flexDirection: 'column'
+    },
+    editorHeaderSmall:{
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 10,
+      width: '100%'
+
+    },
+    TextSmall:{
+      textAlign:'center',
+      width: '100%',
+      
+    },
+    editBtnSmall:{
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
   });

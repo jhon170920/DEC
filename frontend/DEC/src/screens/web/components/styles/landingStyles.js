@@ -1,5 +1,19 @@
 import { StyleSheet, Platform } from "react-native";
 
+export const C = {
+  bg: '#f0fdf4',
+  surface: '#ffffff',
+  primary: '#059669',
+  primaryLight: '#10b981',
+  primaryDark: '#047857',
+  accent: '#f59e0b',
+  accentDark: '#d97706',
+  text: '#064e3b',
+  textLight: '#374151',
+  muted: '#6b7280',
+  white: '#ffffff',
+  black: '#111827',
+};
 
 export const landingStyle = StyleSheet.create({
   root: { minHeight: '100vh', height: '100vh', width: '100%', backgroundColor: C.bg, position: 'relative' },
@@ -34,7 +48,7 @@ export const landingStyle = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, justifyContent: 'center' },
   card: {
     backgroundColor: '#ffffff', borderRadius: 20, padding: 28,
-    overflow: 'hidden', position: 'relative',
+    overflow: 'hidden', position: 'relative',alignItems: 'center',
     ...Platform.select({
       web: { boxShadow: '0 4px 12px rgba(22,163,74,0.06)' },
       default: { shadowColor: '#16a34a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 4 },

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput,
+  View, Text, Dimensions, TouchableOpacity, TextInput,
   ScrollView, Image, Platform, Switch, Modal, ActivityIndicator, Alert
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -8,6 +8,8 @@ import * as ImagePicker from 'expo-image-picker';
 import api from '../../../../api/api';
 import { Linking } from 'react-native';
 import { catalogTabStyles as styles} from '../styles/catalogTabStyles';
+
+const {width} = Dimensions.get('window');
 
 const CatalogTab = () => {
   const [pathologies, setPathologies] = useState([]);
@@ -22,6 +24,7 @@ const CatalogTab = () => {
   // Estado para insumos mientras se edita
   const [recommendations, setRecommendations] = useState([]);
 
+  
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -209,10 +212,10 @@ const pickImage = async () => {
         onSend={handleSendAlert}
       />
 
-      <View style={styles.header}>
+      <View style={[styles.header, width < 480 && styles.headerSmall]}>
         <View>
           <Text style={styles.title}>Catálogo Fitopatológico</Text>
-          <Text style={styles.sub}>Base de conocimientos y alertas sanitarias</Text>
+          <Text style={[styles.sub, width < 480 && styles.subSmall ]}>Base de conocimientos y alertas sanitarias</Text>
         </View>
         <TouchableOpacity style={styles.broadcastBtn} onPress={() => setModalVisible(true)}>
           <Feather name="rss" size={18} color="#fff" />
@@ -220,9 +223,9 @@ const pickImage = async () => {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.mainLayout}>
+      <View style={[styles.mainLayout, width < 480 && styles.mainLayoutResponsiveSmall]}>
         {/* Lista izquierda */}
-        <View style={styles.listSide}>
+        <View style={[styles.listSide, width < 480 && styles.listSideSmall]}>
           {pathologies.map((item) => (
             <TouchableOpacity
               key={item._id}
@@ -251,17 +254,17 @@ const pickImage = async () => {
         </View>
 
         {/* Lado derecho: editor */}
-        <View style={styles.editorSide}>
+        <View style={[styles.editorSide, width < 480 && styles.editorSideSmall]}>
           <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={styles.editorHeader}>
-              <View style={{ flex: 1 }}>
+            <View style={[styles.editorHeader, width < 480 && styles.editorHeaderSmall]}>
+              <View style={[{ flex: 1,  }, width < 480 && { alignItems: 'center'}]}>
                 <Text style={styles.pathologyTitle}>{selectedPathology.name}</Text>
-                <Text style={styles.scientificName}>
+                <Text style={[styles.scientificName, width < 480 && styles.TextSmall]}>
                   {selectedPathology.scientificName || 'Nombre científico no registrado'}
                 </Text>
               </View>
               <TouchableOpacity
-                style={[styles.editBtn, isEditing && styles.saveBtn]}
+                style={[styles.editBtn, isEditing && styles.saveBtn, width < 480 && styles.editBtnSmall]}
                 onPress={isEditing ? handleSave : () => setIsEditing(true)}
                 disabled={saving}
               >

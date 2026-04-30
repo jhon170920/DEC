@@ -19,7 +19,7 @@ export const detectionTabStyles = StyleSheet.create({
     clearBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, backgroundColor: '#f3f4f6', borderRadius: 8, marginBottom: 0 },
     clearBtnText: { fontSize: 13, fontWeight: '500', color: '#6b7280' },
     filterInfo: { marginTop: 12, fontSize: 12, color: '#6b7280', fontStyle: 'italic' },
-  
+    
     mainLayout: { flexDirection: 'row', gap: 20, flex: 1, paddingHorizontal: 20 },
     listSide: { flex: 1.2, backgroundColor: '#fff', borderRadius: 20, borderWidth: 1, borderColor: '#e5e7eb', overflow: 'hidden' },
     listHeader: { padding: 18, borderBottomWidth: 1, borderBottomColor: '#f3f4f6', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -118,6 +118,14 @@ export const detectionTabStyles = StyleSheet.create({
       fontSize: 13,
       fontWeight: '500',
       color: '#374151',
+    },
+    // RESPONSIVE
+    containerSmall:{
+      flexDirection: 'column'
+    },
+    headerSmall:{
+      flexDirection: 'column',
+      gap: 5,
     },
   });
   

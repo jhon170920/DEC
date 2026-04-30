@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 
 export const COLORS = {
     primary: '#16a34a',
@@ -87,5 +87,39 @@ export const adminStyles = StyleSheet.create({
       color: '#fff',
       fontWeight: 'bold',
       marginLeft: 8,
+    },
+    hamburgerButton: {
+      position: 'absolute',
+      top: 16,
+      left: 16,
+      zIndex: 100,
+      backgroundColor: COLORS.primary,
+      padding: 10,
+      borderRadius: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 5,
+    },
+    drawerOverlay: {
+      position: 'absolute',
+      top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      zIndex: 200,
+    },
+    drawerMenu: {
+      position: 'absolute',
+      top: 0, left: 0, bottom: 0,
+      width: 260,
+      backgroundColor: '#fff',
+      padding: 20,
+      paddingTop: 50,
+      zIndex: 300,
+      shadowColor: '#000',
+      shadowOffset: { width: 4, height: 0 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 10,
     },
   });
