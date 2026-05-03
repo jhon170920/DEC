@@ -16,7 +16,7 @@ export const ProfileStyles = StyleSheet.create({
     marginBottom: 24,
   },
   logoMark: {
-    width: 55, height: 55, borderRadius: 35,
+    width: 40, height: 40, borderRadius: 20,
     alignItems: "center", justifyContent: "center",
     backgroundColor: Colors.surface,
     borderWidth: 1, borderColor: Colors.border,
@@ -25,7 +25,7 @@ export const ProfileStyles = StyleSheet.create({
     shadowOpacity: 0.08, shadowRadius: 6, elevation: 3,
   },
   backBtn: {
-    width: 45, height: 45, borderRadius: 12,
+    width: 40, height: 40, 
     backgroundColor: Colors.surface,
     borderWidth: 1.5, borderColor: Colors.border,
     alignItems: "center", justifyContent: "center",
