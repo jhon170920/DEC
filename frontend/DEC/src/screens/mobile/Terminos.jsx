@@ -108,7 +108,7 @@ export default function TermsScreen() {
 
         <Text style={styles.subtitle}>4. Sus Derechos (Ley 1581 de 2012 – Colombia)</Text>
         <Text style={styles.text}>
-          Usted tiene derecho a: acceder, rectificar o eliminar sus datos personales; solicitar la cancelación de su cuenta y la eliminación de toda su información; oponerse al tratamiento de sus datos para ciertos fines. Para ejercer estos derechos, envíe un correo a soporte@dec-app.com con el asunto "Protección de datos".
+          Usted tiene derecho a: acceder, rectificar o eliminar sus datos personales; solicitar la cancelación de su cuenta y la eliminación de toda su información; oponerse al tratamiento de sus datos para ciertos fines. Para ejercer estos derechos, envíe un correo a administrador.dec@gmail.com con el asunto "Protección de datos".
         </Text>
 
         <Text style={styles.subtitle}>5. Conservación de Datos</Text>
