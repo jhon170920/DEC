@@ -7,6 +7,18 @@ import { navigationRef } from './RootNavigation';
 export default function AppNavigator() {
   const auth = useContext(AuthContext);
 
+  const linking = {
+    // Esto permite que el navegador entienda las rutas
+    prefixes: ['http://localhost:19006', 'https://*.serveousercontent.com'],
+    config: {
+      screens: {
+        // Aquí va tal cual como está en el "name" de WebStack.Screen de WebNavigator.web y como se verá en la URL
+        Legal: 'Legal',
+        DeletionStatus: 'DeletionStatus',
+      },
+    },
+  };
+
   // Validación por si el contexto no está disponible
   if (!auth) {
     console.warn('AuthContext no está disponible. Asegúrate de que AuthProvider envuelva AppNavigator.');
@@ -38,7 +50,7 @@ export default function AppNavigator() {
   };
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} linking={Platform.OS === 'web' ? linking : undefined}>
       <RenderNavigator />
     </NavigationContainer>
   );

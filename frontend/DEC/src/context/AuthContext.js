@@ -3,7 +3,7 @@ import { Platform, Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { syncPathologiesLocal } from '../services/dbService';
 import api from '../api/api';
-import { syncDetections, syncServerToLocal } from '../services/syncService';
+import { syncDetections, syncServerToLocal, syncLocalTreatments, syncRemoteTreatments } from '../services/syncService';
 import { registerForPushNotificationsAsync } from '../services/notificationService';
 
 // -------- MÓDULOS NATIVOS (SOLO MÓVIL) ----------
@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
     const checkToken = async () => {
       try {
         let token = Platform.OS === 'web'
-          ? localStorage.getItem('userToken')
+          ? sessionStorage.getItem('userToken')
           : await SecureStore.getItemAsync('userToken');
 
         if (token) {
@@ -79,7 +79,7 @@ export const AuthProvider = ({ children }) => {
       const sessionToken = response.data.token;
       if (sessionToken) {
         if (Platform.OS === 'web') {
-          localStorage.setItem('userToken', sessionToken);
+          sessionStorage.setItem('userToken', sessionToken);
         } else {
           await SecureStore.setItemAsync('userToken', sessionToken);
         }
@@ -148,7 +148,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (token) => {
     if (Platform.OS === 'web') {
-      localStorage.setItem('userToken', token);
+      sessionStorage.setItem('userToken', token);
     } else {
       await SecureStore.setItemAsync('userToken', token);
     }
@@ -163,7 +163,7 @@ export const AuthProvider = ({ children }) => {
 const logout = async () => {
   try {
     if (Platform.OS === 'web') {
-      localStorage.removeItem('userToken');
+      sessionStorage.removeItem('userToken');
     } else {
       // Cerrar sesiones sociales (Facebook, Google)
       if (LoginManager && AccessToken) {

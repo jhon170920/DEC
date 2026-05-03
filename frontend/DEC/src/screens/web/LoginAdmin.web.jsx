@@ -10,6 +10,7 @@ import { C, LoginAdminStyles as styles } from './components/styles/loginAdminSty
 
 export default function LoginAdmin() {
   const navigation = useNavigation();
+  const { login } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -69,8 +70,8 @@ export default function LoginAdmin() {
         return;
       }
 
-      localStorage.setItem('userToken', token);
-      navigation.navigate('AdminDashboard');
+      await login(token);
+      navigation.navigate('AdminDashboard')
 
     } catch (error) {
       let errorMessage = "Error al iniciar sesión. Verifica tus credenciales.";

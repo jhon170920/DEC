@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
-import {
-  View, Text, ScrollView, TouchableOpacity,
-  useWindowDimensions, Alert
+import { 
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, 
+  useWindowDimensions, Platform, Modal
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -21,20 +21,21 @@ export default function AdminDashboard() {
   const { logout } = useContext(AuthContext);
 
   const [activeTab, setActiveTab] = useState('Dashboard');
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  // 👇 AÑADIDO: estado para controlar el modal de confirmación (reemplaza Alert.alert)
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const handleLogout = async () => {
-    Alert.alert("Cerrar sesión", "¿Estás seguro?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Cerrar sesión",
-        style: "destructive",
-        onPress: async () => {
-          await logout();
-          navigation.reset({ index: 0, routes: [{ name: 'LoginAdmin' }] });
-        }
-      }
-    ]);
+  const handleLogout = () => {
+    // 👇 CORREGIDO: en web Alert.alert no funciona; abrimos nuestro propio modal
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
+    await logout();
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Home' }],
+    });
   };
 
   const handleTabPress = (tab) => {
@@ -60,7 +61,44 @@ export default function AdminDashboard() {
       {/* ── DESKTOP: sidebar fijo ── */}
       {isDesktop && (
         <View style={styles.sidebar}>
-          <SidebarContent />
+          <Text style={styles.logo}>DEC Admin</Text>
+          <SidebarItem 
+            icon="grid" 
+            label="Dashboard" 
+            active={activeTab === 'Dashboard'} 
+            onPress={() => setActiveTab('Dashboard')} 
+          />
+          <SidebarItem 
+            icon="users" 
+            label="Usuarios" 
+            active={activeTab === 'Usuarios'} 
+            onPress={() => setActiveTab('Usuarios')} 
+          />
+          <SidebarItem 
+            icon="book-open" 
+            label="Catálogo" 
+            active={activeTab === 'Catalog'} 
+            onPress={() => setActiveTab('Catalog')} 
+          />
+          <SidebarItem 
+            icon="camera" 
+            label="Detecciones" 
+            active={activeTab === 'Detections'} 
+            onPress={() => setActiveTab('Detections')} 
+          />
+          <SidebarItem 
+            icon="map" 
+            label="Mapa de Incidencia" 
+            active={activeTab === 'Heatmap'} 
+            onPress={() => setActiveTab('Heatmap')} 
+          />
+          <SidebarItem 
+            icon="log-out" 
+            label="Cerrar sesión" 
+            active={false}
+            onPress={handleLogout}
+            isDanger
+          />
         </View>
       )}
 
@@ -107,6 +145,43 @@ export default function AdminDashboard() {
         </ScrollView>
       </View>
 
+      {/* Botón flotante para móviles */}
+      {!isDesktop && (
+        <TouchableOpacity style={styles.mobileLogoutButton} onPress={handleLogout}>
+          <Feather name="log-out" size={20} color="#fff" />
+          <Text style={styles.mobileLogoutText}>Cerrar sesión</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* 👇 AÑADIDO: Modal de confirmación compatible con web */}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={showLogoutModal}
+        onRequestClose={() => setShowLogoutModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Feather name="log-out" size={40} color={COLORS.danger} style={styles.modalIcon} />
+            <Text style={styles.modalTitle}>Cerrar sesión</Text>
+            <Text style={styles.modalMessage}>¿Estás seguro de que quieres cerrar sesión?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnCancel]}
+                onPress={() => setShowLogoutModal(false)}
+              >
+                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnDanger]}
+                onPress={confirmLogout}
+              >
+                <Text style={styles.modalBtnDangerText}>Cerrar sesión</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

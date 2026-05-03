@@ -138,7 +138,7 @@ export default function CameraScreen({ navigation }) {
           </View>
 
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('MainApp')}>
               <Text style={styles.backText}>Volver</Text>
             </TouchableOpacity>
 

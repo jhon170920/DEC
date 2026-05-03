@@ -20,7 +20,7 @@ export default function Profile() {
   const [notificaciones, setNotificaciones] = useState(true);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ plantas: 0, analisis: 0, guardadas: 0 });
+  const [stats, setStats] = useState({ analisis: 0, seguimiento: 0 });
   
   // Estados para modales
   const [modalLogoutVisible, setModalLogoutVisible] = useState(false);
@@ -50,7 +50,10 @@ export default function Profile() {
   const fetchStats = async () => {
     try {
       const res = await api.get('detections/count');
-      setStats({ analisis: res.data.count, plantas: 0, guardadas: 0 });
+      setStats({ 
+  analisis: res.data.count,
+  seguimiento: 0 // conectar seguimiento
+});
     } catch (error) {
       console.error(error);
     }
@@ -105,15 +108,20 @@ export default function Profile() {
       // Borrar la cuenta vinculada a fb o google 
       await RevokeAccessSocial(); // se remueven los permisos de fb/google
       await deleteUserAccountSocial(); // se elimina el registro de la cuenta en mongo
-      Alert.alert("Cuenta eliminada", "Tu cuenta ha sido eliminada permanentemente");
-      logout(); // Esto limpiará el token y redirigirá al login automáticamente
+      setSuccessMessage("Tu cuenta ha sido eliminada permanentemente");
+      setModalSuccessVisible(true);
+      // Esperar un momento para mostrar el modal antes de redirigir
+      setTimeout(() => {
+        setModalSuccessVisible(false);
+        logout();
+      }, 2000);
     } catch (error) {
       const msg = error.message || "Error al eliminar la cuenta";
-      Alert.alert("Error", msg);
+      setErrorMessage(msg);
+      setModalErrorVisible(true);
     } finally{
       setDeleting(false);
-      setModalVisible(false);
-      setDeletePassword("");
+      setModalPasswordVisible(false);
     }
   }
 
@@ -142,11 +150,11 @@ export default function Profile() {
         
         {/* HEADER */}
         <View style={[styles.header, { marginBottom: sp(0.018) }]}>
-          <View style={[styles.logoMark, { width: logoRingS, height: logoRingS, borderRadius: logoRingS / 2 }]}>
-            <Image source={require("../../../assets/image/logo.png")} style={{ width: logoImgS, height: logoImgS }} resizeMode="contain" />
+          <View style={[styles.logoMark, { width: 60, height: 60, borderRadius: 30 }]}>
+          <Image source={require("../../../assets/image/logo.png")} style={{ width: 40, height: 40 }} resizeMode="contain" />
           </View>
-          <TouchableOpacity style={[styles.backBtn, { width: logoRingS * 0.60, height: logoRingS * 0.68 }]} activeOpacity={0.75} onPress={() => navigation.goBack()}>
-            <Feather name="arrow-left" size={iconS} color={Colors.text} />
+          <TouchableOpacity style={[styles.backBtn, { width: 50, height: 50, borderRadius: 25 }]} activeOpacity={0.75} onPress={() => navigation.goBack()}>
+            <Feather name="arrow-left" size={iconS} color={Colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -170,23 +178,19 @@ export default function Profile() {
         <Text style={[styles.userName, { fontSize: headlineS * 0.5, marginBottom: sp(0.018) }]}>{nombreUsuario}</Text>
 
         {/* STATS */}
+        
         <View style={[styles.statsCard, { marginBottom: sp(0.02), paddingVertical: sp(0.015) }]}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { fontSize: headlineS * 0.5 }]}>{stats.plantas}</Text>
-            <Text style={[styles.statLabel, { fontSize: sublineS }]}>Plantas</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { fontSize: headlineS * 0.5 }]}>{stats.analisis}</Text>
-            <Text style={[styles.statLabel, { fontSize: sublineS }]}>Análisis</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { fontSize: headlineS * 0.5 }]}>{stats.guardadas}</Text>
-            <Text style={[styles.statLabel, { fontSize: sublineS }]}>Guardadas</Text>
-          </View>
-        </View>
-
+  <View style={styles.statItem}>
+    <Text style={[styles.statNumber, { fontSize: headlineS * 0.5 }]}>{stats.analisis}</Text>
+    <Text style={[styles.statLabel, { fontSize: sublineS }]}>Análisis</Text>
+  </View>
+  <View style={styles.statDivider} />
+  <View style={styles.statItem}>
+    <Text style={[styles.statNumber, { fontSize: headlineS * 0.5 }]}>{stats.seguimiento}</Text>
+    <Text style={[styles.statLabel, { fontSize: sublineS }]}>Seguimiento</Text>
+  </View>
+</View>
+        
         {/* MI CUENTA */}
         <View style={[styles.sectionHeader, { marginBottom: 6, marginTop: 8 }]}>
           <Text style={[styles.sectionLabel, { fontSize: sublineS - 1 }]}>MI CUENTA</Text>
@@ -304,14 +308,16 @@ export default function Profile() {
                 </>
               )
             }
-            <TouchableOpacity style={styles.modalBtn} activeOpacity={0.85} onPress={userData.provider.includes('local') ? confirmDeleteAccount : confirmDeleteAccountSocial} disabled={deleting}>
-              <LinearGradient colors={["#dc2626", "#b91c1c"]} style={styles.modalBtnGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                <Text style={styles.modalBtnText}>{deleting ? "Eliminando..." : "Eliminar"}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.modalCancelBtn} activeOpacity={0.75} onPress={() => setModalPasswordVisible(false)}>
-              <Text style={styles.modalCancelText}>Cancelar</Text>
-            </TouchableOpacity>
+            <View style={{ justifyContent: 'space-between', marginTop: 20, width: '100%' }}>
+              <TouchableOpacity style={styles.modalConfirmBtn} activeOpacity={0.85} onPress={userData.provider.includes('local') ? confirmDeleteAccount : confirmDeleteAccountSocial} disabled={deleting}>
+                <LinearGradient colors={["#dc2626", "#b91c1c"]} style={styles.modalBtnGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                  <Text style={styles.modalBtnText}>{deleting ? "Eliminando..." : "Eliminar"}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalCancelBtn} activeOpacity={0.75} onPress={() => setModalPasswordVisible(false)}>
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

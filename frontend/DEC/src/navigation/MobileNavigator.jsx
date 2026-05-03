@@ -51,7 +51,6 @@ export default function AppNavigator() {
           <Stack.Screen name="Camera" component={CameraScreen} />
           <Stack.Screen name="History" component={HistoryScreen} />
           <Stack.Screen name="Contact" component={Contact} />
-          {/* <Stack.Screen name="Manual" component={ManualScreen} /> */}
           <Stack.Screen name="Result" component={Result} /> 
           <Stack.Screen name="Profile" component={Profile} />
           <Stack.Screen name='EditProfile' component={EditProfile}/>
@@ -60,6 +59,7 @@ export default function AppNavigator() {
           <Stack.Screen name='TreatmentLog' component={TreatmentLogScreen}/>
           <Stack.Screen name='TreatmentForm' component={TreatmentFormScreen}/>
           <Stack.Screen name='Centro' component={HelpCenterScreen}/>
+          <Stack.Screen name='Terminos' component={TermsScreen}/>
         </>
       ) : (
         // --- STACK DE AUTENTICACIÓN ---
