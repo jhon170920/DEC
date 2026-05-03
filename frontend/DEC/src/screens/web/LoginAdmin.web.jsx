@@ -1,19 +1,12 @@
-import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Modal, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Modal, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../api/api';
-import { AuthContext } from '../../context/AuthContext';
+import { C, LoginAdminStyles as styles } from './components/styles/loginAdminStyles';
 
-const C = {
-  bg: '#f4faf5',
-  surface: '#ffffff',
-  p: '#16a34a',
-  text: '#0f2d1a',
-  mid: '#2d6a4f',
-  danger: '#dc2626',
-};
+
 
 export default function LoginAdmin() {
   const navigation = useNavigation();
@@ -21,6 +14,8 @@ export default function LoginAdmin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  const { width } = useWindowDimensions();
 
   // Estados para el modal
   const [modalVisible, setModalVisible] = useState(false);
@@ -93,9 +88,9 @@ export default function LoginAdmin() {
 
   return (
     <View style={styles.root}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Acceso Administrador</Text>
-        <Text style={styles.subtitle}>Ingresa tus credenciales para administrar el sistema.</Text>
+      <View style={[styles.card, width < 480 && styles.cardResponsiveSmall]}>
+        <Text style={[styles.title, width < 480 && styles.titleResponsiveSmall]}>Acceso Administrador</Text>
+        <Text style={[styles.subtitle, width <480 && styles.subtitleResponsiveSmall]}>Ingresa tus credenciales para administrar el sistema.</Text>
 
         <TextInput
           style={styles.input}
@@ -144,7 +139,7 @@ export default function LoginAdmin() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+          <View style={[styles.modalContainer, width < 480 && styles.modalContainerResponsiveSmall, width >=700 && width < 900 && styles.modalContainerResponsiveMedium]}>
             {getModalIcon()}
             <Text style={[styles.modalTitle, modalType === 'error' && { color: C.danger }]}>
               {modalTitle}
@@ -171,113 +166,3 @@ export default function LoginAdmin() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    minHeight: '100vh',
-    backgroundColor: C.bg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  card: {
-    width: Platform.OS === 'web' ? 420 : '100%',
-    backgroundColor: C.surface,
-    borderRadius: 24,
-    padding: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: C.text,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: C.mid,
-    marginBottom: 28,
-    lineHeight: 22,
-  },
-  input: {
-    height: 52,
-    borderWidth: 1,
-    borderColor: '#dceee2',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    fontSize: 15,
-    color: C.text,
-    backgroundColor: '#f7fcf8',
-  },
-  button: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  buttonGradient: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  link: {
-    color: C.p,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: '20%',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-    color: C.text,
-  },
-  modalMessage: {
-    fontSize: 15,
-    color: '#475569',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  modalButton: {
-    width: '100%',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  modalButtonGradient: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  modalButtonText: {
-    color: '#fff',
-    fontWeight: 'bold', 
-    fontSize: 16,
-  },
-});

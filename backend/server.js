@@ -16,8 +16,8 @@ import statsRoutes from './routes/statsRoutes.js';
 import messageRoutes from './routes/messages.js';
 // ruta de tratamientos
 import treatmentRoutes from './routes/treatments.js';
-
-
+// ruta de notificaciones
+import notificationRoutes from './routes/notificationsRoutes.js';
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
@@ -30,7 +30,7 @@ app.use("/api/detections", detectionRoutes);
 // ruta para recuperar conttaseña
 app.use("/api/recover", recoverPassword);
 
-app.use("/api/pathologies", pathologyRoutes) // ruta para obtener las patologías desde la base de datos
+app.use("/api/pathologies", pathologyRoutes); // ruta para obtener las patologías desde la base de datos
 
 // ruta principal de admin
 app.use("/api/admin", adminRoutes);
@@ -41,6 +41,9 @@ app.use('/api/messages', messageRoutes);
 
 // ruta para tratamientos
 app.use('/api/treatments', treatmentRoutes);
+
+//ruta para notificaciones
+app.use('/api/notifications', notificationRoutes),
 
 app.get("/", (req, res) => {
   res.send(" Servidor funcionando correctamente");

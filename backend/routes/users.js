@@ -5,7 +5,6 @@ import { googleAuth } from '../controllers/googleAuth.js';
 import { facebookAuth, facebookDeletionCallback } from '../controllers/facebookAuth.js';
 import { contactUs } from '../controllers/contactUs.js';
 import { verifyToken } from '../middlewares/auth.js';
-import { savePushToken } from '../controllers/notificationController.js';
 import multer from 'multer';
 
 const router = express.Router();
@@ -42,7 +41,7 @@ router.post('/send-message', contactUs);
 
 //Ruta push NOTIFICACIONES
 
-router.post('/save-push-token', verifyToken, savePushToken);
+
 
 // Obtener mi perfil (usuario logueado)
 router.get('/me', verifyToken, getMe);

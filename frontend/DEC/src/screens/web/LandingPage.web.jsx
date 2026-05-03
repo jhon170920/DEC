@@ -9,27 +9,12 @@ import {
   Animated,
   Platform,
   StatusBar,
-  useWindowDimensions,
-  Pressable,
+  useWindowDimensions
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-
-// --- TOKENS DE DISEÑO ---
-const C = {
-  bg: '#f0fdf4',
-  surface: '#ffffff',
-  primary: '#059669',
-  primaryLight: '#10b981',
-  primaryDark: '#047857',
-  accent: '#f59e0b',
-  accentDark: '#d97706',
-  text: '#064e3b',
-  textLight: '#374151',
-  muted: '#6b7280',
-  white: '#ffffff',
-  black: '#111827',
-};
+import { landingStyle as styles } from './components/styles/landingStyles';
+import { C } from './components/styles/landingStyles';
 
 // --- FADE IN UP ---
 const FadeInUp = ({ children, delay = 0, style }) => {
@@ -716,6 +701,5 @@ const styles = StyleSheet.create({
   footerLogoText: { color: '#fff', fontWeight: '700', fontSize: 18 },
   socialIcons: { flexDirection: 'row', gap: 16 },
   socialIcon:  { backgroundColor: 'rgba(255,255,255,0.1)', padding: 10, borderRadius: 40 },
-  footerText:  { color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center', marginBottom: 5 },
-  footerTerms:  { color: 'rgb(255, 255, 255)', fontSize: 13, textAlign: 'center' },
+  footerText:  { color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center' },
 });

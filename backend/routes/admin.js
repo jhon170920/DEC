@@ -1,6 +1,5 @@
 import express from 'express';
 import { verifyToken, onlyAdmin } from '../middlewares/auth.js';
-import { sendNotificationToAll } from '../controllers/notificationController.js';
 import { startExportDataset, getExportStatus, downloadExport } from '../controllers/exportController.js';
 import multer from 'multer';
 import { uploadPathologyImage } from '../services/admin.js';
@@ -60,11 +59,12 @@ router.get('/export/status/:jobId', verifyToken, onlyAdmin, getExportStatus);
 router.get('/export/download/:jobId', verifyToken, onlyAdmin, downloadExport);
 
 // Enviar notificación a todos los usuarios
-router.post('/send-notification', verifyToken, onlyAdmin, sendNotificationToAll);
-export default router
+
 
 // Cambiar rol de usuario
 router.patch('/change-role/:id', verifyToken, onlyAdmin, changeUserRole);
 
 // Reset Password por admin
 router.post('/sendCustomEmail', verifyToken, onlyAdmin, sendCustomEmail);
+
+export default router
