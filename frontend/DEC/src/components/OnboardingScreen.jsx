@@ -12,6 +12,7 @@ import {
 import Onboarding from 'react-native-onboarding-swiper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
+import ParticlesBackground from './Layout/ParticlesBackground.native';
 
 const { width } = Dimensions.get('window');
 
@@ -282,6 +283,7 @@ const OnboardingScreen = ({ onDone }) => {
 
   return (
     <View style={styles.container}>
+      {/* <ParticlesBackground /> */}
       <Onboarding
         onDone={handleComplete}
         onSkip={handleComplete}
@@ -335,6 +337,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#052e16',
+    zIndex: 2,
   },
   onboardingContainer: {
     paddingBottom: 90,

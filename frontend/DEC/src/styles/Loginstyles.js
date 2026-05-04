@@ -12,6 +12,7 @@ export const LoginStyles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
+    zIndex: 2,
   },
 
   // Logo

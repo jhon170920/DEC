@@ -204,7 +204,7 @@ const pickImage = async () => {
   if (!selectedPathology) return null;
 
   return (
-    <View style={styles.container < 480 && {flexDirection: 'column'}}>
+    <View style={styles.container, width < 480 && {flexDirection: 'column'}}>
       <AlertModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -257,7 +257,7 @@ const pickImage = async () => {
         <View style={[styles.editorSide, width < 480 && styles.editorSideSmall]}>
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={[styles.editorHeader, width < 480 && styles.editorHeaderSmall]}>
-              <View style={[{ flex: 1,  }, width < 480 && { alignItems: 'center'}]}>
+              <View style={[{ flex: 1,  }, width < 480 ? { alignItems: 'center', flexDirection:'column'}:{}]}>
                 <Text style={styles.pathologyTitle}>{selectedPathology.name}</Text>
                 <Text style={[styles.scientificName, width < 480 && styles.TextSmall]}>
                   {selectedPathology.scientificName || 'Nombre científico no registrado'}
@@ -370,7 +370,7 @@ const pickImage = async () => {
                         </TouchableOpacity>
                       </>
                     ) : (
-                      <View>
+                      <View style={width <480 ? {flexDirection: 'column'}: null}>
                         <Text style={styles.recommendationProduct}>{rec.productName}</Text>
                         <Text style={styles.recommendationDetail}>Dosis: {rec.dose}</Text>
                         {rec.price && <Text style={styles.recommendationDetail}>Precio: {rec.price}</Text>}

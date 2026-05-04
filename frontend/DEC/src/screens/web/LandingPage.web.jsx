@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { landingStyle as styles } from './components/styles/landingStyles';
 import { C } from './components/styles/landingStyles';
+import ParticlesBackground from './components/ParticlesBackground.web';
 
 // --- FADE IN UP ---
 const FadeInUp = ({ children, delay = 0, style }) => {
@@ -383,7 +384,7 @@ export default function LandingPage({ navigation }) {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <AnimatedGradientBackground />
-
+      <ParticlesBackground /> 
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}

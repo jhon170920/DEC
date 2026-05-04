@@ -83,6 +83,7 @@ export const LoginAdminStyles = StyleSheet.create({
       color: C.p,
       textAlign: 'center',
       fontWeight: '600',
+      fontSize: '100%'
     },
     modalOverlay: {
       flex: 1,

@@ -27,6 +27,7 @@ import BtnLoginFacebook from '../../components/BtnLoginFacebook.jsx';
 import BtnLoginGoogle from '../../components/BtnLoginGoogle.jsx';
 //COMPONENTE REUTILIZABLE
 import FloatingInput from '../../components/FloatingInput.jsx';
+// import ParticlesBackground from '../../components/Layout/ParticlesBackground.native.jsx';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -97,14 +98,14 @@ export default function Login() {
     return (
         <View style={styles.root}>
             <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} translucent={false} />
-
+            
             <LinearGradient
                 colors={['#e8f5ec', '#f4faf5', '#f4faf5']}
                 style={StyleSheet.absoluteFill}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
             />
-
+            {/* <ParticlesBackground/> */}
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

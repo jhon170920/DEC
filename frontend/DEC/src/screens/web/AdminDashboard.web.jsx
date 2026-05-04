@@ -142,7 +142,7 @@ export default function AdminDashboard() {
       <View style={styles.contentWrapper}>
         <ScrollView
           style={styles.mainScroll}
-          contentContainerStyle={[styles.scrollPadding, !isDesktop && { paddingTop: 60 }]}
+          contentContainerStyle={[styles.scrollPadding, !isDesktop && { paddingTop: 60 }, width < 480 && {flexDirection: 'column'}]}
           showsVerticalScrollIndicator={true}
         >
           {activeTab === 'Dashboard'  && <DashboardTab />}

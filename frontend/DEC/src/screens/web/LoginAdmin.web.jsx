@@ -126,7 +126,7 @@ export default function LoginAdmin () {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-          <Text style={styles.link}>Volver a la Landing</Text>
+          <Text style={styles.link}>Regresar</Text>
         </TouchableOpacity>
       </View>
 
