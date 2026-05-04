@@ -1,6 +1,6 @@
 import api from '../api/api';
 import { getUnsyncedDetections, markAsSynced, getPathologyByName, saveRemoteDetections, getAllTreatmentLogsWithProducts,
-  saveRemoteTreatmentLog, clearAllTreatmentLogs } from './dbService';
+  saveRemoteTreatmentLog, clearAllTreatmentLogs, updateTreatmentLogRemoteId } from './dbService';
 import { Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 
@@ -133,7 +133,7 @@ export const syncLocalTreatments = async () => {
         });
         // Si el servidor devuelve el _id, actualizar localmente
         if (response.data.treatment && response.data.treatment._id) {
-          db.runSync('UPDATE treatment_logs SET _id = ? WHERE id = ?', [response.data.treatment._id, log.id]);
+          await updateTreatmentLogRemoteId(log.id, response.data.treatment._id);
         }
       }
       console.log(`✅ Bitácora ${log.id} sincronizada`);

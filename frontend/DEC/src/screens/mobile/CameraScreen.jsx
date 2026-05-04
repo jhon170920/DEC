@@ -5,7 +5,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { GLView } from 'expo-gl';
 import Expo2DContext from 'expo-2d-context';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
-import { imageToTensor, processPrediction, runInference } from '../../services/aiServices';
+import { imageToTensor, processPrediction, runInference, loadModel } from '../../services/aiServices';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const BOX_SIZE = 220;
@@ -14,8 +14,10 @@ export default function CameraScreen({ navigation }) {
   const isFocused = useIsFocused();
   const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [modelLoading, setModelLoading] = useState(true);
   const cameraRef = useRef(null);
   const ctxRef = useRef(null);
+  const startTimeRef = useRef(Date.now());
 
   useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) {
@@ -24,16 +26,34 @@ export default function CameraScreen({ navigation }) {
   }, [permission]);
 
   useEffect(() => {
-    import('../../services/aiServices').then(({ loadModel }) => loadModel());
+    const initializeModel = async () => {
+      startTimeRef.current = Date.now();
+      try {
+        await loadModel();
+      } catch (error) {
+        console.error('Error cargando modelo:', error);
+        Alert.alert('Error', 'No se pudo cargar el modelo de inteligencia artificial.');
+      } finally {
+        const elapsed = Date.now() - startTimeRef.current;
+        const remaining = Math.max(0, 2000 - elapsed);
+        setTimeout(() => {
+          setModelLoading(false);
+        }, remaining);
+      }
+    };
+    initializeModel();
   }, []);
 
   if (!isFocused || !permission) return <View style={{ flex: 1, backgroundColor: '#000' }} />;
 
   const handleCapture = async () => {
+    if (modelLoading) {
+      Alert.alert('Cargando', 'El modelo de IA aún se está cargando. Espera un momento.');
+      return;
+    }
     if (cameraRef.current && ctxRef.current && !isProcessing) {
       try {
         setIsProcessing(true);
-
         const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
 
         const originX = (screenWidth - BOX_SIZE) / 2;
@@ -111,7 +131,6 @@ export default function CameraScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <CameraView style={styles.camera} ref={cameraRef} facing="back">
-
         <View style={styles.canvasContainer}>
           <GLView
             style={{ width: 640, height: 640 }}
@@ -128,7 +147,6 @@ export default function CameraScreen({ navigation }) {
         </View>
 
         <View style={styles.overlay}>
-
           <View style={styles.topSection}>
             <Text style={styles.guideText}>Ubica la hoja dentro del recuadro</Text>
           </View>
@@ -143,9 +161,9 @@ export default function CameraScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.captureButton, isProcessing && styles.buttonDisabled]}
+              style={[styles.captureButton, (isProcessing || modelLoading) && styles.buttonDisabled]}
               onPress={handleCapture}
-              disabled={isProcessing}
+              disabled={isProcessing || modelLoading}
             >
               {isProcessing
                 ? <ActivityIndicator color="#fff" size="large" />
@@ -155,8 +173,14 @@ export default function CameraScreen({ navigation }) {
 
             <View style={{ width: 60 }} />
           </View>
-
         </View>
+
+        {modelLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#16a34a" />
+            <Text style={styles.loadingText}>Cargando inteligencia artificial...</Text>
+          </View>
+        )}
       </CameraView>
     </View>
   );
@@ -216,5 +240,22 @@ const styles = StyleSheet.create({
   innerCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#fff' },
   buttonDisabled: { opacity: 0.5 },
   backButton: { backgroundColor: 'rgb(28, 146, 18)', padding: 15, borderRadius: 30 },
-  backText: { color: '#fff', fontWeight: 'bold' }
+  backText: { color: '#fff', fontWeight: 'bold' },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 16,
+    marginTop: 12,
+    fontWeight: '500',
+  },
 });

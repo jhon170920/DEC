@@ -400,6 +400,16 @@ export const saveRemoteTreatmentLog = (log) => {
     }
   }
 };
+// Numero de Seguimientos de Bitacora
+export const getTreatmentLogsCount = () => {
+  try {
+    const result = db.getFirstSync('SELECT COUNT(*) as total FROM treatment_logs');
+    return result?.total || 0;
+  } catch (error) {
+    console.error("Error contando seguimientos:", error);
+    return 0;
+  }
+};
 
 // Limpiar todas las bitácoras locales (usar con precaución)
 export const clearAllTreatmentLogs = () => {
@@ -407,6 +417,15 @@ export const clearAllTreatmentLogs = () => {
   db.runSync('DELETE FROM treatment_logs');
 };
 
+// Actualizar IDs
+export const updateTreatmentLogRemoteId = (localId, remoteId) => {
+  try {
+    db.runSync('UPDATE treatment_logs SET _id = ? WHERE id = ?', [remoteId, localId]);
+    console.log(`✅ Tratamiento local ID ${localId} actualizado con _id remoto ${remoteId}`);
+  } catch (error) {
+    console.error("Error actualizando _id del tratamiento:", error);
+  }
+};
 // --- Utilidades ---
 export const debugCheckDatabase = () => {
   try {

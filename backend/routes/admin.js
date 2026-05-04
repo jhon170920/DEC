@@ -65,6 +65,9 @@ router.get('/export/download/:jobId', verifyToken, onlyAdmin, downloadExport);
 router.patch('/change-role/:id', verifyToken, onlyAdmin, changeUserRole);
 
 // Reset Password por admin
-router.post('/sendCustomEmail', verifyToken, onlyAdmin, sendCustomEmail);
+// router.post('/sendCustomEmail', verifyToken, onlyAdmin, sendCustomEmail);
+
+// Enviar correo a usuarios (todos o específicos)
+router.post('/send-email', verifyToken, onlyAdmin, sendCustomEmail);
 
 export default router

@@ -16,6 +16,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import NetInfo from '@react-native-community/netinfo'; // 👈 importar NetInfo
 import { AuthContext } from "../../context/AuthContext";
 import { Colors } from "../../constants/colors";
 import { MainStyles as styles } from "../../styles/MainStyles";
@@ -34,13 +35,21 @@ export default function MainApp() {
 
   const { width } = useWindowDimensions();
   const navigation = useNavigation();
-  const { userToken, isGuest, logout } = useContext(AuthContext); // 👈 añadir logout
+  const { userToken, isGuest, logout } = useContext(AuthContext);
   const [userData, setUserData] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isConnected, setIsConnected] = useState(true); // 👈 estado de conexión
 
   useEffect(() => {
     debugCheckDatabase();
+
+    // 👇 Suscribirse a cambios de conectividad
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const fetchUserData = async () => {
@@ -76,9 +85,6 @@ export default function MainApp() {
 
   const handleGoToLogin = async () => {
     setShowLoginModal(false);
-    // 👇 Limpiar estado de invitado antes de ir al login.
-    // Esto hace que el navigator re-renderice al stack de autenticación
-    // automáticamente, sin necesidad de navigate("Login").
     await logout();
   };
 
@@ -196,11 +202,13 @@ export default function MainApp() {
           </Text>
         </View>
 
-        {/* IMAGEN PRINCIPAL */}
+        {/* IMAGEN PRINCIPAL con badge de estado de conexión */}
         <View style={styles.imageCard}>
-          <View style={styles.imageBadge}>
+          <View style={[styles.imageBadge, { backgroundColor: isConnected ? Colors.primary : Colors.warning }]}>
             <View style={styles.badgeDot} />
-            <Text style={styles.badgeText}>Detección activa</Text>
+            <Text style={styles.badgeText}>
+              {isConnected ? "Conectado a Internet" : "Sin conexión"}
+            </Text>
           </View>
           <Image
             source={{ uri: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6" }}

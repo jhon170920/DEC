@@ -204,7 +204,7 @@ const pickImage = async () => {
   if (!selectedPathology) return null;
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container < 480 && {flexDirection: 'column'}}>
       <AlertModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}

@@ -11,6 +11,7 @@ import { ProfileStyles as styles } from "../../styles/Profilestyles";
 import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 import api, { deleteUserAccount, deleteUserAccountSocial } from "../../api/api";
 import { AuthContext } from "../../context/AuthContext";
+import {getTreatmentLogsCount} from "../../services/dbService"
 
 export default function Profile() {
   const navigation = useNavigation();
@@ -50,9 +51,10 @@ export default function Profile() {
   const fetchStats = async () => {
     try {
       const res = await api.get('detections/count');
+      const seguimientos = await getTreatmentLogsCount(); 
       setStats({ 
   analisis: res.data.count,
-  seguimiento: 0 // conectar seguimiento
+  seguimiento: seguimientos || 0 // conectar seguimiento
 });
     } catch (error) {
       console.error(error);
@@ -206,13 +208,17 @@ export default function Profile() {
             <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
           </TouchableOpacity>
           <View style={styles.itemDivider} />
-          <View style={[styles.menuItem, { paddingVertical: menuPadV }]}>
+          <TouchableOpacity
+            style={[styles.menuItem, { paddingVertical: menuPadV }]}
+            activeOpacity={0.75}
+            onPress={() => navigation.navigate('Alarms')}
+          >
             <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: "#eff6ff" }]}>
               <Feather name="bell" size={iconS} color="#3b82f6" />
             </View>
-            <Text style={[styles.menuTitle, { fontSize: brandS }]}>Notificaciones</Text>
-            <Switch value={notificaciones} onValueChange={setNotificaciones} trackColor={{ false: Colors.border, true: Colors.primary }} thumbColor="#fff" />
-          </View>
+            <Text style={[styles.menuTitle, { fontSize: brandS }]}>Mis recordatorios</Text>
+            <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
+          </TouchableOpacity>
         </View>
 
         {/* SOPORTE */}

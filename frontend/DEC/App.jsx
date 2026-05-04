@@ -9,7 +9,6 @@ import { SyncManager } from './src/components/SyncManager';
 import OnboardingScreen from './src/components/OnboardingScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -49,7 +48,7 @@ export default function App() {
               body: alarm.message,
               data: { detectionId: alarm.detection_id, screen: 'DetectionDetail' },
             },
-            trigger: { type: 'date', date: triggerDate }, // ✅ Formato correcto
+            trigger: { type: 'date', date: triggerDate },
           });
           console.log(`🔔 Alarma reprogramada: ${alarm.id}`);
         } else {
@@ -69,7 +68,6 @@ export default function App() {
       const { data } = response.notification.request.content;
       console.log('Notificación tocada:', data);
       if (data?.detectionId && data?.screen === 'DetectionDetail') {
-        // Navegar usando el ref global
         RootNavigation.navigate('DetectionDetail', { detectionId: data.detectionId });
       }
     });
@@ -80,25 +78,49 @@ export default function App() {
     };
   }, []);
 
-  // Lógica para mostrar onboarding solo la primera vez
+  // Lógica para mostrar onboarding solo la primera vez (excluyendo web)
   const [isFirstLaunch, setIsFirstLaunch] = useState(null);
 
   useEffect(() => {
     const checkFirstLaunch = async () => {
+      if (Platform.OS === 'web') {
+        // En web, saltar onboarding
+        setIsFirstLaunch(false);
+        return;
+      }
       const hasSeen = await AsyncStorage.getItem('@hasSeenOnboarding');
       setIsFirstLaunch(hasSeen === null);
     };
     checkFirstLaunch();
   }, []);
 
-  if (isFirstLaunch === null) {
-    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" /></View>;
+  // Si estamos en web, renderizar directamente la app
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.container}>
+        <AuthProvider>
+          <SyncManager />
+          <AppNavigator />
+        </AuthProvider>
+      </View>
+    );
   }
 
+  // En móvil, mostrar loading mientras se determina si es primer lanzamiento
+  if (isFirstLaunch === null) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#16a34a" />
+      </View>
+    );
+  }
+
+  // Si es primer lanzamiento, mostrar onboarding
   if (isFirstLaunch) {
     return <OnboardingScreen onDone={() => setIsFirstLaunch(false)} />;
   }
 
+  // Si no es primer lanzamiento, mostrar app principal
   return (
     <View style={styles.container}>
       <AuthProvider>
@@ -114,6 +136,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: '100vh',
     width: '100%',
+    backgroundColor: '#e6f3ef',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#e6f3ef',
   },
 });

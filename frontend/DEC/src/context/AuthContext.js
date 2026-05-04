@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import { syncPathologiesLocal } from '../services/dbService';
 import api from '../api/api';
 import { syncDetections, syncServerToLocal, syncLocalTreatments, syncRemoteTreatments } from '../services/syncService';
-import { registerForPushNotificationsAsync } from '../services/notificationService';
+// import { registerForPushNotificationsAsync } from '../services/notificationService';
 
 // -------- MÓDULOS NATIVOS (SOLO MÓVIL) ----------
 let LoginManager, AccessToken, GoogleSignin, makeRedirectUri, Google, WebBrowser, GraphRequest, GraphRequestManager, Settings;
@@ -155,9 +155,6 @@ export const AuthProvider = ({ children }) => {
     setUserToken(token);
     setIsGuest(false);
     fetchAndSyncPathologies(token);
-    if (Platform.OS !== 'web') {
-      await registerForPushNotificationsAsync(token);
-    }
   };
 
 const logout = async () => {

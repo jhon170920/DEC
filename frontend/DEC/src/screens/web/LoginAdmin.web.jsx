@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Modal, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../api/api';
 import { C, LoginAdminStyles as styles } from './components/styles/loginAdminStyles';
+import { AuthContext } from '../../context/AuthContext';
 
-
-
-export default function LoginAdmin() {
+export default function LoginAdmin () {
   const navigation = useNavigation();
   const { login } = useContext(AuthContext);
   const [email, setEmail] = useState('');

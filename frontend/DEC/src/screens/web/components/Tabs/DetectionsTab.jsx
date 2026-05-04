@@ -272,7 +272,7 @@ const DetectionsTab = () => {
           <Text style={styles.sub}>Curación de datos para mejora de YOLOv11</Text>
         </View>
         <View style={[styles.datasetStatsCard, width < 480 && {width: '100%', alignItems: 'center'}]}>
-          <View style={styles.datasetInfo}>
+          <View style={styles.datasetInfo, width < 480 && {flexDirection: 'column'}}>
             <Text style={styles.datasetNumber}>{approvedCount}</Text>
             <Text style={styles.datasetSub}>Imágenes Aprobadas</Text>
           </View>
@@ -339,9 +339,9 @@ const DetectionsTab = () => {
         </Text>
       </View>
 
-      <View style={styles.mainLayout}>
+      <View style={styles.mainLayout, width < 480 && {flexDirection: 'column', gap: 10, marginBottom: 10,}}>
         {/* Columna izquierda: lista paginada */}
-        <View style={styles.listSide}>
+        <View style={styles.listSide, width < 480 && {padding:10, backgroundColor: 'white'}}>
           <View style={styles.listHeader}>
             <Text style={styles.listTitle}>Detecciones Recientes</Text>
             <TouchableOpacity style={styles.sortToggle} onPress={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}>

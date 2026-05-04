@@ -3,7 +3,7 @@ import NetInfo from '@react-native-community/netinfo';
 import api from '../../api/api';
 import {
   View, Text, FlatList, TouchableOpacity, Alert, StatusBar,
-  ActivityIndicator, StyleSheet, RefreshControl
+  ActivityIndicator, StyleSheet, RefreshControl, Modal, Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -17,6 +17,18 @@ export default function TreatmentLogScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Estados para modales
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
+  const [modalType, setModalType] = useState('info'); // 'info', 'success', 'error', 'confirm'
+  const [modalOnConfirm, setModalOnConfirm] = useState(null);
+  const [modalConfirmText, setModalConfirmText] = useState('Aceptar');
+  const [modalCancelText, setModalCancelText] = useState('Cancelar');
+  const [showCancelButton, setShowCancelButton] = useState(false);
+  const [pendingDeleteItem, setPendingDeleteItem] = useState(null);
+  const [pendingUnlink, setPendingUnlink] = useState(null);
+
   const loadLogs = async () => {
     const data = await getAllTreatmentLogs();
     setLogs(data);
@@ -29,73 +41,99 @@ export default function TreatmentLogScreen() {
     }, [])
   );
 
+  // Función para mostrar modales
+  const showModal = (title, message, type = 'info', onConfirm = null, confirmText = 'Aceptar', cancelText = 'Cancelar', showCancel = false) => {
+    setModalTitle(title);
+    setModalMessage(message);
+    setModalType(type);
+    setModalOnConfirm(() => onConfirm);
+    setModalConfirmText(confirmText);
+    setModalCancelText(cancelText);
+    setShowCancelButton(showCancel);
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+    setModalOnConfirm(null);
+    setPendingDeleteItem(null);
+    setPendingUnlink(null);
+  };
+
+  const handleModalConfirm = () => {
+    if (modalOnConfirm) {
+      modalOnConfirm();
+    }
+    closeModal();
+  };
+
   // Eliminar seguimiento (local y remoto)
+  const confirmDelete = async (item) => {
+    // Verificar conexión antes de eliminar en la nube
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) {
+      showModal('Sin conexión', 'Conéctate a internet para eliminar el seguimiento de forma permanente.', 'error');
+      return;
+    }
+
+    try {
+      // Eliminar en MongoDB si el registro tiene un _id remoto
+      if (item._id && item._id.trim() !== '') {
+        await api.delete(`treatments/${item._id}`);
+        console.log(`✅ Tratamiento remoto ${item._id} eliminado`);
+      }
+      // Eliminar localmente
+      await deleteTreatmentLog(item.id);
+      loadLogs(); // Recargar lista
+      showModal('Éxito', 'Seguimiento eliminado completamente', 'success');
+    } catch (error) {
+      console.error(error);
+      showModal('Error', 'No se pudo eliminar el seguimiento. Inténtalo de nuevo.', 'error');
+    }
+  };
+
   const handleDelete = (item) => {
-    Alert.alert(
+    setPendingDeleteItem(item);
+    showModal(
       'Eliminar seguimiento',
       `¿Eliminar el seguimiento de "${item.disease_name}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            // Verificar conexión antes de eliminar en la nube
-            const netState = await NetInfo.fetch();
-            if (!netState.isConnected) {
-              Alert.alert('Sin conexión', 'Conéctate a internet para eliminar el seguimiento de forma permanente.');
-              return;
-            }
-
-            try {
-              // Eliminar en MongoDB si el registro tiene un _id remoto
-              if (item._id && item._id.trim() !== '') {
-                await api.delete(`treatments/${item._id}`);
-                console.log(`✅ Tratamiento remoto ${item._id} eliminado`);
-              }
-              // Eliminar localmente
-              await deleteTreatmentLog(item.id);
-              loadLogs(); // Recargar lista
-              Alert.alert('Éxito', 'Seguimiento eliminado completamente');
-            } catch (error) {
-              console.error(error);
-              Alert.alert('Error', 'No se pudo eliminar el seguimiento. Inténtalo de nuevo.');
-            }
-          }
-        }
-      ]
+      'confirm',
+      () => confirmDelete(item),
+      'Eliminar',
+      'Cancelar',
+      true
     );
   };
 
-  // Desasociar la detección (solo local, no afecta al servidor)
-  const handleRemoveDetection = async (logId, diseaseName) => {
-    Alert.alert(
+  // Desasociar la detección (solo local)
+  const confirmRemoveDetection = async (logId, diseaseName) => {
+    try {
+      const logToUpdate = logs.find(l => l.id === logId);
+      if (!logToUpdate) return;
+      await updateTreatmentLog(logId, {
+        disease_name: diseaseName,
+        general_notes: logToUpdate.general_notes || '',
+        detection_id: null,
+        products: logToUpdate.products || []
+      });
+      loadLogs();
+      showModal('Éxito', 'Detección desasociada correctamente', 'success');
+    } catch (error) {
+      console.error(error);
+      showModal('Error', 'No se pudo desasociar la detección', 'error');
+    }
+  };
+
+  const handleRemoveDetection = (logId, diseaseName) => {
+    setPendingUnlink({ logId, diseaseName });
+    showModal(
       'Desasociar detección',
       `¿Eliminar la relación de este seguimiento con la detección asociada?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Desasociar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const logToUpdate = logs.find(l => l.id === logId);
-              if (!logToUpdate) return;
-              await updateTreatmentLog(logId, {
-                disease_name: diseaseName,
-                general_notes: logToUpdate.general_notes || '',
-                detection_id: null,
-                products: logToUpdate.products || []
-              });
-              loadLogs();
-              Alert.alert('Éxito', 'Detección desasociada correctamente');
-            } catch (error) {
-              console.error(error);
-              Alert.alert('Error', 'No se pudo desasociar la detección');
-            }
-          }
-        }
-      ]
+      'confirm',
+      () => confirmRemoveDetection(logId, diseaseName),
+      'Desasociar',
+      'Cancelar',
+      true
     );
   };
 
@@ -136,6 +174,19 @@ export default function TreatmentLogScreen() {
     </TouchableOpacity>
   );
 
+  const getModalIcon = () => {
+    switch (modalType) {
+      case 'success':
+        return <Feather name="check-circle" size={50} color={Colors.primary} style={{ alignSelf: 'center', marginBottom: 10 }} />;
+      case 'error':
+        return <Feather name="alert-circle" size={50} color="#dc2626" style={{ alignSelf: 'center', marginBottom: 10 }} />;
+      case 'confirm':
+        return <Feather name="alert-triangle" size={50} color={Colors.warning} style={{ alignSelf: 'center', marginBottom: 10 }} />;
+      default:
+        return <Feather name="info" size={50} color={Colors.primaryLight} style={{ alignSelf: 'center', marginBottom: 10 }} />;
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -174,10 +225,47 @@ export default function TreatmentLogScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadLogs} />}
         />
       )}
+
+      {/* Modal personalizado */}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={modalVisible}
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            {getModalIcon()}
+            <Text style={[styles.modalTitle, modalType === 'error' && { color: '#dc2626' }]}>
+              {modalTitle}
+            </Text>
+            <Text style={styles.modalMessage}>{modalMessage}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 20 }}>
+              {showCancelButton && (
+                <TouchableOpacity
+                  style={[styles.modalBtn, styles.modalBtnCancel, { marginRight: 10 }]}
+                  onPress={closeModal}
+                >
+                  <Text style={styles.modalBtnCancelText}>{modalCancelText}</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={[
+                  styles.modalBtn,
+                  (modalType === 'error' || modalType === 'confirm') ? styles.modalBtnDanger : styles.modalBtnPrimary,
+                  showCancelButton ? { flex: 1 } : null
+                ]}
+                onPress={handleModalConfirm}
+              >
+                <Text style={styles.modalBtnText}>{modalConfirmText}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
@@ -224,22 +312,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
   },
-  linkDetection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  linkText: {
-    fontSize: 12,
-    color: Colors.primary,
-    marginLeft: 5,
-    textDecorationLine: 'underline',
-  },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-  emptyText: { fontSize: 16, color: Colors.textMuted, marginTop: 16, textAlign: 'center' },
-  emptyBtn: { marginTop: 20, backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 25 },
-  emptyBtnText: { color: '#fff', fontWeight: 'bold' },
   detectionActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -269,5 +341,68 @@ const styles = StyleSheet.create({
     color: '#dc2626',
     marginLeft: 4,
     fontWeight: '500',
+  },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
+  emptyText: { fontSize: 16, color: Colors.textMuted, marginTop: 16, textAlign: 'center' },
+  emptyBtn: { marginTop: 20, backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 25 },
+  emptyBtnText: { color: '#fff', fontWeight: 'bold' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '85%',
+    maxWidth: 400,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
+      android: { elevation: 5 },
+    }),
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#1f2937',
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  modalBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  modalBtnPrimary: {
+    backgroundColor: Colors.primary,
+  },
+  modalBtnDanger: {
+    backgroundColor: '#dc2626',
+  },
+  modalBtnCancel: {
+    backgroundColor: '#e5e7eb',
+  },
+  modalBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  modalBtnCancelText: {
+    color: '#1f2937',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
