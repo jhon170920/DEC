@@ -47,7 +47,6 @@ const ToolTipBubble = ({ children, text, stepNumber, nextStep, placement = 'bott
           })
         : children;
 
-
     return (
         <Tooltip
             isVisible={isToolTipActive}
