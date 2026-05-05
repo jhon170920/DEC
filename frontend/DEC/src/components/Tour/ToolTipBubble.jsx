@@ -6,8 +6,8 @@ import { AuthContext } from '../../context/AuthContext';
 import { Colors } from '../../constants/colors';
 import { useRoute, useIsFocused } from "@react-navigation/native";
 
-const ToolTipBubble = ({ children, text, screen, stepNumber, nextStep, placement = 'bottom' }) => { // Placement abajo como predeterminado si no se proporciona un lugar
-    const { loading, completedScreen, tourCompleted, checkTourCompleted, currentStep, setCurrentStep, markScreenAsDone } = useTour();
+const ToolTipBubble = ({ children, text, stepNumber, nextStep, placement = 'bottom' }) => { // Placement abajo como predeterminado si no se proporciona un lugar
+    const { loading, completedScreen, currentStep, setCurrentStep, markScreenAsDone } = useTour();
     const { userToken } = useContext(AuthContext);
     const isFocused = useIsFocused();
     const route = useRoute();
@@ -17,7 +17,7 @@ const ToolTipBubble = ({ children, text, screen, stepNumber, nextStep, placement
         if (isFocused) {
             const timer = setTimeout(() => {
                 setIsScreenReady(true);
-            }, 300); // Medio segundo para que todo se asiente y no ocurran problemas de estilos
+            }, 500); // Medio segundo para que todo se asiente y no ocurran problemas de estilos
             return () => clearTimeout(timer);
         } else {
             setIsScreenReady(false);
@@ -27,22 +27,17 @@ const ToolTipBubble = ({ children, text, screen, stepNumber, nextStep, placement
     const isToolTipActive = 
         userToken && // Logueado
         isScreenReady && // IMPORTANTE para evitar errores de estilos
-        !tourCompleted && // Si no ha completado TODO el tutorial de TODAS las screens
-        !completedScreen[screen] && // Si no ha completado el tutorial en esta screen
-        route.name === screen && // Misma screen
+        !completedScreen[route.name] && // Si no ha completado el tutorial en esta screen
         currentStep === stepNumber; // Mismo paso
 
     const handleAction = async () => {
         // Tomamos el valor dado desde la screen si es el último paso
         if (nextStep === 'finishScreen'){
-            await markScreenAsDone(screen); // Marcar la screen como terminada
-            await checkTourCompleted(); // Revisar si falta alguna screen antes de terminar todo el tutorial
+            await markScreenAsDone(route.name); // Marcar la screen como terminada
             setCurrentStep(0);
         } else {
             setCurrentStep(nextStep);
-            console.log(currentStep)
         }
-        console.log(route.name)
     };
     // Clonamos el botón para deshabilitarlo y evitar que presione mientrás está el tutorial
     const enhancedChildren = React.isValidElement(children) 
