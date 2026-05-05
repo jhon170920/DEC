@@ -1,6 +1,8 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import TreatmentLogScreen from '../screens/mobile/TreatmentLogScreen';
+import TreatmentFormScreen from '../screens/mobile/TreatmentFormScreen';
 
 const TourContext = createContext();
 
@@ -13,6 +15,8 @@ export const TourProvider = ({ children }) => {
     MainApp: false,
     Profile: false,
     History: false,
+    TreatmentLog: false,
+    TreatmentForm: false,
   });
   useEffect(() => {
     // SOLO EN APP

@@ -105,7 +105,8 @@ export const ProfileStyles = StyleSheet.create({
   },
   menuItem: {
     flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 16, paddingVertical: 14, gap: 12,
+    paddingHorizontal: 16, paddingVertical: 14, gap: 12, 
+    backgroundColor: Colors.surface, borderRadius: 16,
   },
   menuIconWrap: {
     width: 36, height: 36, borderRadius: 10,

@@ -10,6 +10,7 @@ import { Feather } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../constants/colors';
 import { getAllTreatmentLogs, deleteTreatmentLog, updateTreatmentLog } from '../../services/dbService';
+import ToolTipBubble from '../../components/Tour/ToolTipBubble';
 
 export default function TreatmentLogScreen() {
   const navigation = useNavigation();
@@ -212,9 +213,15 @@ export default function TreatmentLogScreen() {
         <View style={styles.empty}>
           <Feather name="clipboard" size={60} color={Colors.textMuted} />
           <Text style={styles.emptyText}>No hay seguimientos registrados</Text>
-          <TouchableOpacity style={styles.emptyBtn} onPress={() => navigation.navigate('TreatmentForm')}>
-            <Text style={styles.emptyBtnText}>Crear primer seguimiento</Text>
-          </TouchableOpacity>
+          <ToolTipBubble
+            stepNumber={0} 
+            nextStep={'finishScreen'} 
+            text="Puedes pulsar aquí para crear un seguimiento personalizado a tu cafetal."
+          >
+            <TouchableOpacity style={styles.emptyBtn} onPress={() => navigation.navigate('TreatmentForm')}>
+              <Text style={styles.emptyBtnText}>Crear primer seguimiento</Text>
+            </TouchableOpacity>
+          </ToolTipBubble>
         </View>
       ) : (
         <FlatList
