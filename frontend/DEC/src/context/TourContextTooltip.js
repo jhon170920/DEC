@@ -7,13 +7,7 @@ export const TourProvider = ({ children }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   // TODAS LAS SCREENS A MOSTRAR EL TOOLTIP
-  const [completedScreen, setCompletedScreen] = useState({
-    MainApp: false,
-    Profile: false,
-    History: false,
-    TreatmentLog: false,
-    TreatmentForm: false,
-  });
+  const [completedScreen, setCompletedScreen] = useState({});
   useEffect(() => {
     // SOLO EN APP
     if(Platform.OS !== 'web'){
