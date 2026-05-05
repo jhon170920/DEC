@@ -17,6 +17,7 @@ import {
   getAllDetectionsForSelector,
   saveAlarm
 } from '../../services/dbService';
+import ToolTipBubble from '../../components/Tour/ToolTipBubble';
 
 export default function TreatmentFormScreen() {
   const navigation = useNavigation();
@@ -297,10 +298,16 @@ export default function TreatmentFormScreen() {
 
           <View style={styles.card}>
             {/* Botón para asociar detección */}
-            <TouchableOpacity style={styles.selectDetectionBtn} onPress={() => setShowDetectionModal(true)}>
-              <Feather name="search" size={18} color={Colors.primary} />
-              <Text style={styles.selectDetectionText}>Asociar a una detección del historial</Text>
-            </TouchableOpacity>
+            <ToolTipBubble
+              stepNumber={0} 
+              nextStep={1} 
+              text="Puedes seleccionar una detección anterior para hacerle un seguimiento personalizado."
+            >
+              <TouchableOpacity style={styles.selectDetectionBtn} onPress={() => setShowDetectionModal(true)}>
+                <Feather name="search" size={18} color={Colors.primary} />
+                <Text style={styles.selectDetectionText}>Asociar a una detección del historial</Text>
+              </TouchableOpacity>
+            </ToolTipBubble>
 
             {/* Mostrar imagen y datos de la detección seleccionada */}
             {selectedDetection && (
@@ -326,58 +333,82 @@ export default function TreatmentFormScreen() {
             )}
 
             <Text style={styles.label}>Enfermedad / Afección *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej: Roya, Mancha de hierro"
-              value={diseaseName}
-              onChangeText={setDiseaseName}
-            />
+            <ToolTipBubble
+              stepNumber={1}
+              nextStep={2}
+              text="Si decides NO asociar tu seguimiento a una detección anterior. Escribe aquí el nombre de la afección detectada en tu cafetal."
+            >
+              <TextInput
+                style={styles.input}
+                placeholder="Ej: Roya, Mancha de hierro"
+                value={diseaseName}
+                onChangeText={setDiseaseName}
+              />
+            </ToolTipBubble>
 
             <Text style={styles.label}>Notas generales</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Observaciones adicionales"
-              value={generalNotes}
-              onChangeText={setGeneralNotes}
-              multiline
-              numberOfLines={3}
-            />
+            <ToolTipBubble
+              stepNumber={2}
+              nextStep={3}
+              text="Escribe aquí una situación o una característica especial de tu seguimiento."
+            >
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Observaciones adicionales"
+                value={generalNotes}
+                onChangeText={setGeneralNotes}
+                multiline
+                numberOfLines={3}
+              />
+            </ToolTipBubble>
 
-            <Text style={styles.label}>Productos aplicados</Text>
-            {products.length === 0 ? (
-              <Text style={styles.emptyList}>No hay productos agregados</Text>
-            ) : (
-              products.map((item, index) => (
-                <View key={index} style={styles.productCard}>
-                  <View style={styles.productHeader}>
-                    <Text style={styles.productName}>{item.product_name}</Text>
-                    <View style={styles.productActions}>
-                      <TouchableOpacity onPress={() => openEditProduct(index)}>
-                        <Feather name="edit-2" size={18} color={Colors.primary} />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => removeProduct(index)} style={{ marginLeft: 12 }}>
-                        <Feather name="trash-2" size={18} color="#dc2626" />
-                      </TouchableOpacity>
+              <Text style={styles.label}>Productos aplicados</Text>
+              {products.length === 0 ? (
+                <Text style={styles.emptyList}>No hay productos agregados</Text>
+              ) : (
+                products.map((item, index) => (
+                  <View key={index} style={styles.productCard}>
+                    <View style={styles.productHeader}>
+                      <Text style={styles.productName}>{item.product_name}</Text>
+                      <View style={styles.productActions}>
+                        <TouchableOpacity onPress={() => openEditProduct(index)}>
+                          <Feather name="edit-2" size={18} color={Colors.primary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => removeProduct(index)} style={{ marginLeft: 12 }}>
+                          <Feather name="trash-2" size={18} color="#dc2626" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
+                    {item.dose ? <Text style={styles.productDetail}>💊 Dosis: {item.dose}</Text> : null}
+                    {item.application_date ? (
+                      <Text style={styles.productDetail}>📅 Aplicación: {new Date(item.application_date).toLocaleDateString()}</Text>
+                    ) : null}
+                    {item.notes ? <Text style={styles.productDetail}>📝 {item.notes}</Text> : null}
                   </View>
-                  {item.dose ? <Text style={styles.productDetail}>💊 Dosis: {item.dose}</Text> : null}
-                  {item.application_date ? (
-                    <Text style={styles.productDetail}>📅 Aplicación: {new Date(item.application_date).toLocaleDateString()}</Text>
-                  ) : null}
-                  {item.notes ? <Text style={styles.productDetail}>📝 {item.notes}</Text> : null}
-                </View>
-              ))
-            )}
-            <TouchableOpacity style={styles.addProductBtn} onPress={openAddProduct}>
-              <Feather name="plus" size={20} color={Colors.primary} />
-              <Text style={styles.addProductText}>Agregar producto</Text>
-            </TouchableOpacity>
+                ))
+              )}
+            <ToolTipBubble
+              stepNumber={3}
+              nextStep={4}
+              text="También puedes registrar algún producto que le has aplicado a tu cafetal para un seguimiento más detallado."
+            >
+              <TouchableOpacity style={styles.addProductBtn} onPress={openAddProduct}>
+                <Feather name="plus" size={20} color={Colors.primary} />
+                <Text style={styles.addProductText}>Agregar producto</Text>
+              </TouchableOpacity>
+            </ToolTipBubble>
 
-            <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
-              <LinearGradient colors={['#22c55e', '#16a34a']} style={styles.saveGradient}>
-                <Text style={styles.saveText}>{loading ? 'Guardando...' : 'Guardar seguimiento'}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+            <ToolTipBubble
+              stepNumber={4}
+              nextStep={'finishScreen'}
+              text="Una vez terminados los pasos anteriores correctamente, puedes guardar tu seguimiento"
+            >
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
+                <LinearGradient colors={['#22c55e', '#16a34a']} style={styles.saveGradient}>
+                  <Text style={styles.saveText}>{loading ? 'Guardando...' : 'Guardar seguimiento'}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </ToolTipBubble>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -531,7 +562,7 @@ const styles = StyleSheet.create({
   reminderBtn: { flexDirection: 'row', backgroundColor: '#3b82f6', paddingVertical: 10, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
   reminderText: { color: '#fff', fontWeight: 'bold', marginLeft: 8 },
   label: { fontSize: 16, fontWeight: '600', color: '#2C3E50', marginBottom: 5, marginTop: 10 },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 16, marginBottom: 10 },
+  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 16, marginBottom: 10, backgroundColor: Colors.surface },
   textArea: { height: 80, textAlignVertical: 'top' },
   productCard: { backgroundColor: '#f8fafc', borderRadius: 8, padding: 10, marginBottom: 8 },
   productHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -539,7 +570,7 @@ const styles = StyleSheet.create({
   productActions: { flexDirection: 'row' },
   productDetail: { fontSize: 13, color: '#475569', marginTop: 4 },
   emptyList: { fontSize: 14, color: Colors.textMuted, textAlign: 'center', marginVertical: 10 },
-  addProductBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 5, marginBottom: 15 },
+  addProductBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 5, marginBottom: 15, backgroundColor: Colors.surface, borderRadius: 12, padding: 4, },
   addProductText: { color: Colors.primary, marginLeft: 8, fontWeight: '600' },
   saveBtn: { marginTop: 20, borderRadius: 12, overflow: 'hidden' },
   saveGradient: { paddingVertical: 12, alignItems: 'center' },

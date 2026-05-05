@@ -23,6 +23,7 @@ import { MainStyles as styles } from "../../styles/MainStyles";
 import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 import { debugCheckDatabase } from "../../services/dbService";
 import api from "../../api/api";
+import ToolTipBubble from "../../components/Tour/ToolTipBubble";
 
 export default function MainApp() {
   const {
@@ -179,15 +180,22 @@ export default function MainApp() {
           </View>
 
           <View style={styles.avatarWrapper}>
-            <TouchableOpacity
-              onPress={handleAvatarPress}
-              activeOpacity={0.75}
-              style={styles.avatarTouchable}
+            {/* BOTON DE PERFIL */}
+            <ToolTipBubble
+              stepNumber={0} 
+              nextStep={1} 
+              text="Acá podrás ver tu perfil, tus datos y toda la configuración disponible por el momento."
             >
-              <View style={[styles.avatarInner, { backgroundColor: "transparent", borderWidth: 0 }]}>
-                {renderAvatar()}
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleAvatarPress}
+                activeOpacity={0.75}
+                style={styles.avatarTouchable}
+              >
+                <View style={[styles.avatarInner, { backgroundColor: "transparent", borderWidth: 0 }]}>
+                  {renderAvatar()}
+                </View>
+              </TouchableOpacity>
+            </ToolTipBubble>
           </View>
         </View>
 
@@ -223,23 +231,29 @@ export default function MainApp() {
         </View>
 
         {/* BOTÓN SCAN */}
-        <TouchableOpacity
-          style={styles.scanBtn}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate("Camera")}
+        <ToolTipBubble
+          stepNumber={1} 
+          nextStep={2} 
+          text="¡Después de terminar el tutorial, puedes tocar aquí para empezar tu primer escaneo!"
         >
-          <LinearGradient
-            colors={["#22c55e", "#16a34a", "#15803d"]}
-            style={styles.scanGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <TouchableOpacity
+            style={styles.scanBtn}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate("Camera")}
           >
-            <View style={styles.scanIconWrap}>
-              <Feather name="camera" size={20} color="#fff" />
-            </View>
-            <Text style={styles.scanText}>Escanear planta</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={["#22c55e", "#16a34a", "#15803d"]}
+              style={styles.scanGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.scanIconWrap}>
+                <Feather name="camera" size={20} color="#fff" />
+              </View>
+              <Text style={styles.scanText}>Escanear planta</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </ToolTipBubble>
 
         {/* ACCIONES */}
         <View style={styles.sectionHeader}>
@@ -248,50 +262,72 @@ export default function MainApp() {
         </View>
 
         <View style={styles.menuList}>
-          <TouchableOpacity
-            style={styles.menuCard}
-            activeOpacity={0.75}
-            onPress={() => checkAuthAndNavigate("History")}
+          {/* BOTÓN DE ANÁLISIS */}
+          <ToolTipBubble
+            stepNumber={2} 
+            nextStep={3} 
+            text="Después de terminar el escaneo correctamente, ¡Acá podrás ver todos los análisis de tus cafetales!"
           >
-            <View style={styles.menuIconWrap}>
-              <Feather name="search" size={24} color={Colors.primary} />
-            </View>
-            <View style={styles.menuTexts}>
-              <Text style={styles.menuTitle}>Mis Análisis</Text>
-              <Text style={styles.menuSub}>Escaneos recientes de plantas</Text>
-            </View>
-            <Feather name="chevron-right" size={16} color={Colors.textMuted} />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuCard}
+              activeOpacity={0.75}
+              onPress={() => checkAuthAndNavigate("History")}
+            >
+              <View style={styles.menuIconWrap}>
+                <Feather name="search" size={24} color={Colors.primary} />
+              </View>
+              <View style={styles.menuTexts}>
+                <Text style={styles.menuTitle}>Mis Análisis</Text>
+                <Text style={styles.menuSub}>Escaneos recientes de plantas</Text>
+              </View>
+              <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+            </TouchableOpacity>
+          </ToolTipBubble>
+          {/* BOTÓN DE BITÁCORAS */}
+          <ToolTipBubble
+            stepNumber={3} 
+            nextStep={4} 
+            text="¡También podrás llevar un control de tus propios cafetales!"
+            placement="top"
+          >
+            <TouchableOpacity
+              style={styles.menuCard}
+              activeOpacity={0.75}
+              onPress={() => checkAuthAndNavigate("TreatmentLog")}
+            >
+              <View style={styles.menuIconWrap}>
+                <Feather name="book" size={24} color={Colors.primary} />
+              </View>
+              <View style={styles.menuTexts}>
+                <Text style={styles.menuTitle}>Bitácora de cultivo</Text>
+                <Text style={styles.menuSub}>Registra tus tratamientos y productos</Text>
+              </View>
+              <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+            </TouchableOpacity>
+          </ToolTipBubble>
 
-          <TouchableOpacity
-            style={styles.menuCard}
-            activeOpacity={0.75}
-            onPress={() => checkAuthAndNavigate("TreatmentLog")}
+          {/* BOTÓN DE BITÁCORAS */}
+          <ToolTipBubble
+            stepNumber={4} 
+            nextStep={'finishScreen'} 
+            text="Si tienes alguna duda no dudes en hacerlo saber a nosotros para poder ayudarte."
+            placement="top"
           >
-            <View style={styles.menuIconWrap}>
-              <Feather name="book" size={24} color={Colors.primary} />
-            </View>
-            <View style={styles.menuTexts}>
-              <Text style={styles.menuTitle}>Bitácora de cultivo</Text>
-              <Text style={styles.menuSub}>Registra tus tratamientos y productos</Text>
-            </View>
-            <Feather name="chevron-right" size={16} color={Colors.textMuted} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuCard}
-            activeOpacity={0.75}
-            onPress={() => checkAuthAndNavigate("Contact")}
-          >
-            <View style={styles.menuIconWrap}>
-              <Feather name="message-circle" size={24} color={Colors.primary} />
-            </View>
-            <View style={styles.menuTexts}>
-              <Text style={styles.menuTitle}>Contáctanos</Text>
-              <Text style={styles.menuSub}>Medios de atención</Text>
-            </View>
-            <Feather name="chevron-right" size={16} color={Colors.textMuted} />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuCard}
+              activeOpacity={0.75}
+              onPress={() => checkAuthAndNavigate("Contact")}
+            >
+              <View style={styles.menuIconWrap}>
+                <Feather name="message-circle" size={24} color={Colors.primary} />
+              </View>
+              <View style={styles.menuTexts}>
+                <Text style={styles.menuTitle}>Contáctanos</Text>
+                <Text style={styles.menuSub}>Medios de atención</Text>
+              </View>
+              <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+            </TouchableOpacity>
+          </ToolTipBubble>
         </View>
       </ScrollView>
 

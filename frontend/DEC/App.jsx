@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Platform, View, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { AuthProvider } from './src/context/AuthContext';
+import { TourProvider } from './src/context/TourContextTooltip';
 import AppNavigator from './src/navigation/AppNavigator';
 import { initDatabase, getAllActiveAlarms, deactivateAlarm } from './src/services/dbService';
 import * as RootNavigation from './src/navigation/RootNavigation';
@@ -124,8 +125,10 @@ export default function App() {
   return (
     <View style={styles.container}>
       <AuthProvider>
-        <SyncManager />
-        <AppNavigator />
+        <TourProvider>
+          <SyncManager />
+          <AppNavigator />
+        </TourProvider>
       </AuthProvider>
     </View>
   );

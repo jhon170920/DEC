@@ -12,6 +12,7 @@ import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 import api, { deleteUserAccount, deleteUserAccountSocial } from "../../api/api";
 import { AuthContext } from "../../context/AuthContext";
 import {getTreatmentLogsCount} from "../../services/dbService"
+import ToolTipBubble from "../../components/Tour/ToolTipBubble";
 
 export default function Profile() {
   const navigation = useNavigation();
@@ -180,18 +181,23 @@ export default function Profile() {
         <Text style={[styles.userName, { fontSize: headlineS * 0.5, marginBottom: sp(0.018) }]}>{nombreUsuario}</Text>
 
         {/* STATS */}
-        
-        <View style={[styles.statsCard, { marginBottom: sp(0.02), paddingVertical: sp(0.015) }]}>
-  <View style={styles.statItem}>
-    <Text style={[styles.statNumber, { fontSize: headlineS * 0.5 }]}>{stats.analisis}</Text>
-    <Text style={[styles.statLabel, { fontSize: sublineS }]}>Análisis</Text>
-  </View>
-  <View style={styles.statDivider} />
-  <View style={styles.statItem}>
-    <Text style={[styles.statNumber, { fontSize: headlineS * 0.5 }]}>{stats.seguimiento}</Text>
-    <Text style={[styles.statLabel, { fontSize: sublineS }]}>Seguimiento</Text>
-  </View>
-</View>
+        <ToolTipBubble
+          stepNumber={0}
+          nextStep={1}
+          text='La cantidad de análisis que has hecho y los seguimientos que has creado.'
+        >
+          <View style={[styles.statsCard, { marginBottom: sp(0.02), paddingVertical: sp(0.015) }]}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, { fontSize: headlineS * 0.5 }]}>{stats.analisis}</Text>
+              <Text style={[styles.statLabel, { fontSize: sublineS }]}>Análisis</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, { fontSize: headlineS * 0.5 }]}>{stats.seguimiento}</Text>
+              <Text style={[styles.statLabel, { fontSize: sublineS }]}>Seguimiento</Text>
+            </View>
+          </View>
+        </ToolTipBubble>
         
         {/* MI CUENTA */}
         <View style={[styles.sectionHeader, { marginBottom: 6, marginTop: 8 }]}>
@@ -200,25 +206,41 @@ export default function Profile() {
         </View>
 
         <View style={styles.groupCard}>
-          <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => navigation.navigate("EditProfile")}>
-            <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: "#f0faf3" }]}>
-              <Feather name="edit-2" size={iconS} color={Colors.primary} />
-            </View>
-            <Text style={[styles.menuTitle, { fontSize: brandS }]}>Editar perfil</Text>
-            <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
-          </TouchableOpacity>
-          <View style={styles.itemDivider} />
-          <TouchableOpacity
-            style={[styles.menuItem, { paddingVertical: menuPadV }]}
-            activeOpacity={0.75}
-            onPress={() => navigation.navigate('Alarms')}
+          <ToolTipBubble
+            stepNumber={1}
+            nextStep={2}
+            text='Puedes editar tus datos personales básicos.'
           >
-            <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: "#eff6ff" }]}>
-              <Feather name="bell" size={iconS} color="#3b82f6" />
-            </View>
-            <Text style={[styles.menuTitle, { fontSize: brandS }]}>Mis recordatorios</Text>
-            <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
-          </TouchableOpacity>
+          {/* EDITAR PERFIL */}
+            <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => navigation.navigate("EditProfile")}>
+              <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: "#f0faf3" }]}>
+                <Feather name="edit-2" size={iconS} color={Colors.primary} />
+              </View>
+              <Text style={[styles.menuTitle, { fontSize: brandS }]}>Editar perfil</Text>
+              <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
+            </TouchableOpacity>
+          </ToolTipBubble>
+
+          <View style={styles.itemDivider} />
+
+          <ToolTipBubble
+            stepNumber={2}
+            nextStep={3}
+            text='La configuración de tus recordatorios.'
+          >
+            {/* RECORDATORIOS */}
+            <TouchableOpacity
+              style={[styles.menuItem, { paddingVertical: menuPadV }]}
+              activeOpacity={0.75}
+              onPress={() => navigation.navigate('Alarms')}
+            >
+              <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: "#eff6ff" }]}>
+                <Feather name="bell" size={iconS} color="#3b82f6" />
+              </View>
+              <Text style={[styles.menuTitle, { fontSize: brandS }]}>Mis recordatorios</Text>
+              <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
+            </TouchableOpacity>
+          </ToolTipBubble>
         </View>
 
         {/* SOPORTE */}
@@ -228,32 +250,61 @@ export default function Profile() {
         </View>
 
         <View style={styles.groupCard}>
-          <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => navigation.navigate('Centro')}>
-            <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: "#eff6ff" }]}>
-              <Feather name="help-circle" size={iconS} color="#3b82f6" />
-            </View>
-            <Text style={[styles.menuTitle, { fontSize: brandS }]}>Centro de ayuda</Text>
-            <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
-          </TouchableOpacity>
+          <ToolTipBubble
+            stepNumber={3}
+            nextStep={4}
+            text='Nuestro contacto directo, una guía rápida y algunas preguntas frecuentes.'
+          >
+            {/* CENTRO DE AYUDA */}
+            <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => navigation.navigate('Centro')}>
+              <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: "#eff6ff" }]}>
+                <Feather name="help-circle" size={iconS} color="#3b82f6" />
+              </View>
+              <Text style={[styles.menuTitle, { fontSize: brandS }]}>Centro de ayuda</Text>
+              <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
+            </TouchableOpacity>
+          </ToolTipBubble>
+
           <View style={styles.itemDivider} />
-          <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => navigation.navigate('Terminos')}>
-            <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: Colors.surfaceAlt }]}>
-              <Feather name="file-text" size={iconS} color={Colors.textMuted} />
-            </View>
-            <Text style={[styles.menuTitle, { fontSize: brandS }]}>Términos y privacidad</Text>
-            <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
-          </TouchableOpacity>
+
+          <ToolTipBubble
+            stepNumber={4}
+            nextStep={5}
+            text='Puedes consultar en cualquier momento nuestros Términos y Política de Privacidad.'
+          >
+            {/* TERMINOS Y PRIVACIDAD */}
+            <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => navigation.navigate('Terminos')}>
+              <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: Colors.surfaceAlt }]}>
+                <Feather name="file-text" size={iconS} color={Colors.textMuted} />
+              </View>
+              <Text style={[styles.menuTitle, { fontSize: brandS }]}>Términos y privacidad</Text>
+              <Feather name="chevron-right" size={iconS - 4} color={Colors.textMuted} />
+            </TouchableOpacity>
+          </ToolTipBubble>
         </View>
 
         {/* BOTONES */}
-        <TouchableOpacity style={[styles.btnDanger, { height: btnH }]} activeOpacity={0.75} onPress={() => setModalLogoutVisible(true)}>
-          <Text style={[styles.btnDangerText, { fontSize: brandS }]}>Cerrar sesión</Text>
-        </TouchableOpacity>
+        <ToolTipBubble
+          stepNumber={5}
+          nextStep={6}
+          text='Puedes cerrar tu sesión y volver a iniciar en tu cuenta, o iniciar en otra cuenta siempre que lo desees.'
+          placement='top'
+        >
 
-        <TouchableOpacity style={[styles.btnDanger, { height: btnH }]} activeOpacity={0.75} onPress={() => setModalDeleteConfirmVisible(true)}>
-          <Text style={[styles.btnDangerText, { fontSize: brandS }]}>Eliminar cuenta</Text>
-        </TouchableOpacity>
-
+          <TouchableOpacity style={[styles.btnDanger, { height: btnH }]} activeOpacity={0.75} onPress={() => setModalLogoutVisible(true)}>
+            <Text style={[styles.btnDangerText, { fontSize: brandS }]}>Cerrar sesión</Text>
+          </TouchableOpacity>
+        </ToolTipBubble>
+        <ToolTipBubble
+          stepNumber={6}
+          nextStep={'finishScreen'}
+          text='Puedes eliminar tu cuenta junto con todos tus datos en cualquier momento si lo prefieres. ¡Cuidado, esto es irreversible!'
+          placement='top'
+        >
+          <TouchableOpacity style={[styles.btnDanger, { height: btnH }]} activeOpacity={0.75} onPress={() => setModalDeleteConfirmVisible(true)}>
+            <Text style={[styles.btnDangerText, { fontSize: brandS }]}>Eliminar cuenta</Text>
+          </TouchableOpacity>
+        </ToolTipBubble>
       </ScrollView>
 
       {/* Modal confirmar cierre de sesión */}
