@@ -119,7 +119,7 @@ export const LoginStyles = StyleSheet.create({
     borderColor: '#c8e6ce',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.surface,
   },
   btnGhostText: { color: Colors.textMid, fontSize: 14, fontWeight: '600', letterSpacing: 0.2 },
 

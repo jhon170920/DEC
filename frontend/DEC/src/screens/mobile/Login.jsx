@@ -28,6 +28,7 @@ import BtnLoginGoogle from '../../components/BtnLoginGoogle.jsx';
 //COMPONENTE REUTILIZABLE
 import FloatingInput from '../../components/FloatingInput.jsx';
 // import ParticlesBackground from '../../components/Layout/ParticlesBackground.native.jsx';
+import ToolTipBubbleAuth from '../../components/Tour/ToolTipBubbleAuth.jsx';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -141,63 +142,89 @@ export default function Login() {
                         </Text>
                     </View>
 
-                    {/* CAMPOS */}
-                    <View style={{ gap: sp(0.014) }}>
-                        <FloatingInput
-                            label="Correo electrónico"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize='none'
-                            fieldHeight={fieldH}
-                        />
-                        <FloatingInput
-                            label="Contraseña"
-                            value={password}
-                            onChangeText={setPassword}
-                            isPassword={true}
-                            fieldHeight={fieldH}
-                        />
-                    </View>
+                    {/* CAMPOS */} 
+                    <ToolTipBubbleAuth
+                        stepNumber={0}
+                        nextStep={1}
+                        text="Ingresa los datos que utilizaste para registrarte. ¡Si NO te has registrado, no dudes en hacerlo al final de estos mensajes!"
+                    >
+                        <View style={{ gap: sp(0.014) }}>
+                            <FloatingInput
+                                label="Correo electrónico"
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize='none'
+                                fieldHeight={fieldH}
+                            />
+                            <FloatingInput
+                                label="Contraseña"
+                                value={password}
+                                onChangeText={setPassword}
+                                isPassword={true}
+                                fieldHeight={fieldH}
+                            />
+                        </View>
+                    </ToolTipBubbleAuth>
 
                     {/* OLVIDÉ CONTRASEÑA */}
                     <View style={[styles.metaRow, { marginVertical: sp(0.016) }]}>
-                        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-                            <Text style={styles.forgotText}>
-                                ¿Olvidaste tu contraseña?{' '}
-                                <Text style={styles.forgotLink}>Recupérala</Text>
-                            </Text>
-                        </TouchableOpacity>
+                        <ToolTipBubbleAuth
+                            stepNumber={1}
+                            nextStep={2}
+                            text="Si olvidaste tu contraseña, puedes restaurarla aquí."
+                        >
+                            <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+                                <Text style={styles.forgotText}>
+                                    ¿Olvidaste tu contraseña?{' '}
+                                    <Text style={styles.forgotLink}>Recupérala</Text>
+                                </Text>
+                            </TouchableOpacity>
+                        </ToolTipBubbleAuth>
                     </View>
 
                     {/* BOTÓN INGRESAR */}
-                    <TouchableOpacity
-                        style={[styles.btnPrimary, { marginBottom: sp(0.014) }, loading && { opacity: 0.72 }]}
-                        onPress={handleLogin}
-                        disabled={loading}
-                        activeOpacity={0.85}
+                    <ToolTipBubbleAuth
+                        stepNumber={2}
+                        nextStep={3}
+                        text="Si escribiste tus datos correctamente, inicia sesión. ¡Recuerda que debes tener tu cuenta registrada previamente!"
+                        placement='top'
                     >
-                        <LinearGradient
-                            colors={['#22c55e', '#16a34a', '#15803d']}
-                            style={[styles.btnPrimaryGradient, { height: btnH }]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
+                        <TouchableOpacity
+                            style={[styles.btnPrimary, { marginBottom: sp(0.014) }, loading && { opacity: 0.72 }]}
+                            onPress={handleLogin}
+                            disabled={loading}
+                            activeOpacity={0.85}
                         >
-                            {loading
-                                ? <ActivityIndicator color="#fff" />
-                                : <Text style={styles.btnPrimaryText}>Ingresar</Text>
-                            }
-                        </LinearGradient>
-                    </TouchableOpacity>
+                            <LinearGradient
+                                colors={['#22c55e', '#16a34a', '#15803d']}
+                                style={[styles.btnPrimaryGradient, { height: btnH }]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                {loading
+                                    ? <ActivityIndicator color="#fff" />
+                                    : <Text style={styles.btnPrimaryText}>Ingresar</Text>
+                                }
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </ToolTipBubbleAuth>
 
                     {/* BOTÓN INVITADO */}
-                    <TouchableOpacity
-                        style={[styles.btnGhost, { height: ghostH, marginBottom: sp(0.024) }]}
-                        onPress={handleGuestEntry}
-                        activeOpacity={0.75}
+                    <ToolTipBubbleAuth
+                        stepNumber={3}
+                        nextStep={4}
+                        text="Si decides No registrar ni ingresar tus datos puedes iniciar sesión como invitado, pero con algunas funciones limitadas."
+                        placement='top'
                     >
-                        <Text style={styles.btnGhostText}>Continuar como Invitado</Text>
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.btnGhost, { height: ghostH, marginBottom: sp(0.024) }]}
+                            onPress={handleGuestEntry}
+                            activeOpacity={0.75}
+                        >
+                            <Text style={styles.btnGhostText}>Continuar como Invitado</Text>
+                        </TouchableOpacity>
+                    </ToolTipBubbleAuth>
 
                     {/* DIVISOR */}
                     <View style={[styles.divider, { marginBottom: sp(0.022) }]}>
@@ -207,18 +234,32 @@ export default function Login() {
                     </View>
 
                     {/* SOCIAL */}
-                    <View style={[styles.socialRow, { marginBottom: sp(0.024) }]}>
-                        <BtnLoginGoogle />
-                        <BtnLoginFacebook />
-                    </View>
+                    <ToolTipBubbleAuth
+                        stepNumber={4}
+                        nextStep={5}
+                        text="Si prefieres un registro y un inicio rápido, !Puedes continuar con tu cuenta de Google o Facebook!"
+                        placement='top'
+                    >
+                        <View style={[styles.socialRow, { marginBottom: sp(0.024) }]}>
+                            <BtnLoginGoogle />
+                            <BtnLoginFacebook />
+                        </View>
+                    </ToolTipBubbleAuth>
 
                     {/* FOOTER */}
-                    <TouchableOpacity style={styles.registerRow} onPress={() => navigation.navigate('Register')}>
-                        <Text style={styles.registerText}>
-                            ¿No tienes una cuenta?{' '}
-                            <Text style={styles.registerLink}>Regístrate</Text>
-                        </Text>
-                    </TouchableOpacity>
+                    <ToolTipBubbleAuth
+                        stepNumber={5}
+                        nextStep={'finishScreen'}
+                        text="Si no te has registrado y si No deseas hacerlo con tu cuenta de Google o Facebook. ¡Puedes registrarte manualmente aquí!"
+                        placement='top'
+                    >
+                        <TouchableOpacity style={styles.registerRow} onPress={() => navigation.navigate('Register')}>
+                            <Text style={styles.registerText}>
+                                ¿No tienes una cuenta?{' '}
+                                <Text style={styles.registerLink}>Regístrate</Text>
+                            </Text>
+                        </TouchableOpacity>
+                    </ToolTipBubbleAuth>
                 </Animated.View>
             </KeyboardAvoidingView>
 

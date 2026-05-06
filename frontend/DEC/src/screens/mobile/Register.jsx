@@ -23,6 +23,7 @@ import { StyleRegister as styles } from '../../styles/RegisterStyles';
 import BtnLoginFacebook from '../../components/BtnLoginFacebook.jsx';
 import BtnLoginGoogle from '../../components/BtnLoginGoogle.jsx';
 import FloatingInput from '../../components/FloatingInput.jsx';
+import ToolTipBubbleAuth from '../../components/Tour/ToolTipBubbleAuth.jsx';
 
 export default function Register() {
     const navigation = useNavigation();
@@ -171,82 +172,100 @@ export default function Register() {
                             </View>
 
                             {/* Formulario */}
-                            <View style={{ gap: sp(0.014) }}>
-                                <FloatingInput
-                                    label="Nombre"
-                                    value={name}
-                                    onChangeText={setName}
-                                    keyboardType="name"
-                                    autoCapitalize='none'
-                                    fieldHeight={fieldH}
-                                />
-                                <FloatingInput
-                                    label="Correo electrónico"
-                                    value={email}
-                                    onChangeText={setEmail}
-                                    keyboardType="email-address"
-                                    autoCapitalize="none"
-                                    fieldHeight={fieldH}
-                                />
-                                <FloatingInput
-                                    label="Contraseña"
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    keyboardType="password"
-                                    isPassword={true}
-                                    fieldHeight={fieldH}
-                                />
-                                <FloatingInput
-                                    label="Confirmar contraseña"
-                                    value={confirmPassword}
-                                    onChangeText={setConfirmPassword}
-                                    keyboardType="password"
-                                    isPassword={true}
-                                    fieldHeight={fieldH}
-                                />
-                            </View>
-
-                            {/* Aceptación de términos y condiciones */}
-                            <View style={termsStyles.container}>
-                                <TouchableOpacity
-                                    style={termsStyles.checkbox}
-                                    onPress={() => setTermsAccepted(!termsAccepted)}
-                                    activeOpacity={0.7}
-                                >
-                                    <Feather
-                                        name={termsAccepted ? "check-square" : "square"}
-                                        size={20}
-                                        color={termsAccepted ? Colors.primary : "#9ca3af"}
-                                    />
-                                </TouchableOpacity>
-                                <Text style={termsStyles.termsText}>
-                                    Acepto los{" "}
-                                    <Text
-                                        style={termsStyles.link}
-                                        onPress={() => navigation.navigate('Terminos')}
-                                    >
-                                        Términos y Condiciones
-                                    </Text>
-                                </Text>
-                            </View>
-
-                            {/* Botón Registrar */}
-                            <TouchableOpacity
-                                style={[styles.btnPrimary, { marginBottom: sp(0.014) }, (loading || !termsAccepted) && { opacity: 0.72 }]}
-                                onPress={handleRegister}
-                                disabled={loading || !termsAccepted}
-                                activeOpacity={0.85}
+                            <ToolTipBubbleAuth
+                                stepNumber={0}
+                                nextStep={1}
+                                text="Ingresa correctamente tu nombre, tu correo electrónico para enviarte un código de verificación, y crea una contraseña. ¡Que no se te olviden estos datos!"
+                                placement='top'
                             >
-                                <LinearGradient
-                                    colors={['#22c55e', '#16a34a', '#15803d']}
-                                    style={[styles.btnPrimaryGradient, { height: btnH }]}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
+                                <View style={{ gap: sp(0.014) }}>
+                                    <FloatingInput
+                                        label="Nombre"
+                                        value={name}
+                                        onChangeText={setName}
+                                        keyboardType="name"
+                                        autoCapitalize='none'
+                                        fieldHeight={fieldH}
+                                    />
+                                    <FloatingInput
+                                        label="Correo electrónico"
+                                        value={email}
+                                        onChangeText={setEmail}
+                                        keyboardType="email-address"
+                                        autoCapitalize="none"
+                                        fieldHeight={fieldH}
+                                    />
+                                    <FloatingInput
+                                        label="Contraseña"
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        keyboardType="password"
+                                        isPassword={true}
+                                        fieldHeight={fieldH}
+                                    />
+                                    <FloatingInput
+                                        label="Confirmar contraseña"
+                                        value={confirmPassword}
+                                        onChangeText={setConfirmPassword}
+                                        keyboardType="password"
+                                        isPassword={true}
+                                        fieldHeight={fieldH}
+                                    />
+                                </View>
+                            </ToolTipBubbleAuth>
+                            {/* Aceptación de términos y condiciones */}
+                            <ToolTipBubbleAuth
+                                stepNumber={1}
+                                nextStep={2}
+                                text="Debes aceptar los términos y condiciones para continuar. Si los aceptas confirmas que leiste nuestros Términos y Condiciones"
+                                placement='top'
+                            >
+                                <View style={termsStyles.container}>
+                                    <TouchableOpacity
+                                        style={termsStyles.checkbox}
+                                        onPress={() => setTermsAccepted(!termsAccepted)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Feather
+                                            name={termsAccepted ? "check-square" : "square"}
+                                            size={20}
+                                            color={termsAccepted ? Colors.primary : "#9ca3af"}
+                                        />
+                                    </TouchableOpacity>
+                                    <Text style={termsStyles.termsText}>
+                                        Acepto los{" "}
+                                        <Text
+                                            style={termsStyles.link}
+                                            onPress={() => navigation.navigate('Terminos')}
+                                        >
+                                            Términos y Condiciones
+                                        </Text>
+                                    </Text>
+                                </View>
+                            </ToolTipBubbleAuth>
+                            {/* Botón Registrar */}
+                            <ToolTipBubbleAuth
+                                stepNumber={2}
+                                nextStep={3}
+                                text="Una vez completes los campos correctamente y aceptes nuestros Términos y Condiciones. ¡Puedes registrarte y disfrutar de la app!"
+                                placement='top'
+                            >
+                                <TouchableOpacity
+                                    style={[styles.btnPrimary, { marginBottom: sp(0.014) }, (loading || !termsAccepted) && { opacity: 0.72 }]}
+                                    onPress={handleRegister}
+                                    disabled={loading || !termsAccepted}
+                                    activeOpacity={0.85}
                                 >
-                                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnPrimaryText}>Registrarse</Text>}
-                                </LinearGradient>
-                            </TouchableOpacity>
-
+                                    <LinearGradient
+                                        colors={['#22c55e', '#16a34a', '#15803d']}
+                                        style={[styles.btnPrimaryGradient, { height: btnH }]}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnPrimaryText}>Registrarse</Text>}
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </ToolTipBubbleAuth>
                             {/* Divisor */}
                             <View style={[styles.divider, { marginBottom: sp(0.022) }]}>
                                 <View style={styles.divLine} />
@@ -255,42 +274,55 @@ export default function Register() {
                             </View>
 
                             {/* Redes Sociales */}
-                            <View style={[styles.socialRow, { marginBottom: sp(0.024) }, {justifyContent: 'space-around'}]}>
-                                <TouchableOpacity
-                                activeOpacity={1}
-                                onPress={() => {
-                                    if (!termsAccepted) {
-                                    showModal("Aceptación requerida", "Debes aceptar los términos y condiciones para continuar.");
-                                    }
-                                }}
-                                style={{ width: '40%', }}
-                                >
-                                <View pointerEvents={termsAccepted ? 'auto' : 'none'}>
-                                    <BtnLoginGoogle />
+                            <ToolTipBubbleAuth
+                                stepNumber={3}
+                                nextStep={4}
+                                text="Si prefieres registrarte sin esperar un código de verificación y rápidamente, puedes continuar con tu cuenta de Google o Facebook."
+                                placement='top'
+                            >
+                                <View style={[styles.socialRow, { marginBottom: sp(0.024) }, {justifyContent: 'space-around'}]}>
+                                    <TouchableOpacity
+                                        activeOpacity={1}
+                                        onPress={() => {
+                                            if (!termsAccepted) {
+                                            showModal("Aceptación requerida", "Debes aceptar los términos y condiciones para continuar.");
+                                            }
+                                        }}
+                                        style={{ width: '50%', }}
+                                    >
+                                        <View pointerEvents={termsAccepted ? 'auto' : 'none'}>
+                                            <BtnLoginGoogle />
+                                        </View>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        activeOpacity={1}
+                                        onPress={() => {
+                                            if (!termsAccepted) {
+                                            showModal("Aceptación requerida", "Debes aceptar los términos y condiciones para continuar.");
+                                            }
+                                        }}
+                                        style={{ width: '50%' }}
+                                    >
+                                        <View style={{height: ''}} pointerEvents={termsAccepted ? 'auto' : 'none'}>
+                                            <BtnLoginFacebook />
+                                        </View>
+                                    </TouchableOpacity>
+                                    
                                 </View>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                activeOpacity={1}
-                                onPress={() => {
-                                    if (!termsAccepted) {
-                                    showModal("Aceptación requerida", "Debes aceptar los términos y condiciones para continuar.");
-                                    }
-                                }}
-                                style={{ width: '40%' }}
-                                >
-                                <View pointerEvents={termsAccepted ? 'auto' : 'none'}>
-                                    <BtnLoginFacebook />
-                                </View>
-                                </TouchableOpacity>
-                                
-                            </View>
-
+                            </ToolTipBubbleAuth>
                             {/* Footer navegación al Login */}
-                            <TouchableOpacity style={styles.loginRow} onPress={() => navigation.goBack()}>
-                                <Text style={styles.loginText}>
-                                    ¿Ya tienes una cuenta? <Text style={styles.loginLink}>Inicia sesión</Text>
-                                </Text>
-                            </TouchableOpacity>
+                            <ToolTipBubbleAuth
+                                stepNumber={4}
+                                nextStep={'finishScreen'}
+                                text="¡Inicia sesión si ya tienes una cuenta!"
+                                placement='top'
+                            >
+                                <TouchableOpacity style={styles.loginRow} onPress={() => navigation.goBack()}>
+                                    <Text style={styles.loginText}>
+                                        ¿Ya tienes una cuenta? <Text style={styles.loginLink}>Inicia sesión</Text>
+                                    </Text>
+                                </TouchableOpacity>
+                            </ToolTipBubbleAuth>
                         </Animated.View>
                     </ScrollView>
                 </KeyboardAvoidingView>
