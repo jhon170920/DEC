@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 // 1. REGLA DE ORO: Usa tu IP privada (Ej: 192.168.1.XX) 
 // 'localhost' solo funciona dentro del emulador, no en tu celular físico.
-const BASE_URL = 'http://192.168.101.210:8089/api/'; 
+const BASE_URL = 'https://fortunate-upliftment-production-d481.up.railway.app/api/'; 
 
 const api = axios.create({
     baseURL: BASE_URL,

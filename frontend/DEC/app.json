@@ -5,7 +5,7 @@
     "scheme": "decapp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/icon-ios.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -19,7 +19,8 @@
     "android": {
       "package": "com.decapp.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png"
+        "foregroundImage": "./assets/sin-fondo-icon.png",
+        "backgroundColor":"#ffffff"
       },
       "permissions": [
         "CAMERA",

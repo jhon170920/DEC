@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useContext } from "react";
+import React, { useState, useCallback, useContext, useEffect } from "react";
 import {
   View, Text, TouchableOpacity, StatusBar, ScrollView, Switch,
   StyleSheet, Image, Platform, ActivityIndicator, Modal, TextInput
@@ -6,18 +6,22 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import NetInfo from "@react-native-community/netinfo";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors } from "../../constants/colors";
 import { ProfileStyles as styles } from "../../styles/Profilestyles";
 import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
+import { useNetworkStatus } from "../../hooks/useNetworkStatus";
 import api, { deleteUserAccount, deleteUserAccountSocial } from "../../api/api";
 import { AuthContext } from "../../context/AuthContext";
-import {getTreatmentLogsCount} from "../../services/dbService"
+import {getTreatmentLogsCount, saveUserProfile, getUserProfile, updateUserStats, getUserStats} from "../../services/dbService"
 import ToolTipBubble from "../../components/Tour/ToolTipBubble";
 
 export default function Profile() {
   const navigation = useNavigation();
   const { logout, RevokeAccessSocial } = useContext(AuthContext);
   const { sp, hPad, logoRingS, logoImgS, iconS, btnH, headlineS, sublineS, brandS } = useResponsiveLayout();
+  const { isConnected, netType, offlineModeActive } = useNetworkStatus();
   
   const [notificaciones, setNotificaciones] = useState(true);
   const [userData, setUserData] = useState(null);
@@ -38,12 +42,52 @@ export default function Profile() {
 
   const fetchUserData = async () => {
     try {
-      const res = await api.get('users/me');
-      setUserData(res.data.user);
+      // Intentar cargar del servidor primero
+      if (isConnected) {
+        try {
+          const res = await api.get('users/me');
+          const user = res.data.user;
+          setUserData(user);
+          
+          // Guardar en SQLite para modo offline
+          saveUserProfile(user);
+          
+          // Guardar en AsyncStorage como backup
+          await AsyncStorage.setItem('userData', JSON.stringify(user));
+        } catch (networkError) {
+          console.warn('⚠️ Error al obtener datos del servidor, usando cache local:', networkError.message);
+          // Si falla, cargar del cache local
+          const cachedUser = getUserProfile();
+          if (cachedUser) {
+            setUserData(cachedUser);
+          }
+        }
+      } else {
+        // Si no hay internet, cargar del almacenamiento local
+        const cachedUser = getUserProfile();
+        if (cachedUser) {
+          setUserData(cachedUser);
+          console.log('📴 Usando datos locales - Modo offline');
+        } else {
+          // Si no hay datos locales, intentar AsyncStorage
+          const asyncData = await AsyncStorage.getItem('userData');
+          if (asyncData) {
+            const user = JSON.parse(asyncData);
+            setUserData(user);
+            saveUserProfile(user);
+          }
+        }
+      }
     } catch (error) {
-      console.error("Error fetching user:", error);
-      setErrorMessage("No se pudo cargar la información del perfil");
-      setModalErrorVisible(true);
+      console.error("Error en fetchUserData:", error);
+      // Como último recurso, cargar datos en caché
+      const cachedData = await AsyncStorage.getItem('userData');
+      if (cachedData) {
+        setUserData(JSON.parse(cachedData));
+      } else {
+        setErrorMessage("No se pudo cargar la información del perfil");
+        setModalErrorVisible(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -51,14 +95,38 @@ export default function Profile() {
 
   const fetchStats = async () => {
     try {
-      const res = await api.get('detections/count');
-      const seguimientos = await getTreatmentLogsCount(); 
-      setStats({ 
-  analisis: res.data.count,
-  seguimiento: seguimientos || 0 // conectar seguimiento
-});
+      if (isConnected) {
+        try {
+          const res = await api.get('detections/count');
+          const seguimientos = await getTreatmentLogsCount(); 
+          const newStats = { 
+            analisis: res.data.count,
+            seguimiento: seguimientos || 0
+          };
+          setStats(newStats);
+          updateUserStats(newStats);
+          
+          // También guardar en AsyncStorage
+          await AsyncStorage.setItem('userStats', JSON.stringify(newStats));
+        } catch (networkError) {
+          console.warn('⚠️ Error al obtener estadísticas del servidor:', networkError.message);
+          // Usar cache local
+          const cachedStats = getUserStats();
+          setStats(cachedStats);
+        }
+      } else {
+        // Modo offline: cargar del SQLite
+        const cachedStats = getUserStats();
+        setStats(cachedStats);
+        console.log('📴 Usando estadísticas locales - Modo offline');
+      }
     } catch (error) {
-      console.error(error);
+      console.error('Error en fetchStats:', error);
+      // Fallback a AsyncStorage
+      const asyncStats = await AsyncStorage.getItem('userStats');
+      if (asyncStats) {
+        setStats(JSON.parse(asyncStats));
+      }
     }
   };
 
@@ -75,6 +143,11 @@ export default function Profile() {
   };
 
   const handleDeleteAccount = () => {
+    if (!isConnected) {
+      setErrorMessage("Necesitas conexión a internet para eliminar tu cuenta. Esto no se puede hacer en modo offline.");
+      setModalErrorVisible(true);
+      return;
+    }
     setModalDeleteConfirmVisible(false);
     setModalPasswordVisible(true);
   };
@@ -149,7 +222,16 @@ export default function Profile() {
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
       <LinearGradient colors={["#e8f5ec", "#f4faf5", "#f4faf5"]} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingHorizontal: hPad, paddingTop: scrollPadT }]} showsVerticalScrollIndicator={false}>
+      
+      {/* BANNER OFFLINE */}
+      {offlineModeActive && (
+        <View style={{ backgroundColor: '#fef3c7', paddingVertical: sp(0.01), paddingHorizontal: hPad, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <Feather name="wifi-off" size={16} color="#b45309" />
+          <Text style={{ fontSize: sublineS - 2, color: '#b45309', fontWeight: '600' }}>Modo sin conexión - Usando datos locales</Text>
+        </View>
+      )}
+
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingHorizontal: hPad, paddingTop: sp(0.06) }]} showsVerticalScrollIndicator={false}>
         
         {/* HEADER */}
         <View style={[styles.header, { marginBottom: sp(0.018) }]}>
@@ -163,7 +245,7 @@ export default function Profile() {
 
         {/* AVATAR */}
         <View style={styles.avatarWrap}>
-          <TouchableOpacity onPress={() => navigation.navigate("EditProfile")}>
+          <TouchableOpacity disabled={!isConnected} onPress={() => navigation.navigate("EditProfile")}>
             {fotoPerfil ? (
               <Image source={{ uri: fotoPerfil }} style={{ width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }} />
             ) : (
@@ -171,7 +253,7 @@ export default function Profile() {
                 <Text style={[styles.avatarInitial, { fontSize: avatarSize * 0.42 }]}>{inicial}</Text>
               </View>
             )}
-            <View style={[styles.avatarBadge, { width: badgeS, height: badgeS }]}>
+            <View style={[styles.avatarBadge, { width: badgeS, height: badgeS, opacity: isConnected ? 1 : 0.5 }]}>
               <Feather name="edit-2" size={badgeS * 0.5} color="#fff" />
             </View>
           </TouchableOpacity>
@@ -212,7 +294,7 @@ export default function Profile() {
             text='Puedes editar tus datos personales básicos.'
           >
           {/* EDITAR PERFIL */}
-            <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => navigation.navigate("EditProfile")}>
+            <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV, opacity: isConnected ? 1 : 0.5 }]} activeOpacity={0.75} disabled={!isConnected} onPress={() => navigation.navigate("EditProfile")}>
               <View style={[styles.menuIconWrap, { width: menuIconS, height: menuIconS, backgroundColor: "#f0faf3" }]}>
                 <Feather name="edit-2" size={iconS} color={Colors.primary} />
               </View>
@@ -301,7 +383,7 @@ export default function Profile() {
           text='Puedes eliminar tu cuenta junto con todos tus datos en cualquier momento si lo prefieres. ¡Cuidado, esto es irreversible!'
           placement='top'
         >
-          <TouchableOpacity style={[styles.btnDanger, { height: btnH }]} activeOpacity={0.75} onPress={() => setModalDeleteConfirmVisible(true)}>
+          <TouchableOpacity style={[styles.btnDanger, { height: btnH, opacity: isConnected ? 1 : 0.5 }]} activeOpacity={0.75} disabled={!isConnected} onPress={() => setModalDeleteConfirmVisible(true)}>
             <Text style={[styles.btnDangerText, { fontSize: brandS }]}>Eliminar cuenta</Text>
           </TouchableOpacity>
         </ToolTipBubble>
