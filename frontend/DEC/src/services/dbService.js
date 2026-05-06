@@ -17,6 +17,30 @@ export const initDatabase = () => {
     );
   `);
 
+  // Tabla de usuario (perfil local)
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS user_profile (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      user_id TEXT,
+      name TEXT,
+      email TEXT,
+      pictureUrl TEXT,
+      provider TEXT,
+      notifications_enabled INTEGER DEFAULT 1,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Tabla de estadísticas de usuario
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS user_stats (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      total_detections INTEGER DEFAULT 0,
+      total_treatments INTEGER DEFAULT 0,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   // Tabla de catálogo de enfermedades (offline)
   db.execSync(`
     CREATE TABLE IF NOT EXISTS pathologies (
@@ -436,6 +460,109 @@ export const debugCheckDatabase = () => {
     // ... otros logs
   } catch (error) {
     console.error("Error en debug:", error);
+  }
+};
+
+// --- USUARIO Y PERFIL (Almacenamiento Local) ---
+
+/**
+ * Guardar datos del usuario localmente
+ * @param {Object} userData - Datos del usuario desde MongoDB
+ */
+export const saveUserProfile = (userData) => {
+  try {
+    const { _id, name, email, pictureUrl, provider, notifications_enabled } = userData;
+    
+    // Verificar si ya existe
+    const existing = db.getFirstSync('SELECT id FROM user_profile WHERE id = 1');
+    
+    if (existing) {
+      db.runSync(
+        `UPDATE user_profile 
+         SET user_id = ?, name = ?, email = ?, pictureUrl = ?, provider = ?, notifications_enabled = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = 1`,
+        [_id, name, email, pictureUrl || '', provider || 'local', notifications_enabled ? 1 : 0]
+      );
+    } else {
+      db.runSync(
+        `INSERT INTO user_profile (id, user_id, name, email, pictureUrl, provider, notifications_enabled)
+         VALUES (1, ?, ?, ?, ?, ?, ?)`,
+        [_id, name, email, pictureUrl || '', provider || 'local', notifications_enabled ? 1 : 0]
+      );
+    }
+    console.log('✅ Perfil de usuario guardado localmente');
+  } catch (error) {
+    console.error('Error guardando perfil de usuario:', error);
+  }
+};
+
+/**
+ * Obtener datos del usuario desde la base de datos local
+ * @returns {Object|null} Datos del usuario o null si no existe
+ */
+export const getUserProfile = () => {
+  try {
+    return db.getFirstSync('SELECT * FROM user_profile WHERE id = 1');
+  } catch (error) {
+    console.error('Error obteniendo perfil de usuario:', error);
+    return null;
+  }
+};
+
+/**
+ * Actualizar estadísticas del usuario
+ * @param {Object} stats - { total_detections, total_treatments }
+ */
+export const updateUserStats = (stats) => {
+  try {
+    const { total_detections, total_treatments } = stats;
+    
+    const existing = db.getFirstSync('SELECT id FROM user_stats WHERE id = 1');
+    
+    if (existing) {
+      db.runSync(
+        `UPDATE user_stats 
+         SET total_detections = ?, total_treatments = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = 1`,
+        [total_detections || 0, total_treatments || 0]
+      );
+    } else {
+      db.runSync(
+        `INSERT INTO user_stats (id, total_detections, total_treatments)
+         VALUES (1, ?, ?)`,
+        [total_detections || 0, total_treatments || 0]
+      );
+    }
+    console.log('✅ Estadísticas del usuario actualizadas');
+  } catch (error) {
+    console.error('Error actualizando estadísticas:', error);
+  }
+};
+
+/**
+ * Obtener estadísticas del usuario desde la BD local
+ * @returns {Object} Estadísticas con valores por defecto
+ */
+export const getUserStats = () => {
+  try {
+    const stats = db.getFirstSync('SELECT * FROM user_stats WHERE id = 1');
+    return stats || { total_detections: 0, total_treatments: 0 };
+  } catch (error) {
+    console.error('Error obteniendo estadísticas:', error);
+    return { total_detections: 0, total_treatments: 0 };
+  }
+};
+
+/**
+ * Limpiar datos del usuario (cuando cierre sesión)
+ */
+export const clearUserProfile = () => {
+  try {
+    db.runSync('DELETE FROM user_profile WHERE id = 1');
+    db.runSync('DELETE FROM user_stats WHERE id = 1');
+    console.log('✅ Datos del usuario limpios');
+  } catch (error) {
+    console.error('Error limpiando datos del usuario:', error);
   }
 };
 
