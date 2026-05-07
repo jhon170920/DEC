@@ -391,6 +391,7 @@ export default function TreatmentFormScreen() {
               stepNumber={3}
               nextStep={4}
               text="También puedes registrar algún producto que le has aplicado a tu cafetal para un seguimiento más detallado."
+              placement='top'
             >
               <TouchableOpacity style={styles.addProductBtn} onPress={openAddProduct}>
                 <Feather name="plus" size={20} color={Colors.primary} />
@@ -402,6 +403,7 @@ export default function TreatmentFormScreen() {
               stepNumber={4}
               nextStep={'finishScreen'}
               text="Una vez terminados los pasos anteriores correctamente, puedes guardar tu seguimiento"
+              placement='top'
             >
               <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
                 <LinearGradient colors={['#22c55e', '#16a34a']} style={styles.saveGradient}>
