@@ -3,6 +3,7 @@ frontend/DEC/node_modules/
 frontend/DEC/.env
 # --- IGNORE ---
 backend/node_modules/
+backend/.env/
 
 .DS_Store
 
