@@ -99,7 +99,7 @@ export const MainStyles = StyleSheet.create({
   greetingBlock: { marginBottom: 22 },
   greeting: {
     fontSize: 28, lineHeight: 34, fontWeight: "300",
-    color: Colors.text, letterSpacing: -0.4, marginBottom: 6,
+    color: Colors.text, letterSpacing: -0.4, marginBottom: 0,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   greetingAccent: {

@@ -16,7 +16,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import NetInfo from '@react-native-community/netinfo'; // 👈 importar NetInfo
+import NetInfo from '@react-native-community/netinfo';
 import { AuthContext } from "../../context/AuthContext";
 import { Colors } from "../../constants/colors";
 import { MainStyles as styles } from "../../styles/MainStyles";
@@ -24,6 +24,7 @@ import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
 import { debugCheckDatabase } from "../../services/dbService";
 import api from "../../api/api";
 import ToolTipBubble from "../../components/Tour/ToolTipBubble";
+import ProcessFlowScreen from "../../components/ProcessFlowScreenCompact";
 
 export default function MainApp() {
   const {
@@ -40,12 +41,14 @@ export default function MainApp() {
   const [userData, setUserData] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [isConnected, setIsConnected] = useState(true); // 👈 estado de conexión
+  const [isConnected, setIsConnected] = useState(true);
+  
+  // ✅ NUEVO: Referencia al ScrollView para scroll automático
+  const scrollViewRef = useRef(null);
 
   useEffect(() => {
     debugCheckDatabase();
 
-    // 👇 Suscribirse a cambios de conectividad
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsConnected(state.isConnected);
     });
@@ -160,7 +163,12 @@ export default function MainApp() {
         end={{ x: 1, y: 1 }}
       />
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      {/* ✅ NUEVO: ref al ScrollView para scroll automático */}
+      <ScrollView 
+        ref={scrollViewRef}
+        contentContainerStyle={styles.scroll} 
+        showsVerticalScrollIndicator={false}
+      >
         {/* HEADER */}
         <View style={styles.header}>
           <View style={[styles.logoRow, { marginBottom: sp(0.00028) }]}>
@@ -181,10 +189,13 @@ export default function MainApp() {
 
           <View style={styles.avatarWrapper}>
             {/* BOTON DE PERFIL */}
+            {/* ✅ NUEVO: Pasar scrollViewRef */}
             <ToolTipBubble
               stepNumber={0} 
               nextStep={1} 
               text="Acá podrás ver tu perfil, tus datos y toda la configuración disponible por el momento."
+              scrollViewRef={scrollViewRef}
+              offsetTop={120}
             >
               <TouchableOpacity
                 onPress={handleAvatarPress}
@@ -202,8 +213,7 @@ export default function MainApp() {
         {/* GREETING */}
         <View style={styles.greetingBlock}>
           <Text style={styles.greeting}>
-            Bienvenido,{"\n"}
-            <Text style={styles.greetingAccent}>¿qué deseas explorar?</Text>
+            Bienvenido
           </Text>
           <Text style={styles.greetingSub}>
             Identifica y analiza plantas con un solo escaneo.
@@ -212,29 +222,24 @@ export default function MainApp() {
 
         {/* IMAGEN PRINCIPAL con badge de estado de conexión */}
         <View style={styles.imageCard}>
-          <View style={[styles.imageBadge, { backgroundColor: isConnected ? Colors.primary : Colors.warning }]}>
+          <View style={[styles.imageBadge, { backgroundColor: isConnected ? Colors.surface : Colors.warning }]}>
             <View style={styles.badgeDot} />
             <Text style={styles.badgeText}>
               {isConnected ? "Conectado a Internet" : "Sin conexión"}
             </Text>
           </View>
-          <Image
-            source={{ uri: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6" }}
-            style={[styles.image, { width: width - 56 }]}
-          />
-          <LinearGradient
-            colors={["transparent", "rgba(15,45,26,0.55)"]}
-            style={styles.imageOverlay}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-          />
+          <ProcessFlowScreen />
         </View>
 
         {/* BOTÓN SCAN */}
+        {/* ✅ NUEVO: Pasar scrollViewRef */}
         <ToolTipBubble
           stepNumber={1} 
           nextStep={2} 
           text="¡Después de terminar el tutorial, puedes tocar aquí para empezar tu primer escaneo!"
+          scrollViewRef={scrollViewRef}
+          offsetTop={120}
+          placement="top"
         >
           <TouchableOpacity
             style={styles.scanBtn}
@@ -263,11 +268,14 @@ export default function MainApp() {
 
         <View style={styles.menuList}>
           {/* BOTÓN DE ANÁLISIS */}
+          {/* ✅ NUEVO: Pasar scrollViewRef */}
           <ToolTipBubble
             stepNumber={2} 
             nextStep={3} 
             text="Después de terminar el escaneo correctamente, ¡Acá podrás ver todos los análisis de tus cafetales!"
             placement="top"
+            scrollViewRef={scrollViewRef}
+            offsetTop={100}
           >
             <TouchableOpacity
               style={styles.menuCard}
@@ -284,12 +292,16 @@ export default function MainApp() {
               <Feather name="chevron-right" size={16} color={Colors.textMuted} />
             </TouchableOpacity>
           </ToolTipBubble>
+
           {/* BOTÓN DE BITÁCORAS */}
+          {/* ✅ NUEVO: Pasar scrollViewRef */}
           <ToolTipBubble
             stepNumber={3} 
             nextStep={4} 
             text="¡También podrás llevar un control de tus propios cafetales!"
             placement="top"
+            scrollViewRef={scrollViewRef}
+            offsetTop={80}
           >
             <TouchableOpacity
               style={styles.menuCard}
@@ -307,12 +319,15 @@ export default function MainApp() {
             </TouchableOpacity>
           </ToolTipBubble>
 
-          {/* BOTÓN DE BITÁCORAS */}
+          {/* BOTÓN DE CONTACTO */}
+          {/* ✅ NUEVO: Pasar scrollViewRef */}
           <ToolTipBubble
             stepNumber={4} 
             nextStep={'finishScreen'} 
             text="Si tienes alguna duda no dudes en hacerlo saber a nosotros para poder ayudarte."
             placement="top"
+            scrollViewRef={scrollViewRef}
+            offsetTop={60}
           >
             <TouchableOpacity
               style={styles.menuCard}

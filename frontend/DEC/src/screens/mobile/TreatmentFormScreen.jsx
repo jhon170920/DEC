@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
   StatusBar, StyleSheet, Modal, FlatList, Image, KeyboardAvoidingView,
@@ -56,6 +56,8 @@ export default function TreatmentFormScreen() {
   const [modalConfirmText, setModalConfirmText] = useState('Aceptar');
   const [modalCancelText, setModalCancelText] = useState('Cancelar');
   const [showCancelButton, setShowCancelButton] = useState(false);
+
+  const scrollViewRef = useRef(null);
 
   // Cargar lista de detecciones disponibles
   useEffect(() => {
@@ -282,7 +284,8 @@ export default function TreatmentFormScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
-        <ScrollView 
+        <ScrollView
+          ref={scrollViewRef} 
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -299,6 +302,7 @@ export default function TreatmentFormScreen() {
           <View style={styles.card}>
             {/* Botón para asociar detección */}
             <ToolTipBubble
+              scrollViewRef={scrollViewRef}
               stepNumber={0} 
               nextStep={1} 
               text="Puedes seleccionar una detección anterior para hacerle un seguimiento personalizado."
@@ -334,6 +338,7 @@ export default function TreatmentFormScreen() {
 
             <Text style={styles.label}>Enfermedad / Afección *</Text>
             <ToolTipBubble
+              scrollViewRef={scrollViewRef}
               stepNumber={1}
               nextStep={2}
               text="Si decides NO asociar tu seguimiento a una detección anterior. Escribe aquí el nombre de la afección detectada en tu cafetal."
@@ -348,6 +353,7 @@ export default function TreatmentFormScreen() {
 
             <Text style={styles.label}>Notas generales</Text>
             <ToolTipBubble
+              scrollViewRef={scrollViewRef}
               stepNumber={2}
               nextStep={3}
               text="Escribe aquí una situación o una característica especial de tu seguimiento."
@@ -389,6 +395,7 @@ export default function TreatmentFormScreen() {
                 ))
               )}
             <ToolTipBubble
+              scrollViewRef={scrollViewRef}
               stepNumber={3}
               nextStep={4}
               text="También puedes registrar algún producto que le has aplicado a tu cafetal para un seguimiento más detallado."
@@ -401,6 +408,7 @@ export default function TreatmentFormScreen() {
             </ToolTipBubble>
 
             <ToolTipBubble
+              scrollViewRef={scrollViewRef}
               stepNumber={4}
               nextStep={'finishScreen'}
               text="Una vez terminados los pasos anteriores correctamente, puedes guardar tu seguimiento"
@@ -443,7 +451,7 @@ export default function TreatmentFormScreen() {
       <Modal visible={showProductModal} transparent animationType="fade">
         <KeyboardAvoidingView 
           style={styles.modalOverlay} 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="padding"
         >
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>{currentProductIndex !== null ? 'Editar producto' : 'Nuevo producto'}</Text>

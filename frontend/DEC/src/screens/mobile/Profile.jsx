@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useContext, useEffect } from "react";
+import React, { useState, useCallback, useContext, useEffect, useRef } from "react";
 import {
   View, Text, TouchableOpacity, StatusBar, ScrollView, Switch,
   StyleSheet, Image, Platform, ActivityIndicator, Modal, TextInput
@@ -39,6 +39,8 @@ export default function Profile() {
   
   const [deletePassword, setDeletePassword] = useState("");
   const [deleting, setDeleting] = useState(false);
+
+  const scrollViewRef = useRef(null);
 
   const fetchUserData = async () => {
     try {
@@ -225,13 +227,16 @@ export default function Profile() {
       
       {/* BANNER OFFLINE */}
       {offlineModeActive && (
-        <View style={{ backgroundColor: '#fef3c7', paddingVertical: sp(0.01), paddingHorizontal: hPad, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        <View style={{ backgroundColor: '#fef3c7', paddingVertical: sp(0.01), paddingHorizontal: hPad, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop:35 }}>
           <Feather name="wifi-off" size={16} color="#b45309" />
           <Text style={{ fontSize: sublineS - 2, color: '#b45309', fontWeight: '600' }}>Modo sin conexión - Usando datos locales</Text>
         </View>
       )}
 
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingHorizontal: hPad, paddingTop: sp(0.06) }]} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+      ref={scrollViewRef} 
+      contentContainerStyle={[styles.scroll, { paddingHorizontal: hPad, paddingTop: sp(0.06) }]} 
+      showsVerticalScrollIndicator={false}>
         
         {/* HEADER */}
         <View style={[styles.header, { marginBottom: sp(0.018) }]}>
@@ -264,6 +269,7 @@ export default function Profile() {
 
         {/* STATS */}
         <ToolTipBubble
+        scrollViewRef={scrollViewRef}
           stepNumber={0}
           nextStep={1}
           text='La cantidad de análisis que has hecho y los seguimientos que has creado.'
@@ -289,6 +295,7 @@ export default function Profile() {
 
         <View style={styles.groupCard}>
           <ToolTipBubble
+            scrollViewRef={scrollViewRef}
             stepNumber={1}
             nextStep={2}
             text='Puedes editar tus datos personales básicos.'
@@ -306,6 +313,7 @@ export default function Profile() {
           <View style={styles.itemDivider} />
 
           <ToolTipBubble
+            scrollViewRef={scrollViewRef}
             stepNumber={2}
             nextStep={3}
             text='La configuración de tus recordatorios.'
@@ -333,6 +341,7 @@ export default function Profile() {
 
         <View style={styles.groupCard}>
           <ToolTipBubble
+            scrollViewRef={scrollViewRef}
             stepNumber={3}
             nextStep={4}
             text='Nuestro contacto directo, una guía rápida y algunas preguntas frecuentes.'
@@ -350,6 +359,7 @@ export default function Profile() {
           <View style={styles.itemDivider} />
 
           <ToolTipBubble
+            scrollViewRef={scrollViewRef}
             stepNumber={4}
             nextStep={5}
             text='Puedes consultar en cualquier momento nuestros Términos y Política de Privacidad.'
@@ -368,6 +378,7 @@ export default function Profile() {
 
         {/* BOTONES */}
         <ToolTipBubble
+          scrollViewRef={scrollViewRef}
           stepNumber={5}
           nextStep={6}
           text='Puedes cerrar tu sesión y volver a iniciar en tu cuenta, o iniciar en otra cuenta siempre que lo desees.'
@@ -379,6 +390,7 @@ export default function Profile() {
           </TouchableOpacity>
         </ToolTipBubble>
         <ToolTipBubble
+          scrollViewRef={scrollViewRef}
           stepNumber={6}
           nextStep={'finishScreen'}
           text='Puedes eliminar tu cuenta junto con todos tus datos en cualquier momento si lo prefieres. ¡Cuidado, esto es irreversible!'
