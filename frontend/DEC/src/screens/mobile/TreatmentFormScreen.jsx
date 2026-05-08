@@ -351,6 +351,7 @@ export default function TreatmentFormScreen() {
               stepNumber={2}
               nextStep={3}
               text="Escribe aquí una situación o una característica especial de tu seguimiento."
+              placement='top'
             >
               <TextInput
                 style={[styles.input, styles.textArea]}

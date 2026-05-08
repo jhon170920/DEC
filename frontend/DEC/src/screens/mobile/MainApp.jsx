@@ -267,6 +267,7 @@ export default function MainApp() {
             stepNumber={2} 
             nextStep={3} 
             text="Después de terminar el escaneo correctamente, ¡Acá podrás ver todos los análisis de tus cafetales!"
+            placement="top"
           >
             <TouchableOpacity
               style={styles.menuCard}

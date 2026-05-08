@@ -353,6 +353,7 @@ export default function Profile() {
             stepNumber={4}
             nextStep={5}
             text='Puedes consultar en cualquier momento nuestros Términos y Política de Privacidad.'
+            placement="top"
           >
             {/* TERMINOS Y PRIVACIDAD */}
             <TouchableOpacity style={[styles.menuItem, { paddingVertical: menuPadV }]} activeOpacity={0.75} onPress={() => navigation.navigate('Terminos')}>
