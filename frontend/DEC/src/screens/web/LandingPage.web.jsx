@@ -9,7 +9,8 @@ import {
   Animated,
   Platform,
   StatusBar,
-  useWindowDimensions
+  useWindowDimensions,
+  Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -370,7 +371,7 @@ export default function LandingPage({ navigation }) {
     };
   }, []);
 
-  const handleDownloadAPK = () => Linking.openURL('http://192.168.101.210:8089/download/dec-app.apk');
+  const handleDownloadAPK = () => Linking.openURL('https://github.com/jhon170920/DEC/releases/download/apk/build-1778282684374.apk');
 
   const handleAdminAccess = () => {
     if (navigation && navigation.navigate) {
@@ -410,7 +411,7 @@ export default function LandingPage({ navigation }) {
                   <Text style={{ color: '#fcd34d', fontStyle: 'italic' }}>Inteligencia Artificial</Text>
                 </Text>
                 <Text style={styles.heroSub}>
-                  Detecta Roya, Araña Roja y Minador en segundos con precisión superior al 92%.
+                  Detecta Roya, Mancha de Hierro (cercospora) y Minador en segundos con precisión superior al 92%.
                   Una herramienta diseñada para el caficultor moderno.
                 </Text>
                 <View style={styles.btnRow}>
@@ -427,7 +428,7 @@ export default function LandingPage({ navigation }) {
                 <View style={styles.heroStats}>
                   <View style={styles.heroStatItem}>
                     <View style={styles.statIconBg}><Feather name="check-circle" size={18} color={C.accent} /></View>
-                    <Text style={styles.heroStatText}>Precisión 92%</Text>
+                    <Text style={styles.heroStatText}>Precisión 90%</Text>
                   </View>
                   <View style={styles.heroStatItem}>
                     <View style={styles.statIconBg}><Feather name="zap" size={18} color={C.accent} /></View>
@@ -503,8 +504,8 @@ export default function LandingPage({ navigation }) {
                 accentColors={['#f59e0b', '#d97706']} revealDelay={100}
               />
               <Card
-                icon="🕷️" title="Araña Roja" latin="Oligonychus yothersi"
-                desc="Ácaro que coloniza el envés de las hojas extrayendo clorofila. Provoca amarillamiento, bronceado del follaje y caída prematura de hojas."
+                icon="🌿" title="Mancha de hierro" latin="Cercospora coffeicola"
+                desc="Enfermedad fúngica que afecta principalmente al cultivo de café. Se caracterizan por la aparición en las hojas de pequeñas lesiones circulares de color pardo claro o marrón rojizo, ataca tanto hojas como frutos, siendo un factor limitante en la producción"
                 tagIcon="⚡" tagText="Media severidad"
                 tagColors={{ bg: '#fef2f2', text: '#ef4444', border: '#fecaca' }}
                 accentColors={['#ef4444', '#dc2626']} revealDelay={200}
@@ -584,7 +585,8 @@ export default function LandingPage({ navigation }) {
           <View style={[styles.mainContainer, { alignItems: 'center' }]}>
             <View style={styles.footerContent}>
               <View style={styles.footerLogo}>
-                <MaterialCommunityIcons name="leaf" size={24} color={C.accent} />
+                <Image source={require("../../../assets/play_logo.png")} 
+                style={{borderRadius: 10, width:40, height: 40}}/>
                 <Text style={styles.footerLogoText}>DEC • Detección en Café Para el pueblo colombiano</Text>
               </View>
               <View style={styles.socialIcons}>
@@ -595,7 +597,7 @@ export default function LandingPage({ navigation }) {
             </View>
             <Text style={styles.footerText}>© {new Date().getFullYear()} Proyecto DEC - SENA Regional Huila. Tecnología al servicio del campo colombiano.</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Legal')}>
-              <Text style={styles.footerTerms}>Terminos y Política de Privacidad.</Text>
+              <Text style={{color: C.primary, marginTop: 10, backgroundColor:"rgba(255, 255, 255, 0,7)"}}>Terminos y Política de Privacidad.</Text>
             </TouchableOpacity>
           </View>
         </View>

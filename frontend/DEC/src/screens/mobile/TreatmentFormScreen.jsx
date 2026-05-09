@@ -36,13 +36,6 @@ export default function TreatmentFormScreen() {
   const [selectedDetection, setSelectedDetection] = useState(null);
   const [selectedDetectionImage, setSelectedDetectionImage] = useState(null);
 
-  // Estados para productos (modal)
-  const [showProductModal, setShowProductModal] = useState(false);
-  const [tempProduct, setTempProduct] = useState({ product_name: '', dose: '', application_date: '', notes: '' });
-  const [currentProductIndex, setCurrentProductIndex] = useState(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [datePickerTarget, setDatePickerTarget] = useState(null);
-
   // Estado para recordatorio
   const [showReminderPicker, setShowReminderPicker] = useState(false);
   const [reminderDate, setReminderDate] = useState(new Date());
@@ -126,48 +119,33 @@ export default function TreatmentFormScreen() {
     closeModal();
   };
 
-  // ------ Gestión de productos ------
-  const openAddProduct = () => {
-    setTempProduct({ product_name: '', dose: '', application_date: '', notes: '' });
-    setCurrentProductIndex(null);
-    setShowProductModal(true);
-  };
-
-  const openEditProduct = (index) => {
-    setTempProduct(products[index]);
-    setCurrentProductIndex(index);
-    setShowProductModal(true);
-  };
-
-  const saveProduct = () => {
-    if (!tempProduct.product_name.trim()) {
-      showModal('Error', 'El nombre del producto es obligatorio', 'error');
-      return;
-    }
-    if (!tempProduct.dose.trim()) {
-      showModal('Error', 'La dosis del producto es obligatoria', 'error');
-      return;
-    }
-    if (!tempProduct.application_date) {
-      showModal('Error', 'La fecha de aplicación es obligatoria', 'error');
-      return;
-    }
-    if (currentProductIndex !== null) {
+  // ------ Gestión de productos con navegación a pantalla aparte ------
+  const handleProductSaved = (newProduct, indexToEdit) => {
+    if (indexToEdit !== undefined && indexToEdit !== null) {
+      // Editar producto existente
       const updated = [...products];
-      updated[currentProductIndex] = { ...tempProduct };
+      updated[indexToEdit] = newProduct;
       setProducts(updated);
     } else {
-      setProducts([...products, { ...tempProduct }]);
+      // Agregar nuevo producto
+      setProducts([...products, newProduct]);
     }
-    setShowProductModal(false);
-    setTempProduct({ product_name: '', dose: '', application_date: '', notes: '' });
-    setCurrentProductIndex(null);
   };
 
-  const removeProduct = (index) => {
-    const updated = [...products];
-    updated.splice(index, 1);
-    setProducts(updated);
+  const confirmRemoveProduct = (index) => {
+    showModal(
+      'Confirmar',
+      '¿Eliminar este producto?',
+      'warning',
+      () => {
+        const updated = [...products];
+        updated.splice(index, 1);
+        setProducts(updated);
+      },
+      'Eliminar',
+      'Cancelar',
+      true
+    );
   };
 
   // ------ Selección de detección ------
@@ -176,22 +154,6 @@ export default function TreatmentFormScreen() {
     setSelectedDetectionImage(detection.image_url);
     setDiseaseName(detection.disease_name);
     setShowDetectionModal(false);
-  };
-
-  // ------ Fecha para producto ------
-  const showDatePickerForProduct = () => {
-    setDatePickerTarget('product');
-    setShowDatePicker(true);
-  };
-
-  const handleDateConfirm = (date) => {
-    setShowDatePicker(false);
-    if (date) {
-      const formattedDate = date.toISOString();
-      if (datePickerTarget === 'product') {
-        setTempProduct({ ...tempProduct, application_date: formattedDate });
-      }
-    }
   };
 
   // ------ Programar recordatorio ------
@@ -278,7 +240,7 @@ export default function TreatmentFormScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={Colors.bg} />
       <LinearGradient colors={['#e8f5ec', '#f4faf5']} style={StyleSheet.absoluteFill} />
       
-      {/* KeyboardAvoidingView principal para evitar que el teclado tape los inputs */}
+      {/* KeyboardAvoidingView principal */}
       <KeyboardAvoidingView 
         style={{ flex: 1 }} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -369,31 +331,35 @@ export default function TreatmentFormScreen() {
               />
             </ToolTipBubble>
 
-              <Text style={styles.label}>Productos aplicados</Text>
-              {products.length === 0 ? (
-                <Text style={styles.emptyList}>No hay productos agregados</Text>
-              ) : (
-                products.map((item, index) => (
-                  <View key={index} style={styles.productCard}>
-                    <View style={styles.productHeader}>
-                      <Text style={styles.productName}>{item.product_name}</Text>
-                      <View style={styles.productActions}>
-                        <TouchableOpacity onPress={() => openEditProduct(index)}>
-                          <Feather name="edit-2" size={18} color={Colors.primary} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => removeProduct(index)} style={{ marginLeft: 12 }}>
-                          <Feather name="trash-2" size={18} color="#dc2626" />
-                        </TouchableOpacity>
-                      </View>
+            <Text style={styles.label}>Productos aplicados</Text>
+            {products.length === 0 ? (
+              <Text style={styles.emptyList}>No hay productos agregados</Text>
+            ) : (
+              products.map((item, index) => (
+                <View key={index} style={styles.productCard}>
+                  <View style={styles.productHeader}>
+                    <Text style={styles.productName}>{item.product_name}</Text>
+                    <View style={styles.productActions}>
+                      <TouchableOpacity onPress={() => navigation.navigate('ProductForm', { 
+                        product: item, 
+                        index: index,
+                        onSave: handleProductSaved 
+                      })}>
+                        <Feather name="edit-2" size={18} color={Colors.primary} />
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => confirmRemoveProduct(index)} style={{ marginLeft: 12 }}>
+                        <Feather name="trash-2" size={18} color="#dc2626" />
+                      </TouchableOpacity>
                     </View>
-                    {item.dose ? <Text style={styles.productDetail}>💊 Dosis: {item.dose}</Text> : null}
-                    {item.application_date ? (
-                      <Text style={styles.productDetail}>📅 Aplicación: {new Date(item.application_date).toLocaleDateString()}</Text>
-                    ) : null}
-                    {item.notes ? <Text style={styles.productDetail}>📝 {item.notes}</Text> : null}
                   </View>
-                ))
-              )}
+                  {item.dose ? <Text style={styles.productDetail}>💊 Dosis: {item.dose}</Text> : null}
+                  {item.application_date ? (
+                    <Text style={styles.productDetail}>📅 Aplicación: {new Date(item.application_date).toLocaleDateString()}</Text>
+                  ) : null}
+                  {item.notes ? <Text style={styles.productDetail}>📝 {item.notes}</Text> : null}
+                </View>
+              ))
+            )}
             <ToolTipBubble
               scrollViewRef={scrollViewRef}
               stepNumber={3}
@@ -401,7 +367,14 @@ export default function TreatmentFormScreen() {
               text="También puedes registrar algún producto que le has aplicado a tu cafetal para un seguimiento más detallado."
               placement='top'
             >
-              <TouchableOpacity style={styles.addProductBtn} onPress={openAddProduct}>
+              <TouchableOpacity 
+                style={styles.addProductBtn} 
+                onPress={() => navigation.navigate('ProductForm', { 
+                  product: null, 
+                  index: null,
+                  onSave: handleProductSaved 
+                })}
+              >
                 <Feather name="plus" size={20} color={Colors.primary} />
                 <Text style={styles.addProductText}>Agregar producto</Text>
               </TouchableOpacity>
@@ -424,7 +397,7 @@ export default function TreatmentFormScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Modal para seleccionar detección (sin inputs, no necesita KeyboardAvoidingView) */}
+      {/* Modal para seleccionar detección */}
       <Modal visible={showDetectionModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -446,63 +419,6 @@ export default function TreatmentFormScreen() {
           </View>
         </View>
       </Modal>
-
-      {/* Modal para agregar/editar producto (con inputs, necesita KeyboardAvoidingView) */}
-      <Modal visible={showProductModal} transparent animationType="fade">
-        <KeyboardAvoidingView 
-          style={styles.modalOverlay} 
-          behavior="padding"
-        >
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>{currentProductIndex !== null ? 'Editar producto' : 'Nuevo producto'}</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Nombre del producto *"
-              value={tempProduct.product_name}
-              onChangeText={(text) => setTempProduct({ ...tempProduct, product_name: text })}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Dosis (ej: 2 L/ha) *"
-              value={tempProduct.dose}
-              onChangeText={(text) => setTempProduct({ ...tempProduct, dose: text })}
-            />
-            <TouchableOpacity onPress={showDatePickerForProduct}>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Fecha de aplicación *"
-                value={tempProduct.application_date ? new Date(tempProduct.application_date).toLocaleDateString() : ''}
-                editable={false}
-              />
-            </TouchableOpacity>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Observaciones del producto (opcional)"
-              value={tempProduct.notes}
-              onChangeText={(text) => setTempProduct({ ...tempProduct, notes: text })}
-              multiline
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalCancel} onPress={() => setShowProductModal(false)}>
-                <Text>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalConfirm} onPress={saveProduct}>
-                <Text style={{ color: '#fff' }}>Aceptar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* DateTimePicker para fecha de producto */}
-      <DateTimePickerModal
-        isVisible={showDatePicker}
-        mode="datetime"
-        onConfirm={handleDateConfirm}
-        onCancel={() => setShowDatePicker(false)}
-        minimumDate={new Date()}
-        locale="es_ES"
-      />
 
       {/* DateTimePicker para recordatorio */}
       <DateTimePickerModal
@@ -559,8 +475,8 @@ export default function TreatmentFormScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
-  scrollContent: { paddingBottom: 40 }, // Aumentado para mejor desplazamiento
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, marginTop: 15, },
+  scrollContent: { paddingBottom: 40 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, marginTop: 15 },
   backBtn: { padding: 5 },
   title: { fontSize: 20, fontWeight: 'bold', color: Colors.text },
   card: { backgroundColor: '#fff', marginHorizontal: 16, borderRadius: 20, padding: 20, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },
@@ -581,7 +497,7 @@ const styles = StyleSheet.create({
   productActions: { flexDirection: 'row' },
   productDetail: { fontSize: 13, color: '#475569', marginTop: 4 },
   emptyList: { fontSize: 14, color: Colors.textMuted, textAlign: 'center', marginVertical: 10 },
-  addProductBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 5, marginBottom: 15, backgroundColor: Colors.surface, borderRadius: 12, padding: 4, },
+  addProductBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 5, marginBottom: 15, backgroundColor: Colors.surface, borderRadius: 12, padding: 4 },
   addProductText: { color: Colors.primary, marginLeft: 8, fontWeight: '600' },
   saveBtn: { marginTop: 20, borderRadius: 12, overflow: 'hidden' },
   saveGradient: { paddingVertical: 12, alignItems: 'center' },
@@ -595,11 +511,6 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', color: Colors.textMuted, marginVertical: 20 },
   modalClose: { marginTop: 15, padding: 10, backgroundColor: '#e2e8f0', borderRadius: 10, alignItems: 'center' },
   modalCloseText: { fontWeight: '500' },
-  modalBox: { width: '85%', backgroundColor: '#fff', borderRadius: 20, padding: 20 },
-  modalInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 16 },
-  modalButtons: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  modalCancel: { flex: 1, padding: 10, alignItems: 'center', backgroundColor: '#e2e8f0', borderRadius: 8, marginRight: 8 },
-  modalConfirm: { flex: 1, padding: 10, alignItems: 'center', backgroundColor: Colors.primary, borderRadius: 8, marginLeft: 8 },
   modalText: { fontSize: 16, color: '#333', textAlign: 'center', lineHeight: 22 },
   modalCloseBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10, alignItems: 'center' },
 });
