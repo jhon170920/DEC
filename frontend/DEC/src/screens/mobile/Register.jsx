@@ -88,8 +88,9 @@ export default function Register() {
             showModal("Error", "Correo electrónico no válido");
             return;
         }
-        if (password.length < 6) {
-            showModal("Error", "La contraseña debe tener al menos 6 caracteres");
+        const regexValidacion = /^(?=.*[a-z])(?=.*[A-Z]).{6,}$/;
+        if (!regexValidacion.test(password)) {
+            showModal("Error", "La contraseña debe tener al menos 6 caracteres una letra mayúscula y una letra minúscula");
             return;
         }
         if (password !== confirmPassword) {
