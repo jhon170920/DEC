@@ -16,19 +16,17 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { loginUser } from '../../api/api';
-
-import { AuthContext } from '../../context/AuthContext';
-import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
-import { Colors } from '../../constants/colors';
-import { LoginStyles as styles } from '../../styles/Loginstyles';
+import { loginUser } from '../../../api/api.js';
+import { AuthContext } from '../../../context/AuthContext.js';
+import { useResponsiveLayout } from '../../../hooks/useResponsiveLayout.js';
+import { Colors } from '../../../constants/colors.js';
+import { LoginStyles as styles } from '../../../styles/Loginstyles.js';
 //BOTONES DE LOGIN/REGISTRO SOCIAL
-import BtnLoginFacebook from '../../components/BtnLoginFacebook.jsx';
-import BtnLoginGoogle from '../../components/BtnLoginGoogle.jsx';
+import BtnLoginFacebook from '../../../components/BtnLoginFacebook.jsx';
+import BtnLoginGoogle from '../../../components/BtnLoginGoogle.jsx';
 //COMPONENTE REUTILIZABLE
-import FloatingInput from '../../components/FloatingInput.jsx';
-// import ParticlesBackground from '../../components/Layout/ParticlesBackground.native.jsx';
-import ToolTipBubbleAuth from '../../components/Tour/ToolTipBubbleAuth.jsx';
+import FloatingInput from '../../../components/FloatingInput.jsx';
+import ToolTipBubbleAuth from '../../../components/Tour/ToolTipBubbleAuth.jsx';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -124,7 +122,7 @@ export default function Login() {
                             { width: logoRingS, height: logoRingS, borderRadius: logoRingS / 2, marginBottom: 8 },
                         ]}>
                             <Image
-                                source={require("../../../assets/image/logo.png")}
+                                source={require("../../../../assets/image/logo.png")}
                                 style={{ width: logoImgS, height: logoImgS }}
                                 resizeMode="contain"
                             />
