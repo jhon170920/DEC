@@ -1,4 +1,4 @@
-# 🌱 DEC - Detecion de Enfermedades en Cafetales
+# 🌱 DEC - Detección de Enfermedades en Cafetales
 
 **DEC** es una aplicación multiplataforma diseñada para la **detección e identificación de enfermedades en plantas de café** utilizando inteligencia artificial y visión por computadora. La aplicación permite a los agricultores y expertos capturar imágenes de sus plantas y obtener diagnósticos rápidos de posibles patologías.
 
