@@ -10,14 +10,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
-  useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Colors } from '../../constants/colors';
-import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
-import { verifyCode } from '../../api/api';
-import { StyleRegister as styles } from '../../styles/RegisterStyles'; // reutilizamos estilos
+import { Colors } from '../../../constants/colors';
+import { useResponsiveLayout } from '../../../hooks/useResponsiveLayout';
+import { verifyCode } from '../../../api/api';
+import { StyleRegister as styles } from '../../../styles/RegisterStyles'; // reutilizamos estilos
 
 export default function VerifyCodeScreen() {
   const navigation = useNavigation();

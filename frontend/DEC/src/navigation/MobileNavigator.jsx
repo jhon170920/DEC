@@ -6,18 +6,20 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { AuthContext } from '../context/AuthContext';
 
 // --- IMPORTACIÓN DE PANTALLAS ---
-import Login from '../screens/mobile/Login';
-import Register from '../screens/mobile/Register';
-import VerifyCodeScreen from '../screens/mobile/VerifyCodeScreen';
-import ForgotPassword from '../screens/mobile/ForgotPassword'; // Paso 1: Enviar código
-import ResetPassword from '../screens/mobile/ResetPassword'   // Paso 2: Ingresar código y nueva pass
-
+// Pantallas de autenticación
+import Login from '../screens/mobile/auth/Login';
+import Register from '../screens/mobile/auth/Register';
+import VerifyCodeScreen from '../screens/mobile/auth/VerifyCodeScreen';
+import ForgotPassword from '../screens/mobile/auth/ForgotPassword'; // Paso 1: Enviar código
+import ResetPassword from '../screens/mobile/auth/ResetPassword'   // Paso 2: Ingresar código y nueva pass
+// Pantallas de la app principal
 import MainApp from '../screens/mobile/MainApp'; // El Tab Navigator principal de la app
 import CameraScreen from '../screens/mobile/CameraScreen';
 import Result from '../screens/mobile/Result';
 import HistoryScreen from '../screens/mobile/HistoryScreen';
 import Contact from '../screens/mobile/Contact';
 import Profile from '../screens/mobile/Profile';
+
 import EditProfile from '../screens/mobile/EditProfile';
 import DetectionDetail from '../screens/mobile/DetectionDetailScreen';
 import TreatmentLogScreen from '../screens/mobile/TreatmentLogScreen';

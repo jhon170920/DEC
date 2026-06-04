@@ -18,10 +18,10 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { Colors } from "../../constants/colors";
-import { ResetPasswordStyles as styles } from "../../styles/ResetPasswordstyles";
-import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
-import { changePasswordWithCode } from "../../api/api";
+import { Colors } from "../../../constants/colors";
+import { ResetPasswordStyles as styles } from "../../../styles/ResetPasswordstyles";
+import { useResponsiveLayout } from "../../../hooks/useResponsiveLayout";
+import { changePasswordWithCode } from "../../../api/api";
 
 export default function ResetPassword() {
     const navigation = useNavigation();
@@ -147,7 +147,7 @@ export default function ResetPassword() {
                             alignSelf: 'center',
                         }]}>
                             <Image
-                                source={require("../../../assets/image/logo.png")}
+                                source={require("../../../../assets/image/logo.png")}
                                 style={{ width: logoImgS, height: logoImgS, resizeMode: "contain" }}
                             />
                         </View>

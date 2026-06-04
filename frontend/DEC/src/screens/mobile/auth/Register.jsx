@@ -15,15 +15,15 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
-import { registerUser } from '../../api/api';
+import { registerUser } from '../../../api/api.js';
 import { useNavigation } from '@react-navigation/native';
-import { Colors } from '../../constants/colors';
-import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
-import { StyleRegister as styles } from '../../styles/RegisterStyles';
-import BtnLoginFacebook from '../../components/BtnLoginFacebook.jsx';
-import BtnLoginGoogle from '../../components/BtnLoginGoogle.jsx';
-import FloatingInput from '../../components/FloatingInput.jsx';
-import ToolTipBubbleAuth from '../../components/Tour/ToolTipBubbleAuth.jsx';
+import { Colors } from '../../../constants/colors.js';
+import { useResponsiveLayout } from '../../../hooks/useResponsiveLayout.js';
+import { StyleRegister as styles } from '../../../styles/RegisterStyles.js';
+import BtnLoginFacebook from '../../../components/BtnLoginFacebook.jsx';
+import BtnLoginGoogle from '../../../components/BtnLoginGoogle.jsx';
+import FloatingInput from '../../../components/FloatingInput.jsx';
+import ToolTipBubbleAuth from '../../../components/Tour/ToolTipBubbleAuth.jsx';
 
 export default function Register() {
     const navigation = useNavigation();
@@ -158,7 +158,7 @@ export default function Register() {
                                     marginBottom: 8,
                                 }]}>
                                     <Image
-                                        source={require("../../../assets/image/logo.png")}
+                                        source={require("../../../../assets/image/logo.png")}
                                         style={{ width: logoImgS, height: logoImgS }}
                                         resizeMode="contain"
                                     />

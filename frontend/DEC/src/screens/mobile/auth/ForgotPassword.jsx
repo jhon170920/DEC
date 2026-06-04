@@ -16,8 +16,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { styles } from '../../styles/Forgotstyles';
-import { requestRecoveryCode } from '../../api/api';
+import { styles } from '../../../styles/Forgotstyles';
+import { requestRecoveryCode } from '../../../api/api';
 
 export default function ForgotPasswordScreen() {
     const navigation = useNavigation();
@@ -84,7 +84,7 @@ export default function ForgotPasswordScreen() {
                         <View style={styles.topSection}>
                             <View style={styles.logoCircle}>
                                 <Image
-                                    source={require('../../../assets/image/logo.png')}
+                                    source={require('../../../../assets/image/logo.png')}
                                     style={{ width: 80, height: 80 }}
                                     resizeMode="contain"
                                 />

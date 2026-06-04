@@ -14,19 +14,39 @@
     },
     "ios": {
       "bundleIdentifier": "com.decapp.app",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "SKAdNetworkItems": [
+          {
+            "SKAdNetworkIdentifier": "v9wttpbfk9.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "n38lu8286q.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "v9wttpbfk9.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "n38lu8286q.skadnetwork"
+          }
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.decapp.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/ic_launcher_foreground.png",
-        "backgroundColor":"#ffffff"
+        "backgroundColor": "#ffffff"
       },
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "android.permission.INTERNET",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -74,7 +94,6 @@
           ]
         }
       ]
-      
     ],
     "extra": {
       "eas": {
