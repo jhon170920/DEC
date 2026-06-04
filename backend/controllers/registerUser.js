@@ -29,6 +29,8 @@ export const registerUser = async (req, res) => {
             return res.status(400).json({ message: "Escribe un nombre o un apellido válido." });
         if (!expressions.email.test(email)) 
             return res.status(400).json({ message: "Escribe un correo válido. (gmail, .com o .co)" });
+        if (!expressions.pass.test(password))
+            return res.status(400).json({ message: "La contraseña debe tener entre 8 y 14 caracteres, sin espacios." });
 
         let user = await Users.findOne({ email });
         if (user) 
