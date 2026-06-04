@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 // 1. REGLA DE ORO: Usa tu IP privada (Ej: 192.168.1.XX) 
 // 'localhost' solo funciona dentro del emulador, no en tu celular físico.
-const BASE_URL = 'https://fortunate-upliftment-production-d481.up.railway.app/api/'; 
+const BASE_URL = 'http://10.4.1.49:8089/api/'; 
 
 const api = axios.create({
     baseURL: BASE_URL,
@@ -96,7 +96,7 @@ export const requestRecoveryCode = async (email) => {
       throw error.response ? error.response.data : new Error('Error de conexión');
   }
 };
-
+// CAMBIAR CONTRASEÑA
 export const changePasswordWithCode = async (email, code, newPass) => {
   try {
       const response = await api.post('recover/change-pass', { email, code, newPass });
@@ -105,12 +105,12 @@ export const changePasswordWithCode = async (email, code, newPass) => {
       throw error.response ? error.response.data : new Error('Error de conexión');
   }
 };
-
+// CERRAR SESIÓN
 export const logoutUser = async () => {
     // Solo limpia el almacenamiento local, no hay llamada al backend
     return Promise.resolve();
 };
-// Eliminar cuenta si creó la cuenta con el formilario
+// ELIMINAR LA CUENTA SI LA CREO CON EL FORMULARIO
 export const deleteUserAccount = async (password) => {
     try {
       const response = await api.delete('users/delete', {
@@ -121,7 +121,7 @@ export const deleteUserAccount = async (password) => {
       throw error.response ? error.response.data : new Error('Error de conexión');
     }
 };
-// Eliminar cuenta si creó la cuenta con Google o Facebook
+// ELIMINAR LA CUENTA SI LA CREO CON GOOGLE O FACEBOOK
 export const deleteUserAccountSocial = async () => {
   try {
     const response = await api.delete('users/delete-social');
@@ -130,6 +130,7 @@ export const deleteUserAccountSocial = async () => {
     throw error.response ? error.response.data : new Error('Error de conexión');
   }
 }
+// ESTADISTICAS PARA EL PANEL WEB
 export const statsService = {
   // estadísticas de línea
   getIncidence: (start, end, groupBy) => 

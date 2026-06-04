@@ -290,7 +290,7 @@ export default function Register() {
                                         }}
                                         style={{ width: '50%', }}
                                     >
-                                        <View style={{ height:45}} pointerEvents={termsAccepted ? 'auto' : 'none'}>
+                                        <View style={{height:45}} pointerEvents={termsAccepted ? 'auto' : 'none'}>
                                             <BtnLoginGoogle />
                                         </View>
                                     </TouchableOpacity>
