@@ -8,7 +8,7 @@ dotenv.config();
 
 // Configuración de Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = process.env.FROM_EMAIL; // debe ser no-reply@dec-app.online
+const FROM_EMAIL = process.env.FROM_EMAIL // debe ser no-reply@dec-app.online
 
 // Expresiones regulares (sin cambios)
 const expressions = {
