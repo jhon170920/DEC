@@ -235,12 +235,11 @@ export default function Login() {
                     <ToolTipBubbleAuth
                         stepNumber={4}
                         nextStep={5}
-                        text="Si prefieres un registro y un inicio rápido, !Puedes continuar con tu cuenta de Google o Facebook!"
+                        text="Si prefieres un registro y un inicio rápido, !Puedes continuar con tu cuenta de Google!"
                         placement='top'
                     >
                         <View style={[styles.socialRow, { marginBottom: sp(0.024) }]}>
                             <BtnLoginGoogle />
-                            <BtnLoginFacebook />
                         </View>
                     </ToolTipBubbleAuth>
 
@@ -248,7 +247,7 @@ export default function Login() {
                     <ToolTipBubbleAuth
                         stepNumber={5}
                         nextStep={'finishScreen'}
-                        text="Si no te has registrado y si No deseas hacerlo con tu cuenta de Google o Facebook. ¡Puedes registrarte manualmente aquí!"
+                        text="Si no te has registrado y si No deseas hacerlo con tu cuenta de Google, ¡Puedes registrarte manualmente aquí!"
                         placement='top'
                     >
                         <TouchableOpacity style={styles.registerRow} onPress={() => navigation.navigate('Register')}>
