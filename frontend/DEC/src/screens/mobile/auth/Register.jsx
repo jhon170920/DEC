@@ -278,7 +278,7 @@ export default function Register() {
                             <ToolTipBubbleAuth
                                 stepNumber={3}
                                 nextStep={4}
-                                text="Si prefieres registrarte sin esperar un código de verificación y rápidamente, puedes continuar con tu cuenta de Google o Facebook."
+                                text="Si prefieres registrarte sin esperar un código de verificación y rápidamente, puedes continuar con tu cuenta de Google"
                                 placement='top'
                             >
                                 <View style={[styles.socialRow, { marginBottom: sp(0.024) }, {justifyContent: 'space-around'}]}>
@@ -295,20 +295,6 @@ export default function Register() {
                                             <BtnLoginGoogle />
                                         </View>
                                     </TouchableOpacity>
-                                    <TouchableOpacity
-                                        activeOpacity={1}
-                                        onPress={() => {
-                                            if (!termsAccepted) {
-                                            showModal("Aceptación requerida", "Debes aceptar los términos y condiciones para continuar.");
-                                            }
-                                        }}
-                                        style={{ width: '50%' }}
-                                    >
-                                        <View style={{height:45}} pointerEvents={termsAccepted ? 'auto' : 'none'}>
-                                            <BtnLoginFacebook />
-                                        </View>
-                                    </TouchableOpacity>
-                                    
                                 </View>
                             </ToolTipBubbleAuth>
                             {/* Footer navegación al Login */}
