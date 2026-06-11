@@ -106,11 +106,13 @@ export const landingStyle = StyleSheet.create({
   ctaButtonText: { color: '#fff', fontWeight: '700', fontSize: 18 },
 
   // Footer
-  footer: { backgroundColor: '#022c22', paddingVertical: 48 },
-  footerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 32, flexWrap: 'wrap' },
-  footerLogo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  footerLogoText: { color: '#fff', fontWeight: '700', fontSize: 18 },
+  footer: { backgroundColor: '#022c22', paddingVertical: 48, paddingHorizontal: 16 },
+  // Usamos disposición column para asegurar centrado en pantallas pequeñas
+  footerContent: { flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', marginBottom: 20, gap: 12, flexWrap: 'wrap' },
+  // Forzar centrado del logo + texto en todo el ancho
+  footerLogo: { flexDirection: 'row', alignItems: 'center', gap: 10, justifyContent: 'center', alignSelf: 'center', width: '100%', paddingHorizontal: 8 },
+  footerLogoText: { color: '#fff', fontWeight: '700', fontSize: 18, textAlign: 'center', maxWidth: 920, flexShrink: 1, marginLeft: 6 },
   socialIcons: { flexDirection: 'row', gap: 16 },
   socialIcon:  { backgroundColor: 'rgba(255,255,255,0.1)', padding: 10, borderRadius: 40 },
-  footerText:  { color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center' },
+  footerText:  { color: 'rgba(255,255,255,0.4)', fontSize: 13, textAlign: 'center', marginTop: 6 },
 });

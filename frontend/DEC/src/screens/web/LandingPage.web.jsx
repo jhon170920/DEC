@@ -589,15 +589,10 @@ export default function LandingPage({ navigation }) {
                 style={{borderRadius: 10, width:40, height: 40}}/>
                 <Text style={styles.footerLogoText}>DEC • Detección en Café Para el pueblo colombiano</Text>
               </View>
-              <View style={styles.socialIcons}>
-                <TouchableOpacity style={styles.socialIcon}><Feather name="facebook"  size={20} color="rgba(255,255,255,0.7)" /></TouchableOpacity>
-                <TouchableOpacity style={styles.socialIcon}><Feather name="instagram" size={20} color="rgba(255,255,255,0.7)" /></TouchableOpacity>
-                <TouchableOpacity style={styles.socialIcon}><Feather name="youtube"   size={20} color="rgba(255,255,255,0.7)" /></TouchableOpacity>
-              </View>
             </View>
             <Text style={styles.footerText}>© {new Date().getFullYear()} Proyecto DEC - SENA Regional Huila. Tecnología al servicio del campo colombiano.</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Legal')}>
-              <Text style={{color: C.primary, marginTop: 10, backgroundColor:"rgba(255, 255, 255, 0,7)"}}>Terminos y Política de Privacidad.</Text>
+              <Text style={{color: C.primary, marginTop: 10, backgroundColor:'transparent'}}>Terminos y Política de Privacidad.</Text>
             </TouchableOpacity>
           </View>
         </View>

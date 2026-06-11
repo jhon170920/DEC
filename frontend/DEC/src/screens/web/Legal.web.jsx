@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, useWindowDimensions
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -11,6 +11,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 export default function Terms() {
     const navigation = useNavigation();
+    const { width } = useWindowDimensions();
+    const isMobile = width < 768;
+    const isPhone = width < 640;
+    const isMobileHeader = width < 640;
 
     // Resetear el scroll del navegador al montar la pantalla
     useEffect(() => {
@@ -30,23 +34,29 @@ export default function Terms() {
 
             {/* Header con ancho máximo para monitores grandes */}
             <View style={styles.header}>
-                <View style={styles.maxContainer}>
-                  <Text style={styles.headerTitle}>Términos y Política de Privacidad</Text>
-                  <View style={{ width: 40 }} />
+                <TouchableOpacity
+                  style={[styles.backBtn, isMobileHeader && styles.backBtnSmall]}
+                  onPress={() => navigation.navigate('Home')}
+                  accessibilityLabel="Volver al inicio"
+                >
+                    <Feather name="arrow-left" size={isMobileHeader ? 20 : 22} color={Colors.primary} />
+                </TouchableOpacity>
+                <View style={[styles.maxContainer, isMobile && styles.maxContainerMobile]}>
+                  <Text style={[styles.headerTitle, isPhone && styles.headerTitleSmall]}>Términos y Política de Privacidad</Text>
                 </View>
             </View>
 
             {/* Este es el motor del scroll para Web */}
             <ScrollView 
                 style={styles.scrollArea}
-                contentContainerStyle={styles.centerWrapper}
+                contentContainerStyle={[styles.centerWrapper, isMobile && styles.centerWrapperMobile]}
                 showsVerticalScrollIndicator={true}
             >
                 {/* TERMINOS Y CONDICIONES */}
 
-                <View style={styles.documentCard}>
-                    <Text style={styles.sectionTitle}>
-                      <Ionicons name="document-text" size={32} color={Colors.primary}/>  Términos y Condiciones de Uso
+                <View style={[styles.documentCard, isMobile && styles.documentCardMobile]}>
+                    <Text style={[styles.sectionTitle, isMobile && styles.sectionTitleMobile]}>
+                      <Ionicons name="document-text" size={isMobile ? 28 : 32} color={Colors.primary}/>  Términos y Condiciones de Uso
                     </Text>
                     <Text style={styles.version}>Versión 1.0 – 22 de abril de 2026</Text>
 
@@ -102,8 +112,8 @@ export default function Terms() {
 
                     {/* POLÍTICA DE PRIVACIDAD */}
 
-                    <Text style={styles.sectionTitle}>
-                      <Fontisto name="locked" size={32} color={Colors.primary}/>  Política de Privacidad
+                    <Text style={[styles.sectionTitle, isMobile && styles.sectionTitleMobile]}>
+                      <Fontisto name="locked" size={isMobile ? 28 : 32} color={Colors.primary}/>  Política de Privacidad
                     </Text>
                     <Text style={styles.version}>Última actualización: 22 de abril de 2026</Text>
 
@@ -189,6 +199,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   header: {
+    position: 'relative',
     width: '100%',
     backgroundColor: Colors.surface,
     borderBottomWidth: 1,
@@ -205,17 +216,42 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
+  },
+  maxContainerMobile: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: Colors.text,
+    textAlign: 'center',
+  },
+  headerTitleSmall: {
+    fontSize: 14,
   },
   backBtn: {
-    padding: 5,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    position: 'absolute',
+    left: 20,
+    top: 5,
+  },
+  backBtnSmall: {
+    width: 30,
+    height: 30,
+    borderRadius: 18,
+    left: 5,
+    top: 5,
   },
   scrollArea: {
     flex: 1, // Toma todo el espacio sobrante debajo del header
@@ -225,6 +261,10 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     paddingBottom: 100,
   },
+  centerWrapperMobile: {
+    paddingTop: 24,
+    paddingBottom: 60,
+  },
   documentCard: {
     width: '90%',
     maxWidth: 800,
@@ -232,6 +272,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.4)', 
     padding: 30,
     borderRadius: 15,
+  },
+  documentCardMobile: {
+    width: '95%',
+    padding: 20,
+    borderRadius: 14,
+  },
+  sectionTitleMobile: {
+    fontSize: 22,
+  },
+  subtitleMobile: {
+    fontSize: 16,
+  },
+  textMobile: {
+    fontSize: 15,
+    lineHeight: 22,
   },
   sectionTitle: {
     fontSize: 26,
