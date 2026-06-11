@@ -75,7 +75,7 @@ DEC/
 - **Base de Datos**: MongoDB + Mongoose
 - **Autenticación**: JWT, Google OAuth, Facebook SDK
 - **Almacenamiento de Archivos**: Cloudinary
-- **Email**: Nodemailer
+- **Email**: Resend
 - **Herramientas**: Multer (upload), Archiver (exportación)
 
 ### Frontend
@@ -86,7 +86,7 @@ DEC/
 - **BD Local**: SQLite
 - **Cámara**: Expo Camera
 - **Modelos IA**: TensorFlow Lite (best_float16.tflite), Modelo base (YOLOv11)
-- **Autenticación**: Google Sign-In, Facebook SDK
+- **Autenticación**: Google Sign-In
 - **Notificaciones**: Expo Notifications
 
 ---
@@ -98,9 +98,8 @@ DEC/
 - **Expo CLI**: `npm install -g expo-cli`
 - **Claves de API**:
   - Google OAuth (Client ID)
-  - Facebook App ID y Access Token
   - Cloudinary API credentials
-  - Cuenta SMTP para email (Nodemailer)
+  - Cuenta Resend y Dominio
 
 ---
 
@@ -367,7 +366,6 @@ CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 GOOGLE_CLIENT_ID=
-FACEBOOK_APP_ID=
 SMTP_HOST=
 SMTP_USER=
 SMTP_PASS=
@@ -409,8 +407,10 @@ Este proyecto está bajo la Licencia ISC.
 ## 📞 Soporte
 
 Para soporte o preguntas, contáctanos en el email del proyecto o abre un issue en el repositorio.
+correo: j276scc@gmail.com
+        administrador.dec@gmail.com
 
 ---
 
-**Última actualización**: Abril 2026
+**Última actualización**: junio 2026
 **Estado**: En desarrollo 🚀
