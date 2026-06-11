@@ -24,7 +24,7 @@
 
 - **Detección IA**: Utiliza modelos TensorFlow Lite para detectar enfermedades en plantas de café
 - **Captura por Cámara**: Integración de cámara en dispositivos móviles y web
-- **Autenticación**: Login/registro con Google, Facebook y correo electrónico
+- **Autenticación**: Login/registro con Google y correo electrónico
 - **Historial de Detecciones**: Almacenamiento y visualización del histórico de análisis
 - **Panel de Administrador**: Dashboard web para gestionar usuarios y estadísticas
 - **Exportación de Datos**: Generación de reportes en múltiples formatos
