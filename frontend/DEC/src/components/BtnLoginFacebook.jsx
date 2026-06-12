@@ -1,9 +1,18 @@
 import { useEffect, useState, useContext } from "react";
-import { TouchableOpacity, Text, Image, StyleSheet, Alert } from "react-native";
+import { TouchableOpacity, Text, Image, StyleSheet, Alert, Platform } from "react-native";
 import { AuthContext } from '../context/AuthContext.js';
 import { Colors } from '../constants/colors.js'
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
-import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
+
+let LoginManager, AccessToken;
+try {
+  const fbsdk = require('react-native-fbsdk-next');
+  LoginManager = fbsdk.LoginManager;
+  AccessToken = fbsdk.AccessToken;
+} catch (error) {
+  console.log("Facebook SDK no disponible:", error);
+}
+
 import * as SecureStore from 'expo-secure-store';
 import api from "../api/api.js";
 
@@ -19,6 +28,11 @@ export default function BtnLoginFacebook() {
     const handleFacebookLogin = async () => {
         setLoading(true);
         try {
+            if (!LoginManager || !AccessToken) {
+              Alert.alert("Error", "Facebook SDK no está disponible en este dispositivo");
+              return;
+            }
+            
             LoginManager.logOut(); // cerrar alguna sesion por si algo
             // obtenemos el resultado
             const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);

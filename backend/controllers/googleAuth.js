@@ -54,15 +54,16 @@ export const googleAuth = async (req, res) => {
             }
             await user.save()
         }
-        // creamos el token de esta sesión
+        // creamos el token de esta sesión (3 días para apps offline)
         const sessionToken = jwt.sign(
             { id: user._id, role: user.role || 'user' },
-            process.env.JWT_SECRET || 'clave_secreta_provisional', // QUITAR EN DESPLIEGUE
-            { expiresIn: '30d' } // Duración larga para apps móviles
+            process.env.JWT_SECRET,
+            { expiresIn: '72h' } // 3 días para aplicaciones móviles offline
         );
         // enviamos el token para guardarlo en el estado de token del front
         return res.status(200).json({
             token: sessionToken,
+            expiresIn: 259200, // 72 horas en segundos
             user: {
                 id: user._id,
                 name: user.name,

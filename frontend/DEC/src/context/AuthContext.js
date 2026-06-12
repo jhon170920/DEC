@@ -40,12 +40,22 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Configurar Google y Facebook solo en móvil
-    if (Platform.OS !== 'web' && GoogleSignin && Settings) {
-      GoogleSignin.configure({
-        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-        offlineAccess: true,
-      });
-      Settings.initializeSDK()
+    if (Platform.OS !== 'web') {
+      try {
+        if (GoogleSignin) {
+          GoogleSignin.configure({
+            webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+            offlineAccess: true,
+          });
+        }
+        
+        // Inicializar Facebook SDK con validación más robusta
+        if (Settings && typeof Settings.initializeSDK === 'function') {
+          Settings.initializeSDK();
+        }
+      } catch (error) {
+        console.log("Error inicializando SDKs de autenticación:", error);
+      }
     }
 
     const checkToken = async () => {
@@ -102,7 +112,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       // Verificar Facebook
-      if (AccessToken) {
+      if (AccessToken && typeof AccessToken.getCurrentAccessToken === 'function') {
         const fbData = await AccessToken.getCurrentAccessToken();
         if (fbData) {
           console.log("Sesión persistente de Facebook detectada");
@@ -112,7 +122,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       // Verificar Google
-      if (GoogleSignin) {
+      if (GoogleSignin && typeof GoogleSignin.hasPreviousSignIn === 'function') {
         const hasGoogle = await GoogleSignin.hasPreviousSignIn();
         if (hasGoogle) {
           console.log("Sesión persistente de Google detectada");
@@ -163,23 +173,37 @@ const logout = async () => {
       sessionStorage.removeItem('userToken');
     } else {
       // Cerrar sesiones sociales (Facebook, Google)
-      if (LoginManager && AccessToken) {
-        const fbToken = await AccessToken.getCurrentAccessToken();
-        if (fbToken) {
-          await LoginManager.logOut();
+      if (LoginManager && AccessToken && typeof LoginManager.logOut === 'function') {
+        try {
+          const fbToken = await AccessToken.getCurrentAccessToken();
+          if (fbToken) {
+            await LoginManager.logOut();
+          }
+        } catch (error) {
+          console.log("Error al cerrar sesión de Facebook:", error);
         }
       }
-      if (GoogleSignin) {
-        const hasGoogle = await GoogleSignin.hasPreviousSignIn();
-        if (hasGoogle) {
-          await GoogleSignin.signOut();
+      
+      if (GoogleSignin && typeof GoogleSignin.hasPreviousSignIn === 'function') {
+        try {
+          const hasGoogle = await GoogleSignin.hasPreviousSignIn();
+          if (hasGoogle && typeof GoogleSignin.signOut === 'function') {
+            await GoogleSignin.signOut();
+          }
+        } catch (error) {
+          console.log("Error al cerrar sesión de Google:", error);
         }
       }
+      
       await SecureStore.deleteItemAsync('userToken');
       
       // Limpiar la base de datos local
-      const { resetDatabase } = require('../services/dbService');
-      resetDatabase();
+      try {
+        const { resetDatabase } = require('../services/dbService');
+        resetDatabase();
+      } catch (error) {
+        console.log("Error al resetear base de datos:", error);
+      }
     }
     setUserToken(null);
     setIsGuest(false);
@@ -187,34 +211,69 @@ const logout = async () => {
     console.error("Error durante logout:", error);
   }
 };
-  // Elmininar permisos si se  si se creó con fb/google
+  // Eliminar permisos si se creó con fb/google
   const RevokeAccessSocial = async () => {
     try {
       if(Platform.OS !== 'web'){
         // Solo intentamos revocar Google si hay sesión activa
-        const hasGoogle = await GoogleSignin.hasPreviousSignIn();
-        if (hasGoogle) {
-            await GoogleSignin.revokeAccess(); // Elimina el permiso de la App en su cuenta de Google
-            console.log("Cuenta con Google eliminada") 
+        if (GoogleSignin && typeof GoogleSignin.hasPreviousSignIn === 'function') {
+          try {
+            const hasGoogle = await GoogleSignin.hasPreviousSignIn();
+            if (hasGoogle && typeof GoogleSignin.revokeAccess === 'function') {
+              await GoogleSignin.revokeAccess();
+              console.log("Cuenta con Google eliminada");
+            }
+          } catch (error) {
+            console.log("Error revocando acceso de Google:", error);
+          }
         }
+        
         // Función de facebook (Revocación de los permisos mediante Graph API)
         const revokeFB = (tokenData) => new Promise((resolve, reject) => {
-          const token = tokenData?.accessToken.toString();
-          const request = new GraphRequest('/me/permissions', { accessToken: token, httpMethod: 'DELETE' }, (err, res) => {
-            if (err) {
-              console.error('Error Graph API:', err);
-              reject(err);
-            } else {
-              console.log('Acceso a los datos de Facebook eliminado con éxito.');
-              resolve(res);
+          try {
+            const token = tokenData?.accessToken.toString();
+            if (!token) {
+              resolve(null);
+              return;
             }
-          });
-          new GraphRequestManager().addRequest(request).start();
+            
+            if (!GraphRequest || !GraphRequestManager) {
+              console.log("GraphRequest o GraphRequestManager no disponible");
+              resolve(null);
+              return;
+            }
+            
+            const request = new GraphRequest(
+              '/me/permissions',
+              { accessToken: token, httpMethod: 'DELETE' },
+              (err, res) => {
+                if (err) {
+                  console.error('Error Graph API:', err);
+                  reject(err);
+                } else {
+                  console.log('Acceso a los datos de Facebook eliminado con éxito.');
+                  resolve(res);
+                }
+              }
+            );
+            new GraphRequestManager().addRequest(request).start();
+          } catch (error) {
+            console.log("Error en revokeFB:", error);
+            reject(error);
+          }
         });
+        
         // Solo intentamos revocar FB si hay sesión activa
-        const fbData = await AccessToken.getCurrentAccessToken();
-        console.log(fbData)
-        if (fbData) await revokeFB(fbData);
+        if (AccessToken && typeof AccessToken.getCurrentAccessToken === 'function') {
+          try {
+            const fbData = await AccessToken.getCurrentAccessToken();
+            if (fbData) {
+              await revokeFB(fbData);
+            }
+          } catch (error) {
+            console.log("Error revocando acceso de Facebook:", error);
+          }
+        }
       }
     } catch (error) {
       console.error("Error durante eliminar cuentas sociales", error);

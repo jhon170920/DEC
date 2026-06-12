@@ -20,12 +20,11 @@ import { useNavigation } from "@react-navigation/native";
 import { Colors } from "../../constants/colors";
 import { ContactStyles as styles } from "../../styles/Contacstyles";
 import { useResponsiveLayout } from "../../hooks/useResponsiveLayout";
-import { sendMessage } from "../../api/api"; // Importar la función real
+import { sendMessage } from "../../api/api";
 
 export default function Contact() {
   const navigation = useNavigation();
   const [nombre, setNombre] = useState("");
-  const [correo, setCorreo] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -43,24 +42,9 @@ export default function Contact() {
     iconS,
   } = useResponsiveLayout();
 
-  const validateEmail = (email) => {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return regex.test(email);
-  };
-
   const handleEnviar = async () => {
     if (!nombre.trim()) {
       setErrorMessage("Por favor ingresa tu nombre.");
-      setErrorModalVisible(true);
-      return;
-    }
-    if (!correo.trim()) {
-      setErrorMessage("Por favor ingresa tu correo electrónico.");
-      setErrorModalVisible(true);
-      return;
-    }
-    if (!validateEmail(correo.trim())) {
-      setErrorMessage("Ingresa un correo electrónico válido.");
       setErrorModalVisible(true);
       return;
     }
@@ -72,12 +56,9 @@ export default function Contact() {
 
     setLoading(true);
     try {
-      // Llamar a la API real
-      await sendMessage(nombre.trim(), correo.trim(), mensaje.trim());
+      await sendMessage(nombre.trim(), mensaje.trim());
       setModalVisible(true);
-      // Limpiar campos si se desea
       setNombre("");
-      setCorreo("");
       setMensaje("");
     } catch (error) {
       const msg = error.message || "Ocurrió un error al enviar el mensaje";
@@ -149,21 +130,6 @@ export default function Contact() {
                 placeholderTextColor={Colors.textMuted}
                 value={nombre}
                 onChangeText={setNombre}
-              />
-            </View>
-
-            {/* ── CORREO ── */}
-            <Text style={[styles.label, { fontSize: sublineS }]}>Correo electrónico *</Text>
-            <View style={[styles.inputWrap, { marginBottom: sp(0.030) }]}>
-              <Feather name="mail" size={iconS} color={Colors.text} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="correo@ejemplo.com"
-                placeholderTextColor={Colors.textMuted}
-                value={correo}
-                onChangeText={setCorreo}
-                keyboardType="email-address"
-                autoCapitalize="none"
               />
             </View>
 

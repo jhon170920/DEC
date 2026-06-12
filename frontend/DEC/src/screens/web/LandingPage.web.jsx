@@ -371,7 +371,7 @@ export default function LandingPage({ navigation }) {
     };
   }, []);
 
-  const handleDownloadAPK = () => Linking.openURL('https://github.com/jhon170920/DEC/releases/download/apk/build-1778282684374.apk');
+  const handleDownloadAPK = () => Linking.openURL('https://github.com/jhon170920/DEC/releases/download/apk/build-1781142979068.apk');
 
   const handleAdminAccess = () => {
     if (navigation && navigation.navigate) {

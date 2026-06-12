@@ -29,7 +29,13 @@ export const requestCode = async (req, res) => {
             return res.status(400).json({ message: "Escribe un correo electrónico válido" });
 
         const user = await Users.findOne({ email });
-        if (!user) return res.status(400).json({ message: "Este correo no está registrado." });
+        
+        // Si el usuario no existe, NO revelar que el email no está registrado
+        if (!user) {
+            // Log interno pero respuesta genérica
+            console.log(`Intento de recuperación con email no registrado: ${email}`);
+            return res.status(200).json({ message: "Si el correo existe en el sistema, recibirás un código de verificación" });
+        }
 
         const code = codeGenerator();
         user.codeRecuperation = code;

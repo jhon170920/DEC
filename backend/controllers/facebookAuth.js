@@ -66,15 +66,16 @@ export const facebookAuth = async (req, res) => {
             };
             await user.save()
         }
-        // Creamos el token de este login
+        // Creamos el token de este login (3 días para apps offline)
         const sessionToken = jwt.sign(
             { id: user._id, role: user.role || 'user' }, 
-            process.env.JWT_SECRET || 'clave_secreta_provisional', // QUITAR EN DESPLIEGUE
-            { expiresIn: '30d' }
+            process.env.JWT_SECRET,
+            { expiresIn: '72h' } // 3 días para aplicaciones móviles offline
         );
-        // Respuesta final con los datos necesaios por aahpra
+        // Respuesta final con los datos necesarios
         return res.status(200).json({
             token: sessionToken,
+            expiresIn: 259200, // 72 horas en segundos
             user: {
                 id: user._id,
                 name: user.name,

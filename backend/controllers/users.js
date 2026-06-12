@@ -39,15 +39,16 @@ export const loginUser = async (req, res) => {
                 email: user.email // Útil para que el frontend sepa a dónde reenviar el código
             });
         }
-        // Creamos el token de esta sesion
+        // Creamos el token de esta sesion (3 días para apps offline)
         const token = jwt.sign(
             { id: user._id, role: user.role || 'user' },
-            process.env.JWT_SECRET || 'clave_secreta_provisional',
-            { expiresIn: '30d' } // Duración larga para apps móviles
+            process.env.JWT_SECRET,
+            { expiresIn: '72h' } // 3 días para aplicaciones móviles offline
         );
         res.status(200).json({
             message: `Bienvenido, ${user.name.toUpperCase()}`,
             token,
+            expiresIn: 259200, // 72 horas en segundos
             user: { id: user._id, name: user.name, email: user.email, role: user.role }
             
         });
@@ -151,23 +152,42 @@ export const changePassword = async (req, res) => {
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Contraseña actual incorrecta' });
     
-    if (newPassword.length < 6) return res.status(400).json({ message: 'La nueva contraseña debe tener al menos 6 caracteres' });
+    // Validar nueva contraseña (8-14 caracteres)
+    if (newPassword.length < 8 || newPassword.length > 14) {
+        return res.status(400).json({ message: 'La nueva contraseña debe tener entre 8 y 14 caracteres' });
+    }
+    
+    if (!/^[a-zA-Z0-9]+$/.test(newPassword)) {
+        return res.status(400).json({ message: 'La contraseña solo debe contener letras y números' });
+    }
     
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
     res.json({ message: 'Contraseña actualizada correctamente' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error al cambiar contraseña' });
   }
 };
 
 export const uploadProfilePicture = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No se recibió ninguna imagen' });
+    
+    // Validar tipo MIME
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedMimes.includes(req.file.mimetype)) {
+        return res.status(400).json({ message: 'Solo se permiten imágenes (JPEG, PNG, WebP)' });
+    }
+    
+    // Validar tamaño máximo (5MB)
+    if (req.file.size > 5 * 1024 * 1024) {
+        return res.status(400).json({ message: 'El archivo es demasiado grande (máximo 5MB)' });
+    }
+    
     const imageUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
     const user = await Users.findByIdAndUpdate(req.user.id, { pictureUrl: imageUrl }, { new: true });
     res.json({ pictureUrl: user.pictureUrl, message: 'Foto actualizada' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error al procesar la imagen' });
   }
 };
