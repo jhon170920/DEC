@@ -3,7 +3,7 @@ import { Platform, Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { syncPathologiesLocal } from '../services/dbService';
 import api from '../api/api';
-import { syncDetections, syncServerToLocal, syncLocalTreatments, syncRemoteTreatments } from '../services/syncService';
+
 // import { registerForPushNotificationsAsync } from '../services/notificationService';
 
 // -------- MÓDULOS NATIVOS (SOLO MÓVIL) ----------
@@ -65,8 +65,9 @@ export const AuthProvider = ({ children }) => {
           : await SecureStore.getItemAsync('userToken');
 
         if (token) {
-          await setUserToken(token);
-          await fetchAndSyncPathologies(token);
+          setUserToken(token);
+          setIsLoading(false);
+          fetchAndSyncPathologies(token);
         } else if (Platform.OS !== 'web') {
           // Solo revisar sesiones sociales en móvil
           await checkSocialLogin();
@@ -143,10 +144,6 @@ export const AuthProvider = ({ children }) => {
         if (Platform.OS !== 'web') {
           await syncPathologiesLocal(response.data);
           console.log("✅ Catálogo SQLite actualizado (Móvil)");
-          await syncDetections();
-          await syncServerToLocal(token);
-          await syncLocalTreatments();
-          await syncRemoteTreatments(token);
         } else {
           console.log("✅ Datos recibidos en Web (Sin usar SQLite)");
         }
