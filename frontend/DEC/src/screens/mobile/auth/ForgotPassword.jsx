@@ -8,7 +8,6 @@ import {
     ActivityIndicator,
     Image,
     KeyboardAvoidingView,
-    ScrollView,
     TouchableWithoutFeedback,
     Keyboard,
 } from 'react-native';
@@ -44,7 +43,6 @@ export default function ForgotPasswordScreen() {
         try {
             const response = await requestRecoveryCode(email.trim());
             setMessage({ type: 'success', text: response.message || '¡Código enviado! Revisa tu bandeja de entrada.' });
-            setEmail('');
             
             setTimeout(() => {
                 navigation.navigate("ResetPassword", { email: email.trim() });
@@ -60,26 +58,24 @@ export default function ForgotPasswordScreen() {
     const isDisabled = loading || !email.trim();
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#f9fafb' }}>
+            {/* Botón de retroceder - FUERA del KeyboardAvoidingView */}
+            <TouchableOpacity 
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+                activeOpacity={0.7}
+            >
+                <Ionicons name="arrow-back" size={24} color="#065f46" />
+            </TouchableOpacity>
+
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                enabled={true}
                 style={{ flex: 1 }}
             >
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <ScrollView 
-                        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
-                    >
-                        {/* Botón de retroceder */}
-                        <TouchableOpacity 
-                            style={styles.backButton}
-                            onPress={() => navigation.goBack()}
-                            activeOpacity={0.7}
-                        >
-                            <Ionicons name="arrow-back" size={24} color="#065f46" />
-                        </TouchableOpacity>
-
+                    <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 24 }}>
+                        
                         {/* Sección superior */}
                         <View style={styles.topSection}>
                             <View style={styles.logoCircle}>
@@ -133,7 +129,7 @@ export default function ForgotPasswordScreen() {
 
                             {/* Botón */}
                             <TouchableOpacity
-                                style={[styles.button, loading && { opacity: 0.7 }]}
+                                style={[styles.button, isDisabled && { opacity: 0.7 }]}
                                 onPress={handleRecover}
                                 disabled={isDisabled}
                                 activeOpacity={0.8}
@@ -152,7 +148,7 @@ export default function ForgotPasswordScreen() {
                                 </LinearGradient>
                             </TouchableOpacity>
                         </View>
-                    </ScrollView>
+                    </View>
                 </TouchableWithoutFeedback>
             </KeyboardAvoidingView>
         </SafeAreaView>

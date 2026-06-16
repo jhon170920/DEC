@@ -41,6 +41,14 @@ export default function Register() {
     // Estado para aceptación de términos
     const [termsAccepted, setTermsAccepted] = useState(false);
 
+    // Estado para errores por campo (validación en cliente)
+    const [fieldErrors, setFieldErrors] = useState({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+    });
+
     const {
         sp,
         hPad,
@@ -53,6 +61,7 @@ export default function Register() {
 
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(20)).current;
+
     useEffect(() => {
         Animated.parallel([
             Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
@@ -67,6 +76,99 @@ export default function Register() {
         setModalVisible(true);
     };
 
+    // ✅ VALIDACIONES MEJORADAS (más flexible)
+    const validateField = (fieldName, value) => {
+        let error = '';
+
+        switch (fieldName) {
+            case 'name':
+                // Solo letras y espacios
+                if (!value) {
+                    error = 'El nombre es requerido';
+                } else if (value.trim().length < 2) {
+                    error = 'Mínimo 2 caracteres';
+                } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(value)) {
+                    error = 'Solo letras y espacios permitidos';
+                }
+                break;
+
+            case 'email':
+                // Email válido (formato general)
+                if (!value) {
+                    error = 'El email es requerido';
+                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                    error = 'Email inválido (ejemplo: usuario@ejemplo.com)';
+                }
+                break;
+
+            case 'password':
+                // Mínimo 6 caracteres
+                if (!value) {
+                    error = 'La contraseña es requerida';
+                } else if (value.length < 6) {
+                    error = 'Mínimo 6 caracteres';
+                } else if (!/[a-z]/.test(value)) {
+                    error = 'Debe contener minúsculas (a-z)';
+                } else if (!/[A-Z]/.test(value)) {
+                    error = 'Debe contener mayúsculas (A-Z)';
+                }
+                break;
+
+            case 'confirmPassword':
+                if (!value) {
+                    error = 'Confirma tu contraseña';
+                } else if (value !== password) {
+                    error = 'Las contraseñas no coinciden';
+                }
+                break;
+
+            default:
+                break;
+        }
+
+        return error;
+    };
+
+    // Validar campo en tiempo real
+    const handleFieldChange = (fieldName, value) => {
+        switch (fieldName) {
+            case 'name':
+                setName(value);
+                break;
+            case 'email':
+                setEmail(value);
+                break;
+            case 'password':
+                setPassword(value);
+                break;
+            case 'confirmPassword':
+                setConfirmPassword(value);
+                break;
+        }
+
+        // Validar y actualizar error
+        const error = validateField(fieldName, value);
+        setFieldErrors(prev => ({
+            ...prev,
+            [fieldName]: error
+        }));
+    };
+
+    // Validar todos los campos antes de enviar
+    const validateAllFields = () => {
+        const errors = {
+            name: validateField('name', name),
+            email: validateField('email', email),
+            password: validateField('password', password),
+            confirmPassword: validateField('confirmPassword', confirmPassword)
+        };
+
+        setFieldErrors(errors);
+
+        // Retornar true si no hay errores
+        return Object.values(errors).every(error => !error);
+    };
+
     const handleRegister = async () => {
         // Validar términos
         if (!termsAccepted) {
@@ -74,46 +176,49 @@ export default function Register() {
             return;
         }
 
-        if (!name || !email || !password || !confirmPassword) {
-            showModal("Error", "Por favor completa todos los campos");
-            return;
-        }
-        const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{2,50}$/;
-        if (!nameRegex.test(name.trim())) {
-            showModal("Error", "Ingresa un nombre válido (solo letras, mínimo 2 caracteres)");
-            return;
-        }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            showModal("Error", "Correo electrónico no válido");
-            return;
-        }
-        const regexValidacion = /^(?=.*[a-z])(?=.*[A-Z]).{6,}$/;
-        if (!regexValidacion.test(password)) {
-            showModal("Error", "La contraseña debe tener al menos 6 caracteres una letra mayúscula y una letra minúscula");
-            return;
-        }
-        if (password !== confirmPassword) {
-            showModal("Error", "Las contraseñas no coinciden");
+        // Validar todos los campos
+        if (!validateAllFields()) {
+            showModal("Validación fallida", "Por favor, revisa los campos marcados con error");
             return;
         }
 
         setLoading(true);
         try {
-            await registerUser(name, email.toLowerCase().trim(), password);
+            // Llamar al API
+            await registerUser(name.trim(), email.toLowerCase().trim(), password);
+
+            // Éxito
             showModal(
                 "¡Registro exitoso!",
                 "Se ha enviado un código de verificación a tu correo.",
                 "success"
             );
+
+            // Navegar a verificación después de 2 segundos
             setTimeout(() => {
                 setModalVisible(false);
                 navigation.navigate('VerifyCode', { email: email.toLowerCase().trim() });
             }, 2000);
+
         } catch (error) {
             console.error("Register Error:", error);
-            const message = error.message || "Error al conectar con el servidor";
-            showModal("Error de Registro", message);
+
+            // Extraer mensaje de error más descriptivo
+            let errorMessage = error.message || "Error al conectar con el servidor";
+
+            // Si es un objeto con propiedades específicas
+            if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.response?.data?.fields) {
+                // Si hay errores por campo desde el backend
+                const fieldError = error.response.data.fields;
+                const firstError = Object.values(fieldError).find(e => e);
+                if (firstError) {
+                    errorMessage = firstError;
+                }
+            }
+
+            showModal("Error de Registro", errorMessage);
         } finally {
             setLoading(false);
         }
@@ -124,6 +229,19 @@ export default function Register() {
             return <Feather name="check-circle" size={48} color={Colors.primary} style={{ alignSelf: 'center', marginBottom: 12 }} />;
         }
         return <Feather name="alert-circle" size={48} color="#dc2626" style={{ alignSelf: 'center', marginBottom: 12 }} />;
+    };
+
+    // Componente para mostrar error de campo
+    const FieldError = ({ error }) => {
+        if (!error) return null;
+        return (
+            <View style={{ marginTop: 6, marginLeft: 4, flexDirection: 'row', alignItems: 'center' }}>
+                <Feather name="alert-circle" size={14} color="#dc2626" />
+                <Text style={{ fontSize: 12, color: '#dc2626', marginLeft: 4 }}>
+                    {error}
+                </Text>
+            </View>
+        );
     };
 
     return (
@@ -180,57 +298,78 @@ export default function Register() {
                                 placement='top'
                             >
                                 <View style={{ gap: sp(0.014) }}>
-                                    <FloatingInput
-                                        label="Nombre"
-                                        value={name}
-                                        onChangeText={setName}
-                                        keyboardType="name"
-                                        autoCapitalize='none'
-                                        fieldHeight={fieldH}
-                                    />
-                                    <FloatingInput
-                                        label="Correo electrónico"
-                                        value={email}
-                                        onChangeText={setEmail}
-                                        keyboardType="email-address"
-                                        autoCapitalize="none"
-                                        fieldHeight={fieldH}
-                                    />
-                                    <FloatingInput
-                                        label="Contraseña"
-                                        value={password}
-                                        onChangeText={setPassword}
-                                        keyboardType="password"
-                                        isPassword={true}
-                                        fieldHeight={fieldH}
-                                    />
-                                    <FloatingInput
-                                        label="Confirmar contraseña"
-                                        value={confirmPassword}
-                                        onChangeText={setConfirmPassword}
-                                        keyboardType="password"
-                                        isPassword={true}
-                                        fieldHeight={fieldH}
-                                    />
+                                    {/* Campo Nombre */}
+                                    <View>
+                                        <FloatingInput
+                                            label="Nombre"
+                                            value={name}
+                                            onChangeText={(value) => handleFieldChange('name', value)}
+                                            fieldHeight={fieldH}
+                                        />
+                                        <FieldError error={fieldErrors.name} />
+                                    </View>
+
+                                    {/* Campo Email */}
+                                    <View>
+                                        <FloatingInput
+                                            label="Correo electrónico"
+                                            value={email}
+                                            onChangeText={(value) => handleFieldChange('email', value)}
+                                            keyboardType="email-address"
+                                            autoCapitalize='none'
+                                            fieldHeight={fieldH}
+                                        />
+                                        <FieldError error={fieldErrors.email} />
+                                    </View>
+
+                                    {/* Campo Contraseña */}
+                                    <View>
+                                        <FloatingInput
+                                            label="Contraseña"
+                                            value={password}
+                                            onChangeText={(value) => handleFieldChange('password', value)}
+                                            isPassword={true}
+                                            fieldHeight={fieldH}
+                                        />
+                                        <FieldError error={fieldErrors.password} />
+                                        {/* Requisitos de contraseña */}
+                                        <View style={{ marginTop: 8, marginLeft: 4 }}>
+                                            <ReqCheck text="Mínimo 6 caracteres" met={password.length >= 6} />
+                                            <ReqCheck text="Una mayúscula (A-Z)" met={/[A-Z]/.test(password)} />
+                                            <ReqCheck text="Una minúscula (a-z)" met={/[a-z]/.test(password)} />
+                                        </View>
+                                    </View>
+
+                                    {/* Campo Confirmar Contraseña */}
+                                    <View>
+                                        <FloatingInput
+                                            label="Confirmar contraseña"
+                                            value={confirmPassword}
+                                            onChangeText={(value) => handleFieldChange('confirmPassword', value)}
+                                            isPassword={true}
+                                            fieldHeight={fieldH}
+                                        />
+                                        <FieldError error={fieldErrors.confirmPassword} />
+                                    </View>
                                 </View>
                             </ToolTipBubbleAuth>
-                            {/* Aceptación de términos y condiciones */}
+
+                            {/* Términos */}
                             <ToolTipBubbleAuth
                                 stepNumber={1}
                                 nextStep={2}
-                                text="Debes aceptar los términos y condiciones para continuar. Si los aceptas confirmas que leiste nuestros Términos y Condiciones"
+                                text="Para proteger tus datos, debes aceptar nuestros términos y condiciones."
                                 placement='top'
                             >
                                 <View style={termsStyles.container}>
                                     <TouchableOpacity
                                         style={termsStyles.checkbox}
                                         onPress={() => setTermsAccepted(!termsAccepted)}
-                                        activeOpacity={0.7}
                                     >
                                         <Feather
                                             name={termsAccepted ? "check-square" : "square"}
                                             size={20}
-                                            color={termsAccepted ? Colors.primary : "#9ca3af"}
+                                            color={termsAccepted ? Colors.primary : Colors.border}
                                         />
                                     </TouchableOpacity>
                                     <Text style={termsStyles.termsText}>
@@ -244,6 +383,7 @@ export default function Register() {
                                     </Text>
                                 </View>
                             </ToolTipBubbleAuth>
+
                             {/* Botón Registrar */}
                             <ToolTipBubbleAuth
                                 stepNumber={2}
@@ -267,6 +407,7 @@ export default function Register() {
                                     </LinearGradient>
                                 </TouchableOpacity>
                             </ToolTipBubbleAuth>
+
                             {/* Divisor */}
                             <View style={[styles.divider, { marginBottom: sp(0.022) }]}>
                                 <View style={styles.divLine} />
@@ -281,23 +422,24 @@ export default function Register() {
                                 text="Si prefieres registrarte sin esperar un código de verificación y rápidamente, puedes continuar con tu cuenta de Google"
                                 placement='top'
                             >
-                                <View style={[styles.socialRow, { marginBottom: sp(0.024) }, {justifyContent: 'space-around'}]}>
+                                <View style={[styles.socialRow, { marginBottom: sp(0.024) }, { justifyContent: 'space-around' }]}>
                                     <TouchableOpacity
                                         activeOpacity={1}
                                         onPress={() => {
                                             if (!termsAccepted) {
-                                            showModal("Aceptación requerida", "Debes aceptar los términos y condiciones para continuar.");
+                                                showModal("Aceptación requerida", "Debes aceptar los términos y condiciones para continuar.");
                                             }
                                         }}
                                         style={{ width: '50%', }}
                                     >
-                                        <View style={{height:45}} pointerEvents={termsAccepted ? 'auto' : 'none'}>
+                                        <View style={{ height: 45 }} pointerEvents={termsAccepted ? 'auto' : 'none'}>
                                             <BtnLoginGoogle />
                                         </View>
                                     </TouchableOpacity>
                                 </View>
                             </ToolTipBubbleAuth>
-                            {/* Footer navegación al Login */}
+
+                            {/* Footer */}
                             <ToolTipBubbleAuth
                                 stepNumber={4}
                                 nextStep={'finishScreen'}
@@ -315,7 +457,7 @@ export default function Register() {
                 </KeyboardAvoidingView>
             </LinearGradient>
 
-            {/* Modal personalizado */}
+            {/* Modal de resultado */}
             <Modal transparent animationType="fade" visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
                 <View style={modalStyles.overlay}>
                     <View style={modalStyles.modalBox}>
@@ -345,7 +487,28 @@ export default function Register() {
     );
 }
 
-// Estilos específicos para la aceptación de términos
+// ========== COMPONENTES HELPER ==========
+
+// Componente para mostrar requisitos de contraseña
+const ReqCheck = ({ text, met }) => (
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+        <Feather
+            name={met ? "check" : "x"}
+            size={14}
+            color={met ? "#16a34a" : "#9ca3af"}
+        />
+        <Text style={{
+            fontSize: 12,
+            marginLeft: 6,
+            color: met ? "#16a34a" : "#9ca3af"
+        }}>
+            {text}
+        </Text>
+    </View>
+);
+
+// ========== ESTILOS ==========
+
 const termsStyles = StyleSheet.create({
     container: {
         flexDirection: 'row',
@@ -370,7 +533,6 @@ const termsStyles = StyleSheet.create({
     },
 });
 
-// Estilos modales (igual que antes)
 const modalStyles = StyleSheet.create({
     overlay: {
         flex: 1,

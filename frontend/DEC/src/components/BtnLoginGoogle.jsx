@@ -16,7 +16,7 @@ try {
   console.log("Google Sign In no disponible:", error);
 }
 
-// LLOGIN SI NO TIENE GOOGLE PLAY SERVICES (HUAWEI MODERNO, ROOM PERSONALIZADO)
+// LOGIN SI NO TIENE GOOGLE PLAY SERVICES (HUAWEI MODERNO, ROOM PERSONALIZADO)
 import { makeRedirectUri } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
@@ -47,24 +47,29 @@ export default function BtnloginGoogle() {
       }
     }, []);
     
-    // Login con navegador
+    // Login con navegador - CORREGIDO: responseType debe ser 'id_token token' NO 'code'
     const [request, response, promptAsync] = Google.useAuthRequest({
         androidClientId: process.env.EXPO_PUBLIC_GOOGLE_APP_CLIENT_ID,
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-        responseType: 'code',
+        responseType: 'id_token token',  // ✅ CORREGIDO: 'id_token token' en lugar de 'code'
         useProxy: true,
         scopes: ['profile', 'email'],
         redirectUri: makeRedirectUri({
             useProxy: true,
         }),
     });
-    // Login con navegador
+    
+    // Login con navegador - CORREGIDO: Agregadas dependencias al useEffect
     useEffect(() => {
         if (response?.type === 'success') {
           const { id_token } = response.params;
-          sendTokenToServer(id_token, 'google');
+          if (id_token) {
+            sendTokenToServer(id_token, 'google');
+          } else {
+            console.warn("No se recibió id_token en la respuesta de Google");
+          }
         }
-    }, [response]);
+    }, [response, sendTokenToServer]);  // ✅ CORREGIDO: Agregada sendTokenToServer a dependencias
 
     // funcion del boton de google
     const handleGoogleLogin = async () => {
@@ -84,6 +89,8 @@ export default function BtnloginGoogle() {
             // verificamos si hay token y se lo mandamos al backend
             if (idToken) {
                 await sendTokenToServer(idToken, 'google');
+            } else {
+              console.warn("No se obtuvo idToken del GoogleSignin");
             }
         } catch (error) {
             // SI NO TIENE PLAY SERVICES
