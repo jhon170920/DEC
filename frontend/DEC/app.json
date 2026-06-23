@@ -3,7 +3,7 @@
     "name": "DEC",
     "slug": "DEC",
     "scheme": "decapp",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/ic_launcher_foreground.png",
     "userInterfaceStyle": "light",
@@ -35,6 +35,7 @@
     },
     "android": {
       "package": "com.decapp.com",
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/ic_launcher_foreground.png",
         "backgroundColor": "#ffffff"
