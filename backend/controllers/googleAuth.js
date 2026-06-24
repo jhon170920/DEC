@@ -3,7 +3,10 @@ import Users from "../models/users.js"; // Importar el modelo de usuario (no olv
 import jwt from "jsonwebtoken";
 import dotenv from 'dotenv';
 dotenv.config();
-const client = new OAuth2Client(process.env.GOOGLE_WEB_CLIENT_ID);
+
+// ✅ ACTUALIZADO: Usar GOOGLE_APP_CLIENT_ID (nativo)
+const client = new OAuth2Client(process.env.GOOGLE_APP_CLIENT_ID);
+
 // login con google 
 export const googleAuth = async (req, res) => {
     try {
@@ -12,11 +15,17 @@ export const googleAuth = async (req, res) => {
         if (!tokenHeader || !tokenHeader.startsWith('Bearer ')) return res.status(401).json({ message: "No se proporcionó un token válido" });
         // obtenemos solo el string del token y quitamos la palabra 'Bearer'
         const googleToken = tokenHeader.split(' ')[1];
-        // verificamos con gogole si el token es real
+        
+        // ✅ ACTUALIZADO: Verificar con GOOGLE_APP_CLIENT_ID
+        // Mantener ambos en audience por compatibilidad (en caso de que venga de diferentes clientes)
         const ticket = await client.verifyIdToken({
             idToken: googleToken,
-            audience: [process.env.GOOGLE_WEB_CLIENT_ID, process.env.GOOGLE_APP_CLIENT_ID],
+            audience: [
+                process.env.GOOGLE_APP_CLIENT_ID,
+                process.env.GOOGLE_WEB_CLIENT_ID // Opcional: mantener para compatibilidad
+            ].filter(Boolean), // Filtra valores undefined
         });
+        
         // Extraer información del usuario (sub es como el id de google)
         const { sub, name, email, picture } = ticket.getPayload()
 
@@ -47,7 +56,7 @@ export const googleAuth = async (req, res) => {
             if (!user.provider.includes('google')) {
                 user.provider.push('google');
             }
-            // Si el usuario NO tiene una foto en su cuenta al momento de loguearse por primera vez con facebook, le ponemos la de Facebook.
+            // Si el usuario NO tiene una foto en su cuenta al momento de loguearse por primera vez con google, le ponemos la de Google.
             // Si tiene una foto, no le ponemos ninguna foto y le dejamos la que tiene
             if (!user.pictureUrl && pictureUrl) {
                 user.pictureUrl = pictureUrl;
