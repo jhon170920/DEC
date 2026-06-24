@@ -14,28 +14,12 @@
     },
     "ios": {
       "bundleIdentifier": "com.decapp.com",
-      "supportsTablet": true,
-      "infoPlist": {
-        "SKAdNetworkItems": [
-          {
-            "SKAdNetworkIdentifier": "v9wttpbfk9.skadnetwork"
-          },
-          {
-            "SKAdNetworkIdentifier": "n38lu8286q.skadnetwork"
-          },
-          {
-            "SKAdNetworkIdentifier": "v9wttpbfk9.skadnetwork"
-          },
-          {
-            "SKAdNetworkIdentifier": "n38lu8286q.skadnetwork"
-          }
-        ],
-        "ITSAppUsesNonExemptEncryption": false
-      }
+      "supportsTablet": true
     },
     "android": {
       "package": "com.decapp.com",
       "versionCode": 5,
+      "googleServicesFile": "./android/google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/ic_launcher_foreground.png",
         "backgroundColor": "#ffffff"
@@ -54,8 +38,8 @@
       "favicon": "./assets/image/logo.png"
     },
     "plugins": [
-      "@react-native-google-signin/google-signin",
-      [
+        "@react-native-google-signin/google-signin",
+       [
         "react-native-fbsdk-next",
         {
           "appID": "4404660439775314",
