@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 // 1. REGLA DE ORO: Usa tu IP privada (Ej: 192.168.1.XX) 
 // 'localhost' solo funciona dentro del emulador, no en tu celular físico.
-const BASE_URL = 'http://192.168.101.211:8089/api/'; 
+const BASE_URL = 'https://dec-production.up.railway.app/api/'; 
 
 const api = axios.create({
     baseURL: BASE_URL,
@@ -15,7 +15,7 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
       let token;
-      // 👈 Validación híbrida para evitar el error en Web
+      // Validación híbrida para evitar el error en Web
       if (Platform.OS === 'web') {
           token = sessionStorage.getItem('userToken');
       } else {
