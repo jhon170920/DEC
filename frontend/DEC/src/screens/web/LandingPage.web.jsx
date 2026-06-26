@@ -10,13 +10,15 @@ import {
   Platform,
   StatusBar,
   useWindowDimensions,
-  Image
+  Image,
+  Modal
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { landingStyle as styles } from './components/styles/landingStyles';
 import { C } from './components/styles/landingStyles';
 import ParticlesBackground from './components/ParticlesBackground.web';
+import QRCode from 'react-native-qrcode-svg';
 
 // --- FADE IN UP ---
 const FadeInUp = ({ children, delay = 0, style }) => {
@@ -76,6 +78,360 @@ const AnimatedGradientBackground = () => {
     </Animated.View>
   );
 };
+
+// ─────────────────────────────────────────────
+// MODAL DE DESCARGA CON QR
+// ─────────────────────────────────────────────
+const DownloadModal = ({ visible, onClose, githubURL, playStoreURL }) => {
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const { width: screenWidth } = useWindowDimensions();
+  
+  const isMobile = screenWidth < 640;
+  const isTablet = screenWidth >= 640 && screenWidth < 1024;
+  const modalStyles = downloadModalStyles({ width: screenWidth, isMobile, isTablet });
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(slideAnim, {
+        toValue: 1,
+        useNativeDriver: Platform.OS !== 'web',
+        speed: 12,
+        bounciness: 8,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: Platform.OS !== 'web',
+      }).start();
+    }
+  }, [visible]);
+
+  const modalScale = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.85, 1],
+  });
+
+  const modalOpacity = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
+  const qrSize = isMobile ? 120 : isTablet ? 140 : 160;
+
+  return (
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+      <View style={modalStyles.container}>
+        {/* Fondo oscuro con opacidad */}
+        <Animated.View 
+          style={[
+            modalStyles.overlay, 
+            { opacity: modalOpacity }
+          ]} 
+        >
+          <TouchableOpacity 
+            activeOpacity={1} 
+            onPress={onClose} 
+            style={{ flex: 1 }}
+          />
+        </Animated.View>
+
+        {/* Modal principal */}
+        <Animated.View 
+          style={[
+            modalStyles.modalContent,
+            {
+              transform: [{ scale: modalScale }],
+              opacity: modalOpacity,
+            },
+          ]}
+        >
+          <TouchableOpacity 
+            style={modalStyles.closeButton} 
+            onPress={onClose}
+          >
+            <Feather name="x" size={isMobile ? 20 : 24} color={C.text} />
+          </TouchableOpacity>
+
+          <Text style={modalStyles.title}>Descarga DEC</Text>
+          <Text style={modalStyles.subtitle}>
+            Elige tu método de instalación preferido
+          </Text>
+
+          <View style={modalStyles.optionsContainer}>
+            {/* Opción GitHub */}
+            <View style={modalStyles.downloadOption}>
+              {!isMobile && (
+                <View style={modalStyles.qrContainer}>
+                  <QRCode
+                    value={githubURL}
+                    size={qrSize}
+                    color={C.text}
+                    backgroundColor="#fff"
+                    quietZone={8}
+                  />
+                </View>
+              )}
+              <TouchableOpacity 
+                style={[modalStyles.downloadBtn, modalStyles.githubBtn]}
+                onPress={() => {
+                  Linking.openURL(githubURL);
+                  onClose();
+                }}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons 
+                  name="github" 
+                  size={isMobile ? 20 : 24} 
+                  color="#fff" 
+                />
+                <View style={modalStyles.btnLabelContainer}>
+                  <Text style={modalStyles.btnLabel}>Descargar desde</Text>
+                  <Text style={modalStyles.btnTitle}>GitHub</Text>
+                </View>
+                <Feather 
+                  name="arrow-right" 
+                  size={isMobile ? 0 : 20} 
+                  color="#fff" 
+                  style={[{ marginLeft: 'auto' }, modalStyles.arrowIcon]} 
+                />
+              </TouchableOpacity>
+              <Text style={modalStyles.optionDesc}>
+                Descarga directa • APK • Última versión
+              </Text>
+            </View>
+
+            {/* Divisor */}
+            <View style={modalStyles.divider} />
+
+            {/* Opción Play Store */}
+            <View style={modalStyles.downloadOption}>
+              {!isMobile && (
+                <View style={modalStyles.qrContainer}>
+                  <QRCode
+                    value={playStoreURL}
+                    size={qrSize}
+                    color={C.text}
+                    backgroundColor="#fff"
+                    quietZone={8}
+                  />
+                </View>
+              )}
+              <TouchableOpacity 
+                style={[modalStyles.downloadBtn, modalStyles.playStoreBtn]}
+                onPress={() => {
+                  Linking.openURL(playStoreURL);
+                  onClose();
+                }}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons 
+                  name="google-play" 
+                  size={isMobile ? 20 : 24} 
+                  color="#fff" 
+                />
+                <View style={modalStyles.btnLabelContainer}>
+                  <Text style={modalStyles.btnLabel}>Descargar desde</Text>
+                  <Text style={modalStyles.btnTitle}>Google Play</Text>
+                </View>
+                <Feather 
+                  name="arrow-right" 
+                  size={isMobile ? 0 : 20} 
+                  color="#fff" 
+                  style={[{ marginLeft: 'auto' }, modalStyles.arrowIcon]} 
+                />
+              </TouchableOpacity>
+              <Text style={modalStyles.optionDesc}>
+                Actualizaciones automáticas • Verificado • Seguro
+              </Text>
+            </View>
+          </View>
+
+          <View style={modalStyles.footer}>
+            <View style={modalStyles.featureRow}>
+              <View style={modalStyles.featureBadge}>
+                <Feather name="smartphone" size={isMobile ? 14 : 16} color={C.primary} />
+              </View>
+              <Text style={modalStyles.featureText}>Compatible Android 8+</Text>
+            </View>
+            <View style={modalStyles.featureRow}>
+              <View style={modalStyles.featureBadge}>
+                <Feather name="wifi-off" size={isMobile ? 14 : 16} color={C.primary} />
+              </View>
+              <Text style={modalStyles.featureText}>Funciona sin conexión</Text>
+            </View>
+            <View style={modalStyles.featureRow}>
+              <View style={modalStyles.featureBadge}>
+                <Feather name="lock" size={isMobile ? 14 : 16} color={C.primary} />
+              </View>
+              <Text style={modalStyles.featureText}>100% gratuito y seguro</Text>
+            </View>
+          </View>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+};
+
+// Estilos del Modal - Responsivo
+const downloadModalStyles = ({ width, isMobile, isTablet }) => StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: isMobile ? 16 : 24,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: isMobile ? 20 : 28,
+    padding: isMobile ? 20 : 32,
+    width: '100%',
+    maxHeight: isMobile ? '85vh' : '90vh',
+    maxWidth: isMobile ? '100%' : isTablet ? 600 : 520,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 30,
+        elevation: 10,
+      },
+    }),
+  },
+  closeButton: {
+    position: 'absolute',
+    top: isMobile ? 12 : 16,
+    right: isMobile ? 12 : 16,
+    width: isMobile ? 36 : 40,
+    height: isMobile ? 36 : 40,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  title: {
+    fontSize: isMobile ? 24 : 28,
+    fontWeight: '800',
+    color: C.text,
+    marginBottom: 8,
+    marginTop: isMobile ? 4 : 8,
+  },
+  subtitle: {
+    fontSize: isMobile ? 13 : 14,
+    color: '#6b7280',
+    marginBottom: isMobile ? 20 : 28,
+    lineHeight: 20,
+  },
+  optionsContainer: {
+    marginBottom: isMobile ? 20 : 28,
+  },
+  downloadOption: {
+    alignItems: 'center',
+    paddingVertical: isMobile ? 8 : 12,
+  },
+  qrContainer: {
+    backgroundColor: '#f9fafb',
+    borderRadius: isMobile ? 12 : 16,
+    padding: isMobile ? 10 : 12,
+    marginBottom: isMobile ? 12 : 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 2,
+      },
+    }),
+  },
+  downloadBtn: {
+    flexDirection: isMobile ? 'column' : 'row',
+    alignItems: 'center',
+    paddingVertical: isMobile ? 16 : 14,
+    paddingHorizontal: isMobile ? 16 : 18,
+    borderRadius: isMobile ? 12 : 14,
+    marginBottom: isMobile ? 12 : 10,
+    gap: isMobile ? 8 : 12,
+    width: '100%',
+  },
+  githubBtn: {
+    backgroundColor: '#1f2937',
+  },
+  playStoreBtn: {
+    backgroundColor: '#34a853',
+  },
+  btnLabelContainer: {
+    alignItems: isMobile ? 'center' : 'flex-start',
+    flex: isMobile ? 1 : 0,
+  },
+  btnLabel: {
+    fontSize: isMobile ? 10 : 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+    letterSpacing: 0.5,
+  },
+  btnTitle: {
+    fontSize: isMobile ? 14 : 16,
+    fontWeight: '700',
+    color: '#fff',
+    marginTop: 2,
+    textAlign: isMobile ? 'center' : 'left',
+  },
+  arrowIcon: {
+    display: isMobile ? 'none' : 'flex',
+  },
+  optionDesc: {
+    fontSize: isMobile ? 11 : 12,
+    color: '#9ca3af',
+    textAlign: 'center',
+    marginTop: isMobile ? 8 : 6,
+    paddingHorizontal: isMobile ? 8 : 0,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginVertical: isMobile ? 16 : 20,
+  },
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingTop: isMobile ? 16 : 20,
+    gap: isMobile ? 10 : 12,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: isMobile ? 8 : 10,
+  },
+  featureBadge: {
+    width: isMobile ? 28 : 32,
+    height: isMobile ? 28 : 32,
+    borderRadius: 8,
+    backgroundColor: '#f0fdf4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  featureText: {
+    fontSize: isMobile ? 12 : 13,
+    color: '#374151',
+    fontWeight: '500',
+    flex: 1,
+  },
+});
 
 // ─────────────────────────────────────────────
 // CARD DE ENFERMEDAD
@@ -330,6 +686,7 @@ const phoneStyles = StyleSheet.create({
 export default function LandingPage({ navigation }) {
   const { width, height } = useWindowDimensions();
   const isDesktop = width > 1024;
+  const [modalVisible, setModalVisible] = useState(false);
 
   const scanBarAnim    = useRef(new Animated.Value(0)).current;
   const scanPulseAnim  = useRef(new Animated.Value(0)).current;
@@ -371,7 +728,7 @@ export default function LandingPage({ navigation }) {
     };
   }, []);
 
-  const handleDownloadAPK = () => Linking.openURL('https://github.com/jhon170920/DEC/releases/download/apk/build-1781142979068.apk');
+  const handleDownloadAPK = () => setModalVisible(true);
 
   const handleAdminAccess = () => {
     if (navigation && navigation.navigate) {
@@ -380,6 +737,10 @@ export default function LandingPage({ navigation }) {
       alert('Acceso para administradores. Demo disponible próximamente.');
     }
   };
+
+  // URLs para descargar
+  const githubURL = 'https://github.com/jhon170920/DEC/releases/download/apk/DEC.apk';
+  const playStoreURL = 'https://play.google.com/store/apps/details?id=com.dec.app'; // Reemplazar con URL real
 
   return (
     <View style={styles.root}>
@@ -597,6 +958,14 @@ export default function LandingPage({ navigation }) {
           </View>
         </View>
       </ScrollView>
+
+      {/* Modal de descarga con QR */}
+      <DownloadModal 
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        githubURL={githubURL}
+        playStoreURL={playStoreURL}
+      />
     </View>
   );
 }
