@@ -294,7 +294,7 @@ export default function Register() {
                             <ToolTipBubbleAuth
                                 stepNumber={0}
                                 nextStep={1}
-                                text="Ingresa correctamente tu nombre, tu correo electrónico para enviarte un código de verificación, y crea una contraseña. ¡Que no se te olviden estos datos!"
+                                text="Ingresa correctamente tus datos ¡Que no se te olviden!"
                                 placement='top'
                             >
                                 <View style={{ gap: sp(0.014) }}>
