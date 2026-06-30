@@ -740,7 +740,7 @@ export default function LandingPage({ navigation }) {
 
   // URLs para descargar
   const githubURL = 'https://github.com/jhon170920/DEC/releases/download/apk/DEC.apk';
-  const playStoreURL = 'https://play.google.com/store/apps/details?id=com.dec.app'; // Reemplazar con URL real
+  const playStoreURL = 'https://play.google.com/store/apps/details?id=com.decapp.com'; // Reemplazar con URL real
 
   return (
     <View style={styles.root}>

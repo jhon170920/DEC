@@ -36,6 +36,13 @@ const ToolTipBubbleAuth = ({ children, text, stepNumber, nextStep, placement = '
             setCurrentStep(nextStep);
         }
     };
+
+    // ✅ Saltar todo el tour de esta screen
+    const handleSkipTour = async () => {
+        await markScreenAsDone(route.name);
+        setCurrentStep(0);
+    };
+
     // Clonamos el botón para deshabilitarlo y evitar que presione mientrás está el tutorial
     const enhancedChildren = React.isValidElement(children) 
         ? React.cloneElement(children, {
@@ -51,13 +58,21 @@ const ToolTipBubbleAuth = ({ children, text, stepNumber, nextStep, placement = '
             backgroundColor="rgba(0, 0, 0, 0.75)"
             // Diseño del globo de texto 
             content={
-                <View style={styles.container}>
-                    <Text style={styles.text}>{text}</Text>
-                    <TouchableOpacity onPress={handleAction} style={styles.button}> 
-                        <Text style={styles.buttonText}>
-                            Entendido
-                        </Text>
+                <View style={styles.wrapper}>
+                    {/* ✅ Burbuja independiente de "Saltar tour" */}
+                    <TouchableOpacity onPress={handleSkipTour} style={styles.skipBubble} activeOpacity={0.7}>
+                        <Text style={styles.skipBubbleText}>Saltar tour ✕</Text>
                     </TouchableOpacity>
+
+                    {/* Burbuja principal con el contenido del paso */}
+                    <View style={styles.container}>
+                        <Text style={styles.text}>{text}</Text>
+                        <TouchableOpacity onPress={handleAction} style={styles.button}> 
+                            <Text style={styles.buttonText}>
+                                Entendido
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             }
             contentStyle={styles.toolTipBubbleAuth} // Estilos del globo de texto
@@ -73,17 +88,38 @@ const ToolTipBubbleAuth = ({ children, text, stepNumber, nextStep, placement = '
 
 const styles = StyleSheet.create({
     toolTipBubbleAuth: {
+        // ✅ Sin fondo/borde propio: ahora cada burbuja interna dibuja el suyo
         height: 'auto',
         width: 250,
         padding: 0,
-        borderRadius: 24,
-        backgroundColor: Colors.surface,
-        borderWidth: 0.5,
-        borderColor: Colors.primaryLight
+        backgroundColor: 'transparent',
+        borderWidth: 0,
+    },
+    wrapper: {
+        alignItems: 'center',
+    },
+    skipBubble: {
+        backgroundColor: Colors.surfaceAlt,
+        borderWidth: 1,
+        borderColor: Colors.primaryLight,
+        borderRadius: 16,
+        paddingVertical: 6,
+        paddingHorizontal: 14,
+        marginBottom: 8, // separación entre la burbuja de saltar y la del contenido
+    },
+    skipBubbleText: {
+        color: Colors.textSoft,
+        fontSize: 13,
+        fontWeight: '600',
     },
     container: {
         padding: 16,
         alignItems: 'center',
+        backgroundColor: Colors.surface,
+        borderRadius: 24,
+        borderWidth: 0.5,
+        borderColor: Colors.primaryLight,
+        width: 250,
     },
     text: {
         fontSize: 18,

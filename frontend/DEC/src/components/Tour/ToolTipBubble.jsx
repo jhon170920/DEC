@@ -100,6 +100,13 @@ const ToolTipBubble = ({
     }
   };
 
+  // ✅ Saltar todo el tour de esta screen
+  const handleSkipTour = async () => {
+    setTooltipVisible(false);
+    await markScreenAsDone(route.name);
+    setCurrentStep(0);
+  };
+
   const enhancedChildren = React.isValidElement(children) 
     ? React.cloneElement(children, {
         disabled: tooltipVisible, 
@@ -113,13 +120,21 @@ const ToolTipBubble = ({
       allowChildEvents={false}
       backgroundColor="rgba(0, 0, 0, 0.75)"
       content={
-        <View style={styles.container}>
-          <Text style={styles.text}>{text}</Text>
-          <TouchableOpacity onPress={handleAction} style={styles.button}> 
-            <Text style={styles.buttonText}>
-              Entendido
-            </Text>
+        <View style={styles.wrapper}>
+          {/* ✅ Burbuja independiente de "Saltar tour" */}
+          <TouchableOpacity onPress={handleSkipTour} style={styles.skipBubble} activeOpacity={0.7}>
+            <Text style={styles.skipBubbleText}>Saltar tour ✕</Text>
           </TouchableOpacity>
+
+          {/* Burbuja principal con el contenido del paso */}
+          <View style={styles.container}>
+            <Text style={styles.text}>{text}</Text>
+            <TouchableOpacity onPress={handleAction} style={styles.button}> 
+              <Text style={styles.buttonText}>
+                Entendido
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       }
       contentStyle={styles.toolTipBubble}
@@ -138,17 +153,38 @@ const ToolTipBubble = ({
 
 const styles = StyleSheet.create({
   toolTipBubble: {
+    // ✅ Sin fondo/borde propio: ahora cada burbuja interna dibuja el suyo
     height: 'auto',
     width: 250,
     padding: 0,
-    borderRadius: 24,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+  },
+  wrapper: {
+    alignItems: 'center',
+  },
+  skipBubble: {
     backgroundColor: Colors.surface,
     borderWidth: 0.5,
-    borderColor: Colors.primaryLight
+    borderColor: Colors.primaryLight,
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    marginBottom: 8, // separación entre la burbuja de saltar y la del contenido
+  },
+  skipBubbleText: {
+    color: Colors.textSoft,
+    fontSize: 13,
+    fontWeight: '600',
   },
   container: {
     padding: 16,
     alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 24,
+    borderWidth: 0.5,
+    borderColor: Colors.primaryLight,
+    width: 250,
   },
   text: {
     fontSize: 18,
@@ -156,6 +192,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 10,
     lineHeight: 20,
+  },
+  buttonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  skipButton: {
+    padding: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  skipButtonText: {
+    color: Colors.textSoft,
+    fontSize: 14,
+    textDecorationLine: 'underline',
   },
   button: {
     padding: 4,
