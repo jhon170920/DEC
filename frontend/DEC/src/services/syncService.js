@@ -1,6 +1,6 @@
 import api from '../api/api';
 import { getUnsyncedDetections, markAsSynced, getPathologyByName, saveRemoteDetections, getAllTreatmentLogsWithProducts,
-  saveRemoteTreatmentLog, clearAllTreatmentLogs } from './dbService';
+  saveRemoteTreatmentLog, clearAllTreatmentLogs, updateTreatmentLogRemoteId } from './dbService';
 import { Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 
@@ -228,9 +228,15 @@ export const syncLocalTreatments = async () => {
               }))
             });
           }, 2);
-          // Si el servidor devuelve el _id, actualizar localmente
-          if (response.data?.treatment?._id) {
-            // db.runSync('UPDATE treatment_logs SET _id = ? WHERE id = ?', [response.data.treatment._id, log.id]);
+
+          // ✅ Guardar el _id que devolvió el servidor para no volver a crear esta bitácora
+          // El controller responde con { treatment: newTreatment }, así que el _id va en response.data.treatment._id
+          const newRemoteId = response.data?.treatment?._id || response.data?._id;
+          if (newRemoteId) {
+            updateTreatmentLogRemoteId(log.id, newRemoteId);
+            console.log(`🔗 Bitácora local ${log.id} vinculada con _id remoto ${newRemoteId}`);
+          } else {
+            console.warn(`⚠️ El servidor no devolvió _id para la bitácora local ${log.id}, podría duplicarse en el próximo sync`);
           }
         }
         console.log(`✅ Bitácora ${log.id} sincronizada`);

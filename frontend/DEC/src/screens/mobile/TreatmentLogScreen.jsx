@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import NetInfo from '@react-native-community/netinfo';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import api from '../../api/api';
 import {
   View, Text, FlatList, TouchableOpacity, Alert, StatusBar,
@@ -9,7 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../constants/colors';
-import { getAllTreatmentLogs, deleteTreatmentLog, updateTreatmentLog } from '../../services/dbService';
+import { getAllTreatmentLogs, deleteTreatmentLog, updateTreatmentLog, deleteTreatmentLogsBatch } from '../../services/dbService';
 import ToolTipBubble from '../../components/Tour/ToolTipBubble';
 
 export default function TreatmentLogScreen() {
@@ -29,6 +30,15 @@ export default function TreatmentLogScreen() {
   const [showCancelButton, setShowCancelButton] = useState(false);
   const [pendingDeleteItem, setPendingDeleteItem] = useState(null);
   const [pendingUnlink, setPendingUnlink] = useState(null);
+
+  // --- Estados para eliminación masiva ---
+  const [bulkModalVisible, setBulkModalVisible] = useState(false);
+  const [bulkMode, setBulkMode] = useState('all'); // 'all' | 'range'
+  const [dateFrom, setDateFrom] = useState(new Date(new Date().setMonth(new Date().getMonth() - 1)));
+  const [dateTo, setDateTo] = useState(new Date());
+  const [showFromPicker, setShowFromPicker] = useState(false);
+  const [showToPicker, setShowToPicker] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const loadLogs = async () => {
     const data = await getAllTreatmentLogs();
@@ -138,6 +148,110 @@ export default function TreatmentLogScreen() {
     );
   };
 
+  // --- Lógica de eliminación masiva ---
+  const openBulkModal = () => {
+    if (logs.length === 0) {
+      showModal('Sin registros', 'No hay bitácoras para eliminar.', 'info');
+      return;
+    }
+    setBulkMode('all');
+    setBulkModalVisible(true);
+  };
+
+  const closeBulkModal = () => {
+    if (bulkDeleting) return; // evitar cerrar mientras se está eliminando
+    setBulkModalVisible(false);
+    setShowFromPicker(false);
+    setShowToPicker(false);
+  };
+
+  // Normaliza una fecha a 'YYYY-MM-DD' para comparar sin horas
+  const toDayString = (d) => {
+    const date = (d instanceof Date) ? d : new Date(d);
+    return date.toISOString().split('T')[0];
+  };
+
+  const getItemsToDelete = () => {
+    if (bulkMode === 'all') return logs;
+    const fromStr = toDayString(dateFrom);
+    const toStr = toDayString(dateTo);
+    return logs.filter(item => {
+      const itemDay = toDayString(item.created_at);
+      return itemDay >= fromStr && itemDay <= toStr;
+    });
+  };
+
+  const handleBulkDeletePress = () => {
+    const itemsToDelete = getItemsToDelete();
+
+    if (itemsToDelete.length === 0) {
+      showModal('Sin coincidencias', 'No hay bitácoras en ese rango de fechas.', 'info');
+      return;
+    }
+
+    const message = bulkMode === 'all'
+      ? `¿Eliminar TODAS las bitácoras (${itemsToDelete.length})? Esta acción no se puede deshacer.`
+      : `¿Eliminar ${itemsToDelete.length} bitácora(s) entre ${toDayString(dateFrom)} y ${toDayString(dateTo)}? Esta acción no se puede deshacer.`;
+
+    setBulkModalVisible(false);
+    showModal(
+      'Confirmar eliminación',
+      message,
+      'confirm',
+      () => executeBulkDelete(itemsToDelete),
+      'Eliminar',
+      'Cancelar',
+      true
+    );
+  };
+
+  const executeBulkDelete = async (itemsToDelete) => {
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) {
+      showModal('Sin conexión', 'Conéctate a internet para eliminar las bitácoras de forma permanente.', 'error');
+      return;
+    }
+
+    setBulkDeleting(true);
+    try {
+      // 1. Eliminar en el servidor los que tengan _id remoto
+      const remoteItems = itemsToDelete.filter(item => item._id && item._id.trim() !== '');
+      for (const item of remoteItems) {
+        try {
+          await api.delete(`treatments/${item._id}`);
+        } catch (err) {
+          console.warn(`No se pudo eliminar en servidor el tratamiento ${item._id}:`, err?.message);
+        }
+      }
+
+      // 2. Eliminar localmente todos los seleccionados
+      const localIds = itemsToDelete.map(item => item.id);
+      deleteTreatmentLogsBatch(localIds);
+
+      await loadLogs();
+      setBulkDeleting(false);
+      showModal('Éxito', `${itemsToDelete.length} bitácora(s) eliminada(s) correctamente.`, 'success');
+    } catch (error) {
+      console.error(error);
+      setBulkDeleting(false);
+      showModal('Error', 'Ocurrió un problema eliminando las bitácoras. Inténtalo de nuevo.', 'error');
+    }
+  };
+
+  const onChangeFromDate = (event, selectedDate) => {
+    setShowFromPicker(Platform.OS === 'ios');
+    if (selectedDate) setDateFrom(selectedDate);
+  };
+
+  const onChangeToDate = (event, selectedDate) => {
+    setShowToPicker(Platform.OS === 'ios');
+    if (selectedDate) setDateTo(selectedDate);
+  };
+
+  const formatDisplayDate = (d) => {
+    return d.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: '2-digit' });
+  };
+
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
@@ -205,9 +319,16 @@ export default function TreatmentLogScreen() {
           <Feather name="arrow-left" size={24} color={Colors.primary} />
         </TouchableOpacity>
         <Text style={styles.title}>Bitácora de cultivo</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('TreatmentForm')} style={styles.addBtn}>
-          <Feather name="plus" size={24} color={Colors.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {logs.length > 0 && (
+            <TouchableOpacity onPress={openBulkModal} style={styles.headerIconBtn}>
+              <Feather name="trash-2" size={22} color="#dc2626" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => navigation.navigate('TreatmentForm')} style={styles.headerIconBtn}>
+            <Feather name="plus" size={24} color={Colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
       {logs.length === 0 ? (
         <View style={styles.empty}>
@@ -233,7 +354,7 @@ export default function TreatmentLogScreen() {
         />
       )}
 
-      {/* Modal personalizado */}
+      {/* Modal personalizado (info/success/error/confirm) */}
       <Modal
         transparent
         animationType="fade"
@@ -270,6 +391,97 @@ export default function TreatmentLogScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal de eliminación masiva */}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={bulkModalVisible}
+        onRequestClose={closeBulkModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Feather name="trash-2" size={46} color="#dc2626" style={{ alignSelf: 'center', marginBottom: 10 }} />
+            <Text style={styles.modalTitle}>Eliminar bitácoras</Text>
+            <Text style={styles.modalMessage}>Elige qué seguimientos quieres eliminar.</Text>
+
+            <View style={styles.bulkModeRow}>
+              <TouchableOpacity
+                style={[styles.bulkModeBtn, bulkMode === 'all' && styles.bulkModeBtnActive]}
+                onPress={() => setBulkMode('all')}
+              >
+                <Text style={[styles.bulkModeText, bulkMode === 'all' && styles.bulkModeTextActive]}>Todas</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.bulkModeBtn, bulkMode === 'range' && styles.bulkModeBtnActive]}
+                onPress={() => setBulkMode('range')}
+              >
+                <Text style={[styles.bulkModeText, bulkMode === 'range' && styles.bulkModeTextActive]}>Por fecha</Text>
+              </TouchableOpacity>
+            </View>
+
+            {bulkMode === 'range' && (
+              <View style={styles.dateRangeContainer}>
+                <View style={styles.dateField}>
+                  <Text style={styles.dateLabel}>Desde</Text>
+                  <TouchableOpacity style={styles.dateButton} onPress={() => setShowFromPicker(true)}>
+                    <Feather name="calendar" size={16} color={Colors.primary} />
+                    <Text style={styles.dateButtonText}>{formatDisplayDate(dateFrom)}</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.dateField}>
+                  <Text style={styles.dateLabel}>Hasta</Text>
+                  <TouchableOpacity style={styles.dateButton} onPress={() => setShowToPicker(true)}>
+                    <Feather name="calendar" size={16} color={Colors.primary} />
+                    <Text style={styles.dateButtonText}>{formatDisplayDate(dateTo)}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {showFromPicker && (
+                  <DateTimePicker
+                    value={dateFrom}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                    onChange={onChangeFromDate}
+                    maximumDate={dateTo}
+                  />
+                )}
+                {showToPicker && (
+                  <DateTimePicker
+                    value={dateTo}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                    onChange={onChangeToDate}
+                    minimumDate={dateFrom}
+                    maximumDate={new Date()}
+                  />
+                )}
+              </View>
+            )}
+
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 20, width: '100%' }}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnCancel, { marginRight: 10, flex: 1 }]}
+                onPress={closeBulkModal}
+                disabled={bulkDeleting}
+              >
+                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnDanger, { flex: 1 }]}
+                onPress={handleBulkDeletePress}
+                disabled={bulkDeleting}
+              >
+                {bulkDeleting ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.modalBtnText}>Eliminar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -286,7 +498,8 @@ const styles = StyleSheet.create({
   },
   backBtn: { padding: 5 },
   title: { fontSize: 20, fontWeight: 'bold', color: Colors.text },
-  addBtn: { padding: 5 },
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
+  headerIconBtn: { padding: 5, marginLeft: 8 },
   list: { paddingHorizontal: 16, paddingBottom: 20 },
   card: {
     backgroundColor: '#fff',
@@ -392,6 +605,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     minWidth: 100,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   modalBtnPrimary: {
     backgroundColor: Colors.primary,
@@ -411,5 +625,59 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  // --- Estilos para el modal de eliminación masiva ---
+  bulkModeRow: {
+    flexDirection: 'row',
+    width: '100%',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  bulkModeBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  bulkModeBtnActive: {
+    backgroundColor: Colors.primary,
+  },
+  bulkModeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  bulkModeTextActive: {
+    color: '#fff',
+  },
+  dateRangeContainer: {
+    width: '100%',
+    marginBottom: 8,
+  },
+  dateField: {
+    marginBottom: 12,
+  },
+  dateLabel: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginBottom: 4,
+    fontWeight: '600',
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  dateButtonText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#1f2937',
+    fontWeight: '500',
   },
 });

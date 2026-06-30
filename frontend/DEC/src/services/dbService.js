@@ -329,6 +329,21 @@ export const deleteTreatmentLog = (id) => {
   db.runSync('DELETE FROM treatment_products WHERE treatment_log_id = ?', [id]);
   db.runSync('DELETE FROM treatment_logs WHERE id = ?', [id]);
 };
+export const deleteTreatmentLogsBatch = (ids) => {
+  if (!ids || ids.length === 0) return;
+  try {
+    db.withTransactionSync(() => {
+      for (const id of ids) {
+        db.runSync('DELETE FROM treatment_products WHERE treatment_log_id = ?', [id]);
+        db.runSync('DELETE FROM treatment_logs WHERE id = ?', [id]);
+      }
+    });
+    console.log(`🗑️ ${ids.length} seguimiento(s) eliminado(s) localmente`);
+  } catch (error) {
+    console.error("Error eliminando seguimientos en lote:", error);
+    throw error;
+  }
+};
 
 // --- Obtener seguimiento asociado a una detección (el más reciente) ---
 export const getTreatmentLogByDetectionId = (detectionId) => {
