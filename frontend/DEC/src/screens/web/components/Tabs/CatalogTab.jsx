@@ -217,10 +217,10 @@ const pickImage = async () => {
           <Text style={styles.title}>Catálogo Fitopatológico</Text>
           <Text style={[styles.sub, width < 480 && styles.subSmall ]}>Base de conocimientos y alertas sanitarias</Text>
         </View>
-        <TouchableOpacity style={styles.broadcastBtn} onPress={() => setModalVisible(true)}>
+        {/* <TouchableOpacity style={styles.broadcastBtn} onPress={() => setModalVisible(true)}>
           <Feather name="rss" size={18} color="#fff" />
           <Text style={styles.broadcastBtnText}>Emitir Alerta Push</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       <View style={[styles.mainLayout, width < 480 && styles.mainLayoutResponsiveSmall]}>
@@ -390,7 +390,7 @@ const pickImage = async () => {
               </View>
 
               <View style={styles.row}>
-                <View style={styles.fieldGroup}>
+                {/* <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Estado de Alerta</Text>
                   <View style={styles.switchContainer}>
                     <Text style={[styles.statusText, { color: selectedPathology.alert ? '#ef4444' : '#6b7280' }]}>
@@ -403,9 +403,9 @@ const pickImage = async () => {
                       thumbColor={selectedPathology.alert ? "#ef4444" : "#f4f3f4"}
                     />
                   </View>
-                </View>
+                </View> */}
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Incidencia en Garzón</Text>
+                  <Text style={styles.label}>Incidencias</Text>
                   <Text style={styles.incidenciaValue}>
                     {detectionsCount[selectedPathology._id] || 0} casos
                   </Text>

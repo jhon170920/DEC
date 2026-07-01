@@ -191,6 +191,15 @@ const DownloadModal = ({ visible, onClose, githubURL, playStoreURL }) => {
         <Text style={modalStyles.testerGroupBtnText}>Unirme al grupo de testers</Text>
         <Feather name="external-link" size={isMobile ? 14 : 16} color="rgba(255,255,255,0.8)" style={{ marginLeft: 'auto' }} />
       </TouchableOpacity>
+      <TouchableOpacity
+        style={modalStyles.testerGroupBtn}
+        onPress={() => Linking.openURL(playStoreURL)}
+        activeOpacity={0.85}
+      >
+        <MaterialCommunityIcons name="google-play" size={isMobile ? 18 : 20} color="#fff" />
+        <Text style={modalStyles.testerGroupBtnText}>Abrir en Google Play</Text>
+        <Feather name="external-link" size={isMobile ? 14 : 16} color="rgba(255,255,255,0.8)" style={{ marginLeft: 'auto' }} />
+      </TouchableOpacity>
 
       <Text style={modalStyles.testerNote}>
         💡 ¿Prefieres instalación inmediata? Descarga el APK gratis desde GitHub.

@@ -263,5 +263,107 @@ export const usersTabStyles = StyleSheet.create({
       fontSize: 16,
       color: '#94a3b8',
     },
+    filterSelect: {
+  padding: 10,
+  borderWidth: 1,
+  borderColor: '#d1d5db',
+  borderRadius: 8,
+  fontSize: 14,
+  backgroundColor: '#fff',
+  minWidth: '150px',
+},
+dotInactive: {
+  backgroundColor: '#9ca3af',
+},
+detailFilterContainer: {
+  marginBottom: 20,
+  padding: 16,
+  backgroundColor: '#f9fafb',
+  borderRadius: 12,
+},
+detailFilterTitle: {
+  fontSize: 16,
+  fontWeight: '700',
+  color: '#111827',
+  marginBottom: 12,
+},
+detailFilterGroup: {
+  marginBottom: 12,
+},
+detailFilterLabel: {
+  fontSize: 13,
+  fontWeight: '600',
+  color: '#374151',
+  marginBottom: 6,
+},
+detailFilterOptions: {
+  flexDirection: 'row',
+  gap: 8,
+  flexWrap: 'wrap', // para que no se desborden en móvil
+},
+detailFilterChip: {
+  paddingHorizontal: 12,
+  paddingVertical: 6,
+  borderRadius: 20,
+  backgroundColor: '#e5e7eb',
+  marginRight: 8,
+  marginBottom: 4,
+},
+detailFilterChipActive: {
+  backgroundColor: '#16a34a',
+},
+detailFilterChipText: {
+  fontSize: 13,
+  color: '#374151',
+},
+detailFilterChipTextActive: {
+  color: '#fff',
+},
+detailDateFilterRow: {
+  flexDirection: 'row',
+  gap: 16,
+  alignItems: 'flex-end',
+  flexWrap: 'wrap',
+},
+detailDateLabel: {
+  fontSize: 12,
+  color: '#6b7280',
+  marginBottom: 4,
+},
+detailDateInput: {
+  padding: 8,
+  borderWidth: 1,
+  borderColor: '#d1d5db',
+  borderRadius: 6,
+  fontSize: 14,
+  backgroundColor: '#fff',
+  width: 140,
+},
+detailRangeInput: {
+  width: '100%',
+  marginVertical: 4,
+},
+detailClearFiltersBtn: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 6,
+  marginTop: 8,
+},
+detailClearFiltersText: {
+  color: '#ef4444',
+  fontSize: 14,
+  fontWeight: '500',
+},
+detailDetectionSummary: {
+  marginTop: 12,
+  paddingTop: 12,
+  borderTopWidth: 1,
+  borderTopColor: '#e5e7eb',
+},
+detailSummaryText: {
+  fontSize: 13,
+  color: '#6b7280',
+  textAlign: 'center',
+},
   });
   

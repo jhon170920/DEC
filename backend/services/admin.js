@@ -5,6 +5,7 @@ import Notifications from "../models/Notifications.js";
 import { uploadToCloudinary } from './cloudinary.js';
 import { Resend } from "resend";
 import dotenv from "dotenv";
+import mongoose from "mongoose";
 
 dotenv.config();
 
@@ -127,12 +128,25 @@ export const editUser = async (req, res) => {
 export const deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
-        if (!id) return res.status(400).json({ message: "No hay id de usuario a eliminar" });
-        const deletedUser = await Users.findByIdAndDelete(id);
-        if (!deletedUser) return res.status(400).json({ message: "No se encontró el usuario a eliminar" });
-        res.status(200).json({ message: "Usuario eliminado exitosamente" });
+        if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "ID de usuario inválido" });
+        }
+
+        const user = await Users.findById(id);
+        if (!user) {
+            return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+
+        // Eliminar detecciones asociadas (si el campo es 'userId')
+        await Detections.deleteMany({ userId: id });
+
+        // Eliminar el usuario
+        await Users.findByIdAndDelete(id);
+
+        res.status(200).json({ message: "Usuario eliminado correctamente" });
     } catch (error) {
-        res.status(500).json({ message: "Error al eliminar este usuario", error: error.message });
+        console.error('Error en deleteUser:', error);
+        res.status(500).json({ message: "Error al eliminar usuario", error: error.message });
     }
 };
 

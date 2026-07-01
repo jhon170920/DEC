@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity,
-  TextInput, ActivityIndicator, Modal, FlatList
+  TextInput, ActivityIndicator, Modal, FlatList, ScrollView
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import api from '../../../../api/api';
-import { usersTabStyles as styles} from '../styles/usersTabStyles';
+import { usersTabStyles as styles } from '../styles/usersTabStyles';
 
 const UsersTab = () => {
   const [users, setUsers] = useState([]);
@@ -27,8 +27,7 @@ const UsersTab = () => {
     userName: '',
     messages: [],
     loading: false
-  }); // Nuevo estado para el modal de mensajes
-
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -36,7 +35,6 @@ const UsersTab = () => {
     setMessageModal({ visible: true, title, message, isError });
   };
 
-  // Obtener mensajes de un usuario
   const fetchUserMessages = async (userId, userName) => {
     setMessagesModal({
       visible: true,
@@ -58,7 +56,6 @@ const UsersTab = () => {
     }
   };
 
-  // Eliminar un mensaje
   const deleteUserMessage = async (messageId) => {
     try {
       await api.delete(`messages/${messageId}`);
@@ -145,13 +142,22 @@ const UsersTab = () => {
   };
 
   const handleDelete = async (user) => {
+    if (!user || !user._id) {
+      showMessage('Error', 'No se pudo obtener el ID del usuario', true);
+      closeModal();
+      return;
+    }
+
     try {
       await api.delete(`admin/delete-user/${user._id}`);
       setUsers(prev => prev.filter(u => u._id !== user._id));
       closeModal();
       showMessage('Éxito', `Usuario ${user.name} eliminado`);
     } catch (err) {
-      showMessage('Error', err?.response?.data?.message || 'Error al eliminar', true);
+      console.error('Error al eliminar:', err);
+      const errorMsg = err?.response?.data?.message || err?.message || 'Error al eliminar';
+      showMessage('Error', errorMsg, true);
+      closeModal();
     }
   };
 
@@ -263,7 +269,6 @@ const UsersTab = () => {
         </View>
       </Modal>
 
-      {/* Modal de mensajes de usuario */}
       <Modal visible={messagesModal.visible} animationType="slide" onRequestClose={() => setMessagesModal(prev => ({ ...prev, visible: false }))}>
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
@@ -414,7 +419,7 @@ const UsersTab = () => {
   );
 };
 
-// ===================== UserRow modificado =====================
+// ===================== UserRow =====================
 const UserRow = ({ user, isLast, onViewDetail, onDelete, onToggleBan, onChangeRole, onSendEmail, onViewMessages }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const isBanned = user.active === false;
@@ -451,7 +456,6 @@ const UserRow = ({ user, isLast, onViewDetail, onDelete, onToggleBan, onChangeRo
           <TouchableOpacity style={styles.iconBtn} onPress={onSendEmail}>
             <Feather name="mail" size={15} color="#3b82f6" />
           </TouchableOpacity>
-          {/* Botón para ver mensajes del usuario */}
           <TouchableOpacity style={styles.iconBtn} onPress={onViewMessages}>
             <Feather name="message-circle" size={15} color="#3b82f6" />
           </TouchableOpacity>
@@ -496,55 +500,7 @@ const UserRow = ({ user, isLast, onViewDetail, onDelete, onToggleBan, onChangeRo
   );
 };
 
-// ===================== UserDetailView =====================
-const UserDetailView = ({ user, onBack, showMessage }) => {
-  const [detections, setDetections] = useState([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    const fetchDetections = async () => {
-      try {
-        const res = await api.get('admin/get-detections');
-        const userDetections = res.data.detections.filter(d => d.userId === user._id || d.userId?._id === user._id);
-        setDetections(userDetections);
-      } catch (err) { setDetections([]); } finally { setLoading(false); }
-    };
-    fetchDetections();
-  }, [user._id]);
-  return (
-    <View style={styles.container}>
-      <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-        <Feather name="arrow-left" size={20} color="#16a34a" />
-        <Text style={styles.backText}>Volver</Text>
-      </TouchableOpacity>
-      <View style={styles.detailHeaderCard}>
-        <View style={styles.detailAvatar}>
-          <Text style={styles.detailAvatarText}>{user.name?.charAt(0).toUpperCase()}</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.detailTitle}>{user.name}</Text>
-          <Text style={styles.detailEmail}>{user.email}</Text>
-          <Text style={styles.detailRole}>Rol: {user.role || 'user'}</Text>
-        </View>
-      </View>
-      <View style={styles.tableCard}>
-        <View style={styles.tableHeader}>
-          <Text style={[styles.hText, { flex: 2 }]}>FECHA</Text>
-          <Text style={[styles.hText, { flex: 1 }]}>AFECCIÓN</Text>
-          <Text style={[styles.hText, { flex: 1, textAlign: 'right' }]}>CONFIANZA</Text>
-        </View>
-        {loading ? <ActivityIndicator /> : detections.length === 0 ? <Text style={styles.emptyText}>Sin detecciones</Text> : detections.map(d => (
-          <View key={d._id} style={styles.row}>
-            <Text style={{ flex: 2 }}>{new Date(d.createdAt).toLocaleDateString()}</Text>
-            <Text style={{ flex: 1 }}>{d.pathologyId?.name || '—'}</Text>
-            <Text style={{ flex: 1, textAlign: 'right' }}>{Math.round((d.confidence || 0) * 100)}%</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-};
-
-// ===================== ConfirmModal =====================
+// ===================== ConfirmModal (CORREGIDO) =====================
 const ConfirmModal = ({ modal, onClose, onConfirmDelete, onConfirmBan }) => {
   if (!modal.visible || !modal.user) return null;
   const isDelete = modal.type === 'delete';
@@ -557,14 +513,256 @@ const ConfirmModal = ({ modal, onClose, onConfirmDelete, onConfirmBan }) => {
           <Text style={styles.modalTitle}>{isDelete ? 'Eliminar usuario' : (isBanned ? 'Habilitar' : 'Inhabilitar')}</Text>
           <Text style={styles.modalBody}>{isDelete ? `¿Eliminar a ${modal.user.name}?` : (isBanned ? `Habilitar a ${modal.user.name}` : `Inhabilitar a ${modal.user.name}`)}</Text>
           <View style={styles.modalActions}>
-            <TouchableOpacity onPress={onClose} style={styles.cancelBtn}><Text style={styles.cancelText}>Cancelar</Text></TouchableOpacity>
-            <TouchableOpacity onPress={isDelete ? onConfirmDelete : onConfirmBan} style={[styles.confirmBtn, isDelete ? styles.confirmBtnRed : styles.confirmBtnOrange]}>
-              <Text style={styles.confirmText}>{isDelete ? 'Eliminar' : (isBanned ? 'Habilitar' : 'Inhabilitar')}</Text>
+            <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
+              <Text style={styles.cancelText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                if (isDelete) {
+                  onConfirmDelete(modal.user);
+                } else {
+                  onConfirmBan(modal.user);
+                }
+              }}
+              style={[styles.confirmBtn, isDelete ? styles.confirmBtnRed : styles.confirmBtnOrange]}
+            >
+              <Text style={styles.confirmText}>
+                {isDelete ? 'Eliminar' : (isBanned ? 'Habilitar' : 'Inhabilitar')}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
     </Modal>
+  );
+};
+
+// ===================== UserDetailView (CON FILTROS) =====================
+const UserDetailView = ({ user, onBack, showMessage }) => {
+  const [detections, setDetections] = useState([]);
+  const [filteredDetections, setFilteredDetections] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Estados para los filtros
+  const [pathologyFilter, setPathologyFilter] = useState('all');
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [confidenceRange, setConfidenceRange] = useState({ min: 0, max: 100 });
+  const [pathologies, setPathologies] = useState([]);
+
+  // Cargar detecciones y lista de patologías
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [detectionsRes, pathologiesRes] = await Promise.all([
+          api.get('admin/get-detections'),
+          api.get('admin/get-pathologies')
+        ]);
+
+        const allDetections = detectionsRes.data.detections || [];
+        const userDetections = allDetections.filter(
+          d => d.userId === user._id || d.userId?._id === user._id
+        );
+        setDetections(userDetections);
+        setFilteredDetections(userDetections);
+
+        const pathList = pathologiesRes.data.pathologies || [];
+        setPathologies(pathList);
+      } catch (err) {
+        console.error('Error cargando datos:', err);
+        showMessage('Error', 'No se pudieron cargar las detecciones', true);
+        setDetections([]);
+        setFilteredDetections([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [user._id]);
+
+  // Aplicar filtros cuando cambien los criterios
+  useEffect(() => {
+    let filtered = [...detections];
+
+    // Filtro por patología
+    if (pathologyFilter !== 'all') {
+      filtered = filtered.filter(d => d.pathologyId?._id === pathologyFilter);
+    }
+
+    // Filtro por fecha
+    if (dateRange.start) {
+      const start = new Date(dateRange.start);
+      start.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(d => new Date(d.createdAt) >= start);
+    }
+    if (dateRange.end) {
+      const end = new Date(dateRange.end);
+      end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(d => new Date(d.createdAt) <= end);
+    }
+
+    // Filtro por confianza (0-100)
+    const minConf = confidenceRange.min / 100;
+    const maxConf = confidenceRange.max / 100;
+    filtered = filtered.filter(d => {
+      const conf = d.confidence || 0;
+      return conf >= minConf && conf <= maxConf;
+    });
+
+    setFilteredDetections(filtered);
+  }, [detections, pathologyFilter, dateRange, confidenceRange]);
+
+  // Obtener nombre de patología por ID
+  const getPathologyName = (id) => {
+    const found = pathologies.find(p => p._id === id);
+    return found ? found.name : '—';
+  };
+
+  return (
+    <ScrollView style={styles.container}>
+      {/* Botón volver */}
+      <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+        <Feather name="arrow-left" size={20} color="#16a34a" />
+        <Text style={styles.backText}>Volver</Text>
+      </TouchableOpacity>
+
+      {/* Cabecera del usuario */}
+      <View style={styles.detailHeaderCard}>
+        <View style={styles.detailAvatar}>
+          <Text style={styles.detailAvatarText}>{user.name?.charAt(0).toUpperCase()}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.detailTitle}>{user.name}</Text>
+          <Text style={styles.detailEmail}>{user.email}</Text>
+          <Text style={styles.detailRole}>Rol: {user.role || 'user'}</Text>
+        </View>
+      </View>
+
+      <View style={styles.detailFilterContainer}>
+  <Text style={styles.detailFilterTitle}>Filtros de detecciones</Text>
+
+  {/* Filtro por patología */}
+  <View style={styles.detailFilterGroup}>
+    <Text style={styles.detailFilterLabel}>Afección:</Text>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.detailFilterOptions}>
+      <TouchableOpacity
+        style={[styles.detailFilterChip, pathologyFilter === 'all' && styles.detailFilterChipActive]}
+        onPress={() => setPathologyFilter('all')}
+      >
+        <Text style={[styles.detailFilterChipText, pathologyFilter === 'all' && styles.detailFilterChipTextActive]}>Todas</Text>
+      </TouchableOpacity>
+      {pathologies.map(p => (
+        <TouchableOpacity
+          key={p._id}
+          style={[styles.detailFilterChip, pathologyFilter === p._id && styles.detailFilterChipActive]}
+          onPress={() => setPathologyFilter(p._id)}
+        >
+          <Text style={[styles.detailFilterChipText, pathologyFilter === p._id && styles.detailFilterChipTextActive]}>{p.name}</Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  </View>
+
+  {/* Filtro por fecha */}
+  <View style={styles.detailFilterGroup}>
+    <Text style={styles.detailFilterLabel}>Fecha:</Text>
+    <View style={styles.detailDateFilterRow}>
+      <View>
+        <Text style={styles.detailDateLabel}>Desde</Text>
+        <input
+          type="date"
+          value={dateRange.start}
+          onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+          style={styles.detailDateInput}
+        />
+      </View>
+      <View>
+        <Text style={styles.detailDateLabel}>Hasta</Text>
+        <input
+          type="date"
+          value={dateRange.end}
+          onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+          style={styles.detailDateInput}
+        />
+      </View>
+    </View>
+  </View>
+
+  {/* Filtro por confianza */}
+  <View style={styles.detailFilterGroup}>
+    <Text style={styles.detailFilterLabel}>Confianza mínima: {confidenceRange.min}%</Text>
+    <input
+      type="range"
+      min="0"
+      max="100"
+      value={confidenceRange.min}
+      onChange={(e) => setConfidenceRange(prev => ({ ...prev, min: parseInt(e.target.value) }))}
+      style={styles.detailRangeInput}
+    />
+    <Text style={styles.detailFilterLabel}>Confianza máxima: {confidenceRange.max}%</Text>
+    <input
+      type="range"
+      min="0"
+      max="100"
+      value={confidenceRange.max}
+      onChange={(e) => setConfidenceRange(prev => ({ ...prev, max: parseInt(e.target.value) }))}
+      style={styles.detailRangeInput}
+    />
+  </View>
+
+  {/* Limpiar filtros */}
+  <TouchableOpacity
+    style={styles.detailClearFiltersBtn}
+    onPress={() => {
+      setPathologyFilter('all');
+      setDateRange({ start: '', end: '' });
+      setConfidenceRange({ min: 0, max: 100 });
+    }}
+  >
+    <Feather name="x-circle" size={16} color="#ef4444" />
+    <Text style={styles.detailClearFiltersText}>Limpiar filtros</Text>
+  </TouchableOpacity>
+</View>
+
+{/* Resumen de detecciones (también usa el nuevo prefijo) */}
+{!loading && detections.length > 0 && (
+  <View style={styles.detailDetectionSummary}>
+    <Text style={styles.detailSummaryText}>
+      Mostrando {filteredDetections.length} de {detections.length} detecciones
+    </Text>
+  </View>
+)}
+
+      {/* Tabla de detecciones */}
+      <View style={styles.tableCard}>
+        <View style={styles.tableHeader}>
+          <Text style={[styles.hText, { flex: 2 }]}>FECHA</Text>
+          <Text style={[styles.hText, { flex: 2 }]}>AFECCIÓN</Text>
+          <Text style={[styles.hText, { flex: 1, textAlign: 'right' }]}>CONFIANZA</Text>
+        </View>
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#16a34a" style={{ marginVertical: 20 }} />
+        ) : filteredDetections.length === 0 ? (
+          <Text style={styles.emptyText}>Sin detecciones que coincidan con los filtros</Text>
+        ) : (
+          filteredDetections.map(d => (
+            <View key={d._id} style={styles.row}>
+              <Text style={{ flex: 2 }}>{new Date(d.createdAt).toLocaleDateString()}</Text>
+              <Text style={{ flex: 2 }}>{d.pathologyId?.name || '—'}</Text>
+              <Text style={{ flex: 1, textAlign: 'right' }}>{Math.round((d.confidence || 0) * 100)}%</Text>
+            </View>
+          ))
+        )}
+
+        {!loading && detections.length > 0 && (
+          <View style={styles.detectionSummary}>
+            <Text style={styles.summaryText}>
+              Mostrando {filteredDetections.length} de {detections.length} detecciones
+            </Text>
+          </View>
+        )}
+      </View>
+    </ScrollView>
   );
 };
 

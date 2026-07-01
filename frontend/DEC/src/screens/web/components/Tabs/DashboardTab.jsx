@@ -1,19 +1,29 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, ActivityIndicator,
-  Dimensions, Platform, TouchableOpacity, Alert
+  Dimensions, Platform, TouchableOpacity, Alert, Modal, FlatList
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import api from '../../../../api/api';
-import html2canvas from 'html2canvas';
 import { dashboardTabStyles as styles } from '../styles/dashbordTabStyles';
 
 const { width } = Dimensions.get('window');
 
 const DashboardTab = () => {
+  // Estados para los inputs (valores temporales)
+  const [tempStartDate, setTempStartDate] = useState('');
+  const [tempEndDate, setTempEndDate] = useState('');
+
+  // Estados para los filtros realmente aplicados
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+
+  // Estados para el filtro de patología
+  const [pathologiesList, setPathologiesList] = useState([]);
+  const [selectedPathologyId, setSelectedPathologyId] = useState(null); // null = todas
+  const [modalVisible, setModalVisible] = useState(false);
+
   const [loading, setLoading] = useState(true);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
   const [kpis, setKpis] = useState({
     totalUsers: 0,
     totalDetections: 0,
@@ -30,14 +40,20 @@ const DashboardTab = () => {
   const [topPathologies, setTopPathologies] = useState([]);
   const [recentDetections, setRecentDetections] = useState([]);
 
-  // Calcular fechas por defecto (últimos 30 días)
+  // Obtener lista de patologías al montar
   useEffect(() => {
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
-    setEndDate(now.toISOString().slice(0, 10));
-    setStartDate(thirtyDaysAgo.toISOString().slice(0, 10));
+    const fetchPathologies = async () => {
+      try {
+        const res = await api.get('admin/get-pathologies');
+        setPathologiesList(res.data.pathologies || []);
+      } catch (error) {
+        console.error('Error cargando patologías:', error);
+      }
+    };
+    fetchPathologies();
   }, []);
 
+  // Función que obtiene los datos usando los filtros aplicados y la patología seleccionada
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
@@ -48,32 +64,52 @@ const DashboardTab = () => {
       ]);
 
       const users = usersRes.data.users || [];
-      const detections = detectionsRes.data.detections || [];
+      let detections = detectionsRes.data.detections || [];
       const pathologies = pathologiesRes.data.pathologies || [];
 
-      // Filtrar por fechas
+      // --- FILTRO POR PATOLOGÍA ---
+      if (selectedPathologyId) {
+        detections = detections.filter(d => d.pathologyId?._id === selectedPathologyId);
+      }
+
+      // --- FILTRO POR FECHAS ---
       let filteredDetections = [...detections];
-      if (startDate) {
-        const start = new Date(startDate);
+      if (filterStartDate) {
+        const start = new Date(filterStartDate);
         start.setHours(0, 0, 0, 0);
         filteredDetections = filteredDetections.filter(d => new Date(d.createdAt) >= start);
       }
-      if (endDate) {
-        const end = new Date(endDate);
+      if (filterEndDate) {
+        const end = new Date(filterEndDate);
         end.setHours(23, 59, 59, 999);
         filteredDetections = filteredDetections.filter(d => new Date(d.createdAt) <= end);
       }
 
-      // Calcular período anterior (misma duración)
-      const startPrev = new Date(startDate);
-      const endPrev = new Date(endDate);
-      const duration = endPrev - startPrev;
-      startPrev.setTime(startPrev.getTime() - duration);
-      endPrev.setTime(endPrev.getTime() - duration);
-      const previousDetections = detections.filter(d => {
-        const date = new Date(d.createdAt);
-        return date >= startPrev && date <= endPrev;
-      }).length;
+      // Calcular período anterior solo si hay fechas aplicadas
+      let previousDetections = 0;
+      let usersTrend = 0;
+      let detectionsTrend = 0;
+      if (filterStartDate && filterEndDate) {
+        const startPrev = new Date(filterStartDate);
+        const endPrev = new Date(filterEndDate);
+        const duration = endPrev - startPrev;
+        startPrev.setTime(startPrev.getTime() - duration);
+        endPrev.setTime(endPrev.getTime() - duration);
+        // Filtramos también por patología en el período anterior
+        let prevDetections = detections.filter(d => {
+          const date = new Date(d.createdAt);
+          return date >= startPrev && date <= endPrev;
+        });
+        if (selectedPathologyId) {
+          prevDetections = prevDetections.filter(d => d.pathologyId?._id === selectedPathologyId);
+        }
+        previousDetections = prevDetections.length;
+
+        // Tendencias (simuladas para usuarios)
+        const previousUsers = Math.max(0, users.length - 5);
+        usersTrend = previousUsers > 0 ? ((users.length - previousUsers) / previousUsers * 100).toFixed(1) : 0;
+        detectionsTrend = previousDetections > 0 ? ((filteredDetections.length - previousDetections) / previousDetections * 100).toFixed(1) : 0;
+      }
 
       // KPIs
       const totalUsers = users.length;
@@ -83,14 +119,18 @@ const DashboardTab = () => {
         ? (filteredDetections.reduce((sum, d) => sum + (d.confidence || 0), 0) / filteredDetections.length * 100).toFixed(1)
         : 0;
 
-      // Calcular tendencias
-      const previousUsers = Math.max(0, totalUsers - 5); // simulado, idealmente de BD histórica
-      const usersTrend = previousUsers > 0 ? ((totalUsers - previousUsers) / previousUsers * 100).toFixed(1) : 0;
-      const detectionsTrend = previousDetections > 0 ? ((totalDetections - previousDetections) / previousDetections * 100).toFixed(1) : 0;
+      setKpis({
+        totalUsers,
+        totalDetections,
+        totalPathologies,
+        avgConfidence,
+        previousUsers: 0,
+        previousDetections,
+        usersTrend,
+        detectionsTrend
+      });
 
-      setKpis({ totalUsers, totalDetections, totalPathologies, avgConfidence, previousUsers, previousDetections, usersTrend, detectionsTrend });
-
-      // Datos para gráfico de torta
+      // Datos para gráfico de torta (solo sobre las detecciones filtradas)
       const pathologyCounts = {};
       filteredDetections.forEach(d => {
         const name = d.pathologyId?.name || 'Desconocida';
@@ -104,11 +144,11 @@ const DashboardTab = () => {
       }));
       setPieData(pieChartData);
 
-      // Top 5 patologías
+      // Top 5
       const top5 = [...pieChartData].sort((a, b) => b.value - a.value).slice(0, 5);
       setTopPathologies(top5);
 
-      // Datos para gráfico de barras (últimos 6 meses)
+      // Barras mensuales (últimos 6 meses)
       const now = new Date();
       const last6Months = [];
       for (let i = 5; i >= 0; i--) {
@@ -155,167 +195,39 @@ const DashboardTab = () => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [filterStartDate, filterEndDate, selectedPathologyId]);
 
+  // Carga inicial y cuando cambian los filtros aplicados o la patología
   useEffect(() => {
-    if (startDate && endDate) fetchDashboardData();
-  }, [fetchDashboardData, startDate, endDate]);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
-  // Exportar a PDF
-  const exportToPDF = async () => {
-  if (Platform.OS !== 'web') {
-    Alert.alert('Solo disponible en versión web');
-    return;
-  }
+  // Aplicar filtros de fecha
+  const applyFilters = () => {
+    setFilterStartDate(tempStartDate);
+    setFilterEndDate(tempEndDate);
+  };
 
-  try {
-    // Mostrar indicador de carga
-    Alert.alert('Generando PDF', 'Por favor espera...');
-    
-    // Clonar el contenido del dashboard para no afectar la vista
-    const originalContent = document.getElementById('dashboard-content');
-    if (!originalContent) throw new Error('No se encontró el contenido');
+  // Limpiar filtros de fecha
+  const clearFilters = () => {
+    setTempStartDate('');
+    setTempEndDate('');
+    setFilterStartDate('');
+    setFilterEndDate('');
+  };
 
-    // Crear un contenedor temporal para el PDF
-    const pdfContainer = document.createElement('div');
-    pdfContainer.style.position = 'absolute';
-    pdfContainer.style.top = '-9999px';
-    pdfContainer.style.left = '-9999px';
-    pdfContainer.style.width = '800px';
-    pdfContainer.style.backgroundColor = '#ffffff';
-    pdfContainer.style.padding = '20px';
-    pdfContainer.style.fontFamily = 'sans-serif';
-    document.body.appendChild(pdfContainer);
+  // Seleccionar patología desde el modal
+  const selectPathology = (id) => {
+    setSelectedPathologyId(id);
+    setModalVisible(false);
+  };
 
-    // Clonar el contenido
-    const clone = originalContent.cloneNode(true);
-    pdfContainer.appendChild(clone);
-
-    // Ajustar estilos para el PDF
-    const style = document.createElement('style');
-    style.textContent = `
-      * { box-sizing: border-box; }
-      .kpi-row, .charts-row, .full-width-card, .two-columns {
-        margin-bottom: 20px;
-      }
-      .kpi-card {
-        background: #f9fafb;
-        border-radius: 12px;
-        padding: 15px;
-        text-align: center;
-        border: 1px solid #e5e7eb;
-      }
-      .distribution-bar {
-        margin-bottom: 12px;
-      }
-      .distribution-bar-bg {
-        background: #e5e7eb;
-        height: 8px;
-        border-radius: 4px;
-      }
-      .weekly-bar {
-        display: inline-block;
-        width: 40px;
-        text-align: center;
-        margin: 0 5px;
-      }
-      .top-item, .recent-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 8px 0;
-        border-bottom: 1px solid #f0f0f0;
-      }
-      .header-pdf {
-        text-align: center;
-        margin-bottom: 30px;
-        border-bottom: 2px solid #16a34a;
-        padding-bottom: 10px;
-      }
-      .footer-pdf {
-        text-align: center;
-        font-size: 10px;
-        color: #9ca3af;
-        margin-top: 30px;
-        border-top: 1px solid #e5e7eb;
-        padding-top: 10px;
-      }
-        .kpi-row { display: flex; justify-content: space-between; gap: 10px; }
-  .kpi-card { flex: 1; }
-  .charts-row { display: flex; gap: 20px; }
-  .chart-card { flex: 1; }
-  .two-columns { display: flex; gap: 20px; }
-  .weekly-container { display: flex; justify-content: space-around; align-items: flex-end; height: 150px; }
-  .weekly-bar { display: flex; flex-direction: column; align-items: center; }
-  .weekly-bar-bg { width: 30px; height: 100px; background: #e5e7eb; border-radius: 4px; overflow: hidden; display: flex; flex-direction: column-reverse; }
-  .weekly-bar-fill { background: #16a34a; width: 100%; }
-    `;
-    pdfContainer.appendChild(style);
-
-    // Agregar portada
-    const cover = document.createElement('div');
-    cover.innerHTML = `
-      <div class="header-pdf">
-        <h1 style="color: #16a34a;">DEC - Panel de Control</h1>
-        <h2>Reporte de Gestión</h2>
-        <p>Rango de fechas: ${startDate || 'Todo'} - ${endDate || 'Todo'}</p>
-        <p>Generado: ${new Date().toLocaleString()}</p>
-      </div>
-    `;
-    pdfContainer.insertBefore(cover, pdfContainer.firstChild);
-
-    // Agregar pie de página después del contenido
-    const footer = document.createElement('div');
-    footer.className = 'footer-pdf';
-    footer.innerHTML = `<p>DEC - Sistema de Monitoreo de Cultivos | Página </p>`;
-    pdfContainer.appendChild(footer);
-
-    // Usar html2canvas para capturar todo el contenedor
-    const canvas = await html2canvas(pdfContainer, {
-      scale: 2,
-      backgroundColor: '#ffffff',
-      logging: false,
-      windowWidth: pdfContainer.scrollWidth,
-      windowHeight: pdfContainer.scrollHeight
-    });
-
-    // Crear PDF
-    const imgData = canvas.toDataURL('image/png');
-    const { jsPDF } = await import('jspdf');
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    let heightLeft = pdfHeight;
-    let position = 0;
-
-    // Añadir primera página
-    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-    heightLeft -= pdf.internal.pageSize.getHeight();
-
-    // Añadir páginas adicionales si es necesario
-    while (heightLeft > 0) {
-      position = heightLeft - pdfHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pdf.internal.pageSize.getHeight();
-    }
-
-    // Guardar PDF
-    pdf.save(`dashboard_DEC_${new Date().toISOString().slice(0, 10)}.pdf`);
-
-    // Limpiar
-    document.body.removeChild(pdfContainer);
-    Alert.alert('Éxito', 'PDF generado correctamente');
-  } catch (error) {
-    console.error('Error generando PDF:', error);
-    Alert.alert('Error', 'No se pudo generar el PDF');
-  }
-};
+  // Obtener nombre de la patología seleccionada para mostrar en la tarjeta
+  const getSelectedPathologyName = () => {
+    if (!selectedPathologyId) return 'Todas';
+    const found = pathologiesList.find(p => p._id === selectedPathologyId);
+    return found ? found.name : 'Todas';
+  };
 
   if (loading) {
     return (
@@ -328,35 +240,64 @@ const DashboardTab = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} id="dashboard-content">
-      {/* Filtros y exportación */}
+      {/* Barra de filtros */}
       <View style={[styles.filterBar, width < 480 && styles.filterBarResponsiveSmall]}>
-        <View style={[styles.dateFilterRow, width <480 && styles.dateFilterRowResposiveSmall]}>
+        <View style={[styles.dateFilterRow, width < 480 && styles.dateFilterRowResposiveSmall]}>
           <div>
             <Text style={styles.filterLabel}>Fecha inicio</Text>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="date-input" style={styles.dateInput} />
+            <input
+              type="date"
+              value={tempStartDate}
+              onChange={(e) => setTempStartDate(e.target.value)}
+              className="date-input"
+              style={styles.dateInput}
+            />
           </div>
           <div>
             <Text style={styles.filterLabel}>Fecha fin</Text>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="date-input" style={styles.dateInput} />
+            <input
+              type="date"
+              value={tempEndDate}
+              onChange={(e) => setTempEndDate(e.target.value)}
+              className="date-input"
+              style={styles.dateInput}
+            />
           </div>
         </View>
-        <TouchableOpacity style={[styles.exportBtn, width < 480 && styles.exportBtnResponsiveSmall]} onPress={exportToPDF}>
-          <Feather name="file-text" size={16} color="#fff" />
-          <Text style={styles.exportBtnText}>Exportar PDF</Text>
-        </TouchableOpacity>
+
+        {/* Botones Aplicar y Limpiar (sin Exportar PDF) */}
+        <View style={[styles.filterActions, width < 480 && styles.filterActionsResponsiveSmall]}>
+          <TouchableOpacity style={[styles.exportBtn, { backgroundColor: '#16a34a' }]} onPress={applyFilters}>
+            <Feather name="check" size={16} color="#fff" />
+            <Text style={styles.exportBtnText}>Aplicar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.exportBtn, { backgroundColor: '#6b7280' }]} onPress={clearFilters}>
+            <Feather name="x" size={16} color="#fff" />
+            <Text style={styles.exportBtnText}>Limpiar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* KPIs */}
+      {/* KPIs - La tarjeta de Patologías es clickeable */}
       <View style={styles.kpiRow}>
         <KpiCard title="Usuarios" value={kpis.totalUsers} trend={kpis.usersTrend} icon="users" color="#3b82f6" />
         <KpiCard title="Detecciones" value={kpis.totalDetections} trend={kpis.detectionsTrend} icon="camera" color="#16a34a" />
-        <KpiCard title="Patologías" value={kpis.totalPathologies} icon="book" color="#f59e0b" />
+        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.kpiCard}>
+          <View style={[styles.kpiIcon, { backgroundColor: '#f59e0b15' }]}>
+            <Feather name="book" size={24} color="#f59e0b" />
+          </View>
+          <Text style={styles.kpiValue}>{kpis.totalPathologies}</Text>
+          <Text style={styles.kpiTitle}>Patologías</Text>
+          <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
+            Filtro: {getSelectedPathologyName()}
+          </Text>
+          <Feather name="chevron-down" size={16} color="#9ca3af" style={{ marginTop: 4 }} />
+        </TouchableOpacity>
         <KpiCard title="Confianza Prom." value={`${kpis.avgConfidence}%`} icon="trending-up" color="#8b5cf6" />
       </View>
 
       {/* Gráficos */}
-      <View style={[styles.chartsRow, width < 480 && styles.chartRowResponsiveSmall ]}>
-        {/* Distribución */}
+      <View style={[styles.chartsRow, width < 480 && styles.chartRowResponsiveSmall]}>
         <View style={[styles.chartCard, width < 480 && styles.chartCardResponsiveSmall]}>
           <Text style={styles.chartTitle}>Distribución por Afección</Text>
           {pieData.length > 0 ? (
@@ -374,7 +315,6 @@ const DashboardTab = () => {
           ) : <Text style={styles.noData}>Sin datos</Text>}
         </View>
 
-        {/* Evolución mensual */}
         <View style={styles.chartCard}>
           <Text style={styles.chartTitle}>Evolución Mensual</Text>
           {barData.length > 0 ? (
@@ -414,7 +354,7 @@ const DashboardTab = () => {
         ) : <Text style={styles.noData}>Sin datos</Text>}
       </View>
 
-      {/* Top patologías y últimas detecciones */}
+      {/* Top y recientes */}
       <View style={styles.twoColumns}>
         <View style={[styles.fullWidthCard, width < 480 && styles.fullWidthCardResponsiveSmall]}>
           <Text style={styles.chartTitle}>Top 5 Patologías</Text>
@@ -442,11 +382,55 @@ const DashboardTab = () => {
           ) : <Text style={styles.noData}>Sin detecciones</Text>}
         </View>
       </View>
+
+      {/* Modal de selección de patología */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Seleccionar Patología</Text>
+            <FlatList
+              data={[{ _id: null, name: 'Todas' }, ...pathologiesList]}
+              keyExtractor={(item) => item._id || 'all'}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.pathologyItem,
+                    selectedPathologyId === item._id && styles.pathologyItemSelected
+                  ]}
+                  onPress={() => selectPathology(item._id)}
+                >
+                  <Text style={[
+                    styles.pathologyItemText,
+                    selectedPathologyId === item._id && { color: '#16a34a', fontWeight: '700' }
+                  ]}>
+                    {item.name}
+                  </Text>
+                  {selectedPathologyId === item._id && (
+                    <Feather name="check" size={20} color="#16a34a" />
+                  )}
+                </TouchableOpacity>
+              )}
+              style={{ width: '100%' }}
+            />
+            <TouchableOpacity
+              style={styles.closeModalBtn}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.closeModalBtnText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
 
-// Componente KPI con tendencia
+// Componente KPI con soporte para trend opcional
 const KpiCard = ({ title, value, trend, icon, color }) => (
   <View style={styles.kpiCard}>
     <View style={[styles.kpiIcon, { backgroundColor: color + '15' }]}>
@@ -454,7 +438,7 @@ const KpiCard = ({ title, value, trend, icon, color }) => (
     </View>
     <Text style={styles.kpiValue}>{value}</Text>
     <Text style={styles.kpiTitle}>{title}</Text>
-    {trend !== undefined && (
+    {trend !== undefined && trend !== null && (
       <View style={[styles.trendBadge, { backgroundColor: trend >= 0 ? '#dcfce7' : '#fee2e2' }]}>
         <Feather name={trend >= 0 ? 'trending-up' : 'trending-down'} size={12} color={trend >= 0 ? '#16a34a' : '#ef4444'} />
         <Text style={[styles.trendText, { color: trend >= 0 ? '#16a34a' : '#ef4444' }]}>
