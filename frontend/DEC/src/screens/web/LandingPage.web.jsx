@@ -82,10 +82,17 @@ const AnimatedGradientBackground = () => {
 // ─────────────────────────────────────────────
 // MODAL DE DESCARGA CON QR
 // ─────────────────────────────────────────────
+
+// 🔗 URL del grupo de testers en Google Groups — cambia esto por el enlace real
+const TESTER_GROUP_URL = 'https://groups.google.com/g/tester-app-dec';
+
 const DownloadModal = ({ visible, onClose, githubURL, playStoreURL }) => {
   const slideAnim = useRef(new Animated.Value(0)).current;
   const { width: screenWidth } = useWindowDimensions();
-  
+
+  // ✅ Estado para alternar entre la vista principal y la vista de acceso anticipado
+  const [showTesterInfo, setShowTesterInfo] = useState(false);
+
   const isMobile = screenWidth < 640;
   const isTablet = screenWidth >= 640 && screenWidth < 1024;
   const modalStyles = downloadModalStyles({ width: screenWidth, isMobile, isTablet });
@@ -104,6 +111,8 @@ const DownloadModal = ({ visible, onClose, githubURL, playStoreURL }) => {
         duration: 300,
         useNativeDriver: Platform.OS !== 'web',
       }).start();
+      // Resetear la vista al cerrar para que la próxima apertura empiece desde el inicio
+      setTimeout(() => setShowTesterInfo(false), 350);
     }
   }, [visible]);
 
@@ -119,154 +128,211 @@ const DownloadModal = ({ visible, onClose, githubURL, playStoreURL }) => {
 
   const qrSize = isMobile ? 120 : isTablet ? 140 : 160;
 
+  // ─────────────────────────────────────────────
+  // VISTA: ACCESO ANTICIPADO (Play Store)
+  // ─────────────────────────────────────────────
+  const TesterInfoView = () => (
+    <>
+      {/* Botón volver */}
+      <TouchableOpacity
+        style={modalStyles.backButton}
+        onPress={() => setShowTesterInfo(false)}
+        activeOpacity={0.7}
+      >
+        <Feather name="arrow-left" size={isMobile ? 16 : 18} color={C.text} />
+        <Text style={modalStyles.backButtonText}>Volver</Text>
+      </TouchableOpacity>
+
+      {/* Badge de acceso anticipado */}
+      <View style={modalStyles.earlyAccessBadge}>
+        <MaterialCommunityIcons name="google-play" size={14} color="#34a853" />
+        <Text style={modalStyles.earlyAccessBadgeText}>Google Play · Acceso Anticipado</Text>
+      </View>
+
+      <Text style={modalStyles.title}>App en pruebas 🧪</Text>
+      <Text style={modalStyles.testerSubtitle}>
+        DEC está actualmente en{' '}
+        <Text style={{ fontWeight: '700', color: C.primary }}>acceso anticipado</Text>{' '}
+        en Google Play. Solo los testers registrados pueden instalarla desde la tienda.
+      </Text>
+
+      {/* Separador */}
+      <View style={modalStyles.testerDivider} />
+
+      <Text style={modalStyles.testerStepTitle}>¿Cómo convertirme en tester?</Text>
+
+      {/* Paso 1 */}
+      <View style={modalStyles.testerStep}>
+        <View style={[modalStyles.testerStepNum, { backgroundColor: '#34a853' }]}>
+          <Text style={modalStyles.testerStepNumText}>1</Text>
+        </View>
+        <Text style={modalStyles.testerStepText}>
+          Únete al grupo de testers de Google y espera la confirmación (puede tardar unos minutos).
+        </Text>
+      </View>
+
+      {/* Paso 2 */}
+      <View style={modalStyles.testerStep}>
+        <View style={[modalStyles.testerStepNum, { backgroundColor: '#4285F4' }]}>
+          <Text style={modalStyles.testerStepNumText}>2</Text>
+        </View>
+        <Text style={modalStyles.testerStepText}>
+          Una vez aceptado, podrás descargar e instalar DEC directamente desde Google Play.
+        </Text>
+      </View>
+
+      {/* Botón unirse al grupo */}
+      <TouchableOpacity
+        style={modalStyles.testerGroupBtn}
+        onPress={() => Linking.openURL(TESTER_GROUP_URL)}
+        activeOpacity={0.85}
+      >
+        <MaterialCommunityIcons name="google" size={isMobile ? 18 : 20} color="#fff" />
+        <Text style={modalStyles.testerGroupBtnText}>Unirme al grupo de testers</Text>
+        <Feather name="external-link" size={isMobile ? 14 : 16} color="rgba(255,255,255,0.8)" style={{ marginLeft: 'auto' }} />
+      </TouchableOpacity>
+
+      <Text style={modalStyles.testerNote}>
+        💡 ¿Prefieres instalación inmediata? Descarga el APK gratis desde GitHub.
+      </Text>
+    </>
+  );
+
+  // ─────────────────────────────────────────────
+  // VISTA: DESCARGA PRINCIPAL
+  // ─────────────────────────────────────────────
+  const DownloadOptionsView = () => (
+    <>
+      <TouchableOpacity
+        style={modalStyles.closeButton}
+        onPress={onClose}
+      >
+        <Feather name="x" size={isMobile ? 20 : 24} color={C.text} />
+      </TouchableOpacity>
+
+      <Text style={modalStyles.title}>Descarga DEC</Text>
+      <Text style={modalStyles.subtitle}>
+        Elige tu método de instalación preferido
+      </Text>
+
+      <View style={modalStyles.optionsContainer}>
+        {/* Opción GitHub */}
+        <View style={modalStyles.downloadOption}>
+          {!isMobile && (
+            <View style={modalStyles.qrContainer}>
+              <QRCode
+                value={githubURL}
+                size={qrSize}
+                color={C.text}
+                backgroundColor="#fff"
+                quietZone={8}
+              />
+            </View>
+          )}
+          <TouchableOpacity
+            style={[modalStyles.downloadBtn, modalStyles.githubBtn]}
+            onPress={() => {
+              Linking.openURL(githubURL);
+              onClose();
+            }}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons name="github" size={isMobile ? 20 : 24} color="#fff" />
+            <View style={modalStyles.btnLabelContainer}>
+              <Text style={modalStyles.btnLabel}>Descargar desde</Text>
+              <Text style={modalStyles.btnTitle}>GitHub</Text>
+            </View>
+            <Feather
+              name="arrow-right"
+              size={isMobile ? 0 : 20}
+              color="#fff"
+              style={[{ marginLeft: 'auto' }, modalStyles.arrowIcon]}
+            />
+          </TouchableOpacity>
+          <Text style={modalStyles.optionDesc}>
+            Descarga directa • APK • Última versión
+          </Text>
+        </View>
+
+        {/* Divisor */}
+        <View style={modalStyles.divider} />
+
+        {/* Opción Play Store → muestra aviso de acceso anticipado */}
+        <View style={modalStyles.downloadOption}>
+          {!isMobile && (
+            <View style={modalStyles.qrContainer}>
+              <QRCode
+                value={playStoreURL}
+                size={qrSize}
+                color={C.text}
+                backgroundColor="#fff"
+                quietZone={8}
+              />
+            </View>
+          )}
+          <TouchableOpacity
+            style={[modalStyles.downloadBtn, modalStyles.playStoreBtn]}
+            onPress={() => setShowTesterInfo(true)}   // ✅ Cambia la vista en lugar de abrir la URL
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons name="google-play" size={isMobile ? 20 : 24} color="#fff" />
+            <View style={modalStyles.btnLabelContainer}>
+              <Text style={modalStyles.btnLabel}>Descargar desde</Text>
+              <Text style={modalStyles.btnTitle}>Google Play</Text>
+            </View>
+            <Feather
+              name="arrow-right"
+              size={isMobile ? 0 : 20}
+              color="#fff"
+              style={[{ marginLeft: 'auto' }, modalStyles.arrowIcon]}
+            />
+          </TouchableOpacity>
+          <Text style={modalStyles.optionDesc}>
+            Actualizaciones automáticas • Verificado • Seguro
+          </Text>
+        </View>
+      </View>
+
+      <View style={modalStyles.footer}>
+        <View style={modalStyles.featureRow}>
+          <View style={modalStyles.featureBadge}>
+            <Feather name="smartphone" size={isMobile ? 14 : 16} color={C.primary} />
+          </View>
+          <Text style={modalStyles.featureText}>Compatible Android 8+</Text>
+        </View>
+        <View style={modalStyles.featureRow}>
+          <View style={modalStyles.featureBadge}>
+            <Feather name="wifi-off" size={isMobile ? 14 : 16} color={C.primary} />
+          </View>
+          <Text style={modalStyles.featureText}>Funciona sin conexión</Text>
+        </View>
+        <View style={modalStyles.featureRow}>
+          <View style={modalStyles.featureBadge}>
+            <Feather name="lock" size={isMobile ? 14 : 16} color={C.primary} />
+          </View>
+          <Text style={modalStyles.featureText}>100% gratuito y seguro</Text>
+        </View>
+      </View>
+    </>
+  );
+
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <View style={modalStyles.container}>
         {/* Fondo oscuro con opacidad */}
-        <Animated.View 
-          style={[
-            modalStyles.overlay, 
-            { opacity: modalOpacity }
-          ]} 
-        >
-          <TouchableOpacity 
-            activeOpacity={1} 
-            onPress={onClose} 
-            style={{ flex: 1 }}
-          />
+        <Animated.View style={[modalStyles.overlay, { opacity: modalOpacity }]}>
+          <TouchableOpacity activeOpacity={1} onPress={onClose} style={{ flex: 1 }} />
         </Animated.View>
 
         {/* Modal principal */}
-        <Animated.View 
+        <Animated.View
           style={[
             modalStyles.modalContent,
-            {
-              transform: [{ scale: modalScale }],
-              opacity: modalOpacity,
-            },
+            { transform: [{ scale: modalScale }], opacity: modalOpacity },
           ]}
         >
-          <TouchableOpacity 
-            style={modalStyles.closeButton} 
-            onPress={onClose}
-          >
-            <Feather name="x" size={isMobile ? 20 : 24} color={C.text} />
-          </TouchableOpacity>
-
-          <Text style={modalStyles.title}>Descarga DEC</Text>
-          <Text style={modalStyles.subtitle}>
-            Elige tu método de instalación preferido
-          </Text>
-
-          <View style={modalStyles.optionsContainer}>
-            {/* Opción GitHub */}
-            <View style={modalStyles.downloadOption}>
-              {!isMobile && (
-                <View style={modalStyles.qrContainer}>
-                  <QRCode
-                    value={githubURL}
-                    size={qrSize}
-                    color={C.text}
-                    backgroundColor="#fff"
-                    quietZone={8}
-                  />
-                </View>
-              )}
-              <TouchableOpacity 
-                style={[modalStyles.downloadBtn, modalStyles.githubBtn]}
-                onPress={() => {
-                  Linking.openURL(githubURL);
-                  onClose();
-                }}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons 
-                  name="github" 
-                  size={isMobile ? 20 : 24} 
-                  color="#fff" 
-                />
-                <View style={modalStyles.btnLabelContainer}>
-                  <Text style={modalStyles.btnLabel}>Descargar desde</Text>
-                  <Text style={modalStyles.btnTitle}>GitHub</Text>
-                </View>
-                <Feather 
-                  name="arrow-right" 
-                  size={isMobile ? 0 : 20} 
-                  color="#fff" 
-                  style={[{ marginLeft: 'auto' }, modalStyles.arrowIcon]} 
-                />
-              </TouchableOpacity>
-              <Text style={modalStyles.optionDesc}>
-                Descarga directa • APK • Última versión
-              </Text>
-            </View>
-
-            {/* Divisor */}
-            <View style={modalStyles.divider} />
-
-            {/* Opción Play Store */}
-            <View style={modalStyles.downloadOption}>
-              {!isMobile && (
-                <View style={modalStyles.qrContainer}>
-                  <QRCode
-                    value={playStoreURL}
-                    size={qrSize}
-                    color={C.text}
-                    backgroundColor="#fff"
-                    quietZone={8}
-                  />
-                </View>
-              )}
-              <TouchableOpacity 
-                style={[modalStyles.downloadBtn, modalStyles.playStoreBtn]}
-                onPress={() => {
-                  Linking.openURL(playStoreURL);
-                  onClose();
-                }}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons 
-                  name="google-play" 
-                  size={isMobile ? 20 : 24} 
-                  color="#fff" 
-                />
-                <View style={modalStyles.btnLabelContainer}>
-                  <Text style={modalStyles.btnLabel}>Descargar desde</Text>
-                  <Text style={modalStyles.btnTitle}>Google Play</Text>
-                </View>
-                <Feather 
-                  name="arrow-right" 
-                  size={isMobile ? 0 : 20} 
-                  color="#fff" 
-                  style={[{ marginLeft: 'auto' }, modalStyles.arrowIcon]} 
-                />
-              </TouchableOpacity>
-              <Text style={modalStyles.optionDesc}>
-                Actualizaciones automáticas • Verificado • Seguro
-              </Text>
-            </View>
-          </View>
-
-          <View style={modalStyles.footer}>
-            <View style={modalStyles.featureRow}>
-              <View style={modalStyles.featureBadge}>
-                <Feather name="smartphone" size={isMobile ? 14 : 16} color={C.primary} />
-              </View>
-              <Text style={modalStyles.featureText}>Compatible Android 8+</Text>
-            </View>
-            <View style={modalStyles.featureRow}>
-              <View style={modalStyles.featureBadge}>
-                <Feather name="wifi-off" size={isMobile ? 14 : 16} color={C.primary} />
-              </View>
-              <Text style={modalStyles.featureText}>Funciona sin conexión</Text>
-            </View>
-            <View style={modalStyles.featureRow}>
-              <View style={modalStyles.featureBadge}>
-                <Feather name="lock" size={isMobile ? 14 : 16} color={C.primary} />
-              </View>
-              <Text style={modalStyles.featureText}>100% gratuito y seguro</Text>
-            </View>
-          </View>
+          {/* ✅ Alterna entre las dos vistas */}
+          {showTesterInfo ? <TesterInfoView /> : <DownloadOptionsView />}
         </Animated.View>
       </View>
     </Modal>
@@ -393,6 +459,105 @@ const downloadModalStyles = ({ width, isMobile, isTablet }) => StyleSheet.create
   arrowIcon: {
     display: isMobile ? 'none' : 'flex',
   },
+  // ── Estilos vista Tester Info ──────────────────
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: isMobile ? 16 : 20,
+    alignSelf: 'flex-start',
+  },
+  backButtonText: {
+    fontSize: isMobile ? 13 : 14,
+    color: C.text,
+    fontWeight: '600',
+  },
+  earlyAccessBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#86efac',
+    borderRadius: 40,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+    marginBottom: isMobile ? 12 : 16,
+  },
+  earlyAccessBadgeText: {
+    fontSize: isMobile ? 11 : 12,
+    color: '#16a34a',
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  testerSubtitle: {
+    fontSize: isMobile ? 13 : 14,
+    color: '#374151',
+    lineHeight: isMobile ? 20 : 22,
+    marginBottom: isMobile ? 16 : 20,
+  },
+  testerDivider: {
+    height: 1,
+    backgroundColor: '#f3f4f6',
+    marginBottom: isMobile ? 16 : 20,
+  },
+  testerStepTitle: {
+    fontSize: isMobile ? 14 : 15,
+    fontWeight: '700',
+    color: C.text,
+    marginBottom: isMobile ? 12 : 16,
+  },
+  testerStep: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: isMobile ? 12 : 14,
+  },
+  testerStepNum: {
+    width: isMobile ? 22 : 24,
+    height: isMobile ? 22 : 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  testerStepNumText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: isMobile ? 11 : 12,
+  },
+  testerStepText: {
+    flex: 1,
+    fontSize: isMobile ? 13 : 14,
+    color: '#4b5563',
+    lineHeight: isMobile ? 19 : 21,
+  },
+  testerGroupBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4285F4',
+    paddingVertical: isMobile ? 14 : 15,
+    paddingHorizontal: isMobile ? 16 : 20,
+    borderRadius: isMobile ? 12 : 14,
+    gap: 10,
+    marginTop: isMobile ? 4 : 8,
+    marginBottom: isMobile ? 14 : 16,
+  },
+  testerGroupBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: isMobile ? 14 : 15,
+    flex: 1,
+  },
+  testerNote: {
+    fontSize: isMobile ? 11 : 12,
+    color: '#9ca3af',
+    textAlign: 'center',
+    lineHeight: isMobile ? 16 : 18,
+  },
+  // ── Fin estilos Tester Info ─────────────────
   optionDesc: {
     fontSize: isMobile ? 11 : 12,
     color: '#9ca3af',
