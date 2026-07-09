@@ -3,12 +3,15 @@ import {
   StyleSheet, Text, View, FlatList, Image, SafeAreaView,
   StatusBar, TouchableOpacity, Alert, RefreshControl
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import NetInfo from '@react-native-community/netinfo';
 import { AuthContext } from "../../context/AuthContext";
-import { getAllRemoteDetections } from '../../services/dbService';
+import {
+  getAllRemoteDetections,
+  getUnsyncedDetectionsForDisplay  // <-- NUEVA función (debes agregarla en dbService)
+} from '../../services/dbService';
 import { syncServerToLocal } from '../../services/syncService';
 import api from '../../api/api';
 import { Colors } from '../../constants/colors';
@@ -29,6 +32,7 @@ const HistoryCard = ({ item, onPress }) => {
   const imageUrl = item.image_url || item.imageUrl;
   const isDiseased = diseaseName !== 'Planta Sana';
   const mainColor = isDiseased ? Colors.warning : Colors.success;
+  const isPending = item.isPending || false; // ← flag para pendientes
 
   return (
     <TouchableOpacity
@@ -40,12 +44,16 @@ const HistoryCard = ({ item, onPress }) => {
         <Image style={styles.image} source={{ uri: imageUrl }} resizeMode="cover" />
       </View>
       <View style={styles.detailsContainer}>
-        <Text style={styles.dateText}>{formatSimpleDate(item.created_at || item.createdAt)}</Text>
+        <Text style={styles.dateText}>{formatSimpleDate(item.created_at || item.createdAt || item.date)}</Text>
         <Text style={[styles.diseaseName, { color: mainColor }]} numberOfLines={1}>
           {diseaseName}
         </Text>
-        <View style={styles.confidenceBadge}>
-          <Text style={styles.confidenceText}>Precisión: {(confidence * 100).toFixed(0)}%</Text>
+        <View style={[styles.confidenceBadge, isPending && styles.pendingBadge]}>
+          <Text style={styles.confidenceText}>
+            {isPending
+              ? '⏳ Pendiente de sincronizar'
+              : `Precisión: ${(confidence * 100).toFixed(0)}%`}
+          </Text>
         </View>
       </View>
       <View style={styles.arrowContainer}>
@@ -70,31 +78,54 @@ export default function HistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
 
+  // Función principal de carga de datos
   const loadData = async () => {
     setLoading(true);
     const netState = await NetInfo.fetch();
     const connected = netState.isConnected;
     setIsOnline(connected);
 
+    let remoteData = [];
+    // 1. Obtener datos del servidor (o desde remote_detections local)
     if (connected && userToken) {
       try {
         const response = await api.get('detections/history?page=1&limit=100');
-        const data = response.data;
-        setHistory(data.history);
+        remoteData = response.data.history || [];
+        // Sincronizar en segundo plano (descargar al local)
         syncServerToLocal(userToken).catch(err => console.warn(err));
       } catch (error) {
         console.error(error);
         Alert.alert("Error", "No se pudo cargar el historial desde el servidor");
-        const localData = getAllRemoteDetections();
-        setHistory(localData);
+        // Fallback: usar lo que tengamos en remote_detections
+        remoteData = getAllRemoteDetections();
       }
     } else {
-      const localData = getAllRemoteDetections();
-      setHistory(localData);
+      // Sin conexión o sin token: usar solo remote_detections
+      remoteData = getAllRemoteDetections();
     }
+
+    // 2. Obtener detecciones locales pendientes (synced = 0)
+    const localPending = getUnsyncedDetectionsForDisplay();
+
+    // 3. Transformar pendientes al formato de las remotas
+    const pendingFormatted = localPending.map(item => ({
+      _id: `local-${item.id}`,        // ID único temporal
+      disease_name: item.disease,
+      confidence: parseFloat(item.confidence) / 100, // normalizar a 0-1
+      image_url: item.image_uri,
+      created_at: item.date,
+      lat: item.lat,
+      lng: item.lng,
+      isPending: true,                // marcador para UI
+    }));
+
+    // 4. Combinar listas (remotas primero, luego pendientes)
+    const combined = [...remoteData, ...pendingFormatted];
+    setHistory(combined);
     setLoading(false);
   };
 
+  // Refrescar manual (pull-to-refresh)
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     if (isOnline && userToken) {
@@ -104,14 +135,25 @@ export default function HistoryScreen() {
     setRefreshing(false);
   }, [isOnline, userToken]);
 
+  // Al hacer clic en un item
   const handlePressItem = (item) => {
+    // Si es pendiente, quizás no tengamos todos los datos, pero podemos mostrar algo
     navigation.navigate('DetectionDetail', { detection: item });
   };
 
+  // Cargar datos al montar
   useEffect(() => {
     loadData();
   }, []);
 
+  // Recargar cada vez que la pantalla obtiene foco (ej. al volver de guardar)
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
+  // Escuchar cambios de conectividad
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
       setIsOnline(state.isConnected);
@@ -235,6 +277,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
     alignSelf: 'flex-start',
+  },
+  pendingBadge: {
+    backgroundColor: '#FFEDD5',  // naranja claro
   },
   confidenceText: {
     fontSize: 12,

@@ -216,6 +216,7 @@ export const getRemoteDetectionsPaginated = (limit, offset) =>
 export const getRemoteDetectionsCount = () => db.getFirstSync('SELECT COUNT(*) as total FROM remote_detections')?.total || 0;
 export const clearRemoteDetections = () => db.runSync('DELETE FROM remote_detections');
 
+
 // --- Alarmas locales ---
 export const saveAlarm = (alarm) => {
   try {
@@ -393,6 +394,10 @@ export const resetDatabase = () => {
   } catch (error) {
     console.error("Error al resetear la base de datos:", error);
   }
+};
+// Obtener detecciones locales no sincronizadas (para mostrar en historial)
+export const getUnsyncedDetectionsForDisplay = () => {
+  return db.getAllSync('SELECT * FROM detections WHERE synced = 0 ORDER BY date DESC');
 };
 
 // --- Obtener todas las bitácoras con sus productos (para listado) ---
